@@ -3,11 +3,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#6f9a6b">
+  <meta name="theme-color" content="#a5d7f8">
   <title>SkinSafe</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="waves" aria-hidden="true">
+    <svg viewBox="0 0 440 150" preserveAspectRatio="none" focusable="false">
+      <defs>
+        <linearGradient id="gw1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--w1a)"/><stop offset="1" style="stop-color:var(--w1b)"/></linearGradient>
+        <linearGradient id="gw2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--w2a)"/><stop offset="1" style="stop-color:var(--w2b)"/></linearGradient>
+        <linearGradient id="gw3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--w3a)"/><stop offset="1" style="stop-color:var(--w3b)"/></linearGradient>
+        <linearGradient id="gsh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" style="stop-color:var(--shine);stop-opacity:0"/><stop offset="0.5" style="stop-color:var(--shine);stop-opacity:0.9"/><stop offset="1" style="stop-color:var(--shine);stop-opacity:0"/></linearGradient>
+      </defs>
+      <path d="M0,58 C80,30 150,80 230,58 S380,24 440,54 L440,150 L0,150Z" fill="url(#gw1)"/>
+      <g class="wave-l2">
+        <path d="M-20,82 C70,54 150,104 240,80 S390,56 460,80 L460,150 L-20,150Z" fill="url(#gw2)"/>
+        <path class="wave-shine" d="M-20,82 C70,54 150,104 240,80 S390,56 460,80" fill="none" stroke="url(#gsh)" stroke-width="2"/>
+      </g>
+      <g class="wave-l3">
+        <path d="M-20,108 C80,84 160,130 250,106 S390,90 460,108 L460,150 L-20,150Z" fill="url(#gw3)"/>
+        <path class="wave-shine" d="M-20,108 C80,84 160,130 250,106 S390,90 460,108" fill="none" stroke="url(#gsh)" stroke-width="1.4" stroke-opacity="0.7"/>
+      </g>
+    </svg>
+  </div>
   <main class="app">
     <header class="top">
       <button class="home-link" id="logo" type="button">SkinSafe</button>
