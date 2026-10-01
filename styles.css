@@ -213,3 +213,15 @@ body {
 .unrated-list { color: var(--text-2); margin: 8px 0 0; line-height: 1.6; overflow-wrap: anywhere; }
 
 .disclaimer { font-size: 11px; color: var(--text-3); margin: 14px 0 0; }
+
+.alert { border-radius: 16px; padding: 12px 14px; margin-bottom: 12px; border: 1px solid var(--glass-line); }
+.alert.recall { background: var(--bad-bg); border-color: transparent; }
+.alert.litigation { background: var(--accent-soft); }
+.alert p { margin: 0 0 6px; font-size: 13px; line-height: 1.5; }
+.alert-kind { font-size: 11px !important; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-2); }
+.alert.recall .alert-kind { color: var(--bad); }
+.alert-title { font-size: 15px !important; font-weight: 600; }
+.alert.recall .alert-title { color: var(--bad); }
+.alert-why { color: var(--text-2); }
+.alert-src { font-size: 12px !important; color: var(--text-2); margin-bottom: 0 !important; }
+.alert-src a { color: var(--text-2); }

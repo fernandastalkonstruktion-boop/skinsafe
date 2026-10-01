@@ -137,6 +137,23 @@
     box.innerHTML = html;
   }
 
+  var ALERT_LABEL = { recall: "Official recall or alert", litigation: "Lawsuits, not proven" };
+  function renderAlerts(product) {
+    var box = el("alerts");
+    var found = window.Alerts ? window.Alerts.match(product) : [];
+    box.hidden = found.length === 0;
+    box.innerHTML = found.map(function (a) {
+      var links = a.sources.map(function (s) {
+        return '<a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.name) + "</a>";
+      }).join(" \u00b7 ");
+      return '<div class="alert ' + a.kind + '"><p class="alert-kind">' + esc(ALERT_LABEL[a.kind]) + (a.kind === "recall" ? " \u00b7 " + esc(a.date) : "") + "</p>" +
+        '<p class="alert-title">' + esc(a.title) + "</p>" +
+        '<p class="alert-text">' + esc(a.text) + "</p>" +
+        (a.why ? '<p class="alert-why">' + esc(a.why) + "</p>" : "") +
+        '<p class="alert-src">' + links + "</p></div>";
+    }).join("");
+  }
+
   function ingredientRow(i) {
     var labels = window.Ingredients.RISK_LABEL;
     var chips = i.risks.map(function (r) { return '<span class="risk">' + esc(labels[r]) + "</span>"; }).join("");
@@ -194,6 +211,7 @@
       '<span class="pill mid">' + n.mid + " to watch</span>" +
       '<span class="pill bad">' + plural(n.bad, "flag", "flags") + "</span>";
 
+    renderAlerts(product);
     renderMatch(a.items);
 
     var order = { bad: 0, mid: 1, good: 2 };
