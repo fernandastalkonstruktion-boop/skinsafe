@@ -54,7 +54,7 @@
 }
 
 * { box-sizing: border-box; }
-html { background: var(--tint-top); }
+html { min-height: 100%; background-color: var(--base-bottom); background-image: linear-gradient(180deg, var(--tint-top) 0%, var(--base-bottom) 100%); background-repeat: no-repeat; }
 html, body { margin: 0; }
 body {
   background: transparent;
@@ -68,7 +68,7 @@ body {
 [hidden] { display: none !important; }
 
 /* Fluid background: soft blurred color blobs that drift slowly, plus film grain. */
-.bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: linear-gradient(180deg, var(--base-top) 0%, var(--base-bottom) 100%); }
+.bg { position: fixed; top: 0; left: 0; right: 0; height: 100vh; height: 100lvh; z-index: 0; overflow: hidden; pointer-events: none; background: linear-gradient(180deg, var(--base-top) 0%, var(--base-bottom) 100%); }
 .blob { position: absolute; border-radius: 50%; filter: blur(48px); opacity: 0.95; will-change: transform; }
 .b1 { background: var(--blob1); width: 80vmax; height: 62vmax; left: -28vmax; top: -22vmax; }
 .b2 { background: var(--blob2); width: 70vmax; height: 56vmax; left: -34vmax; bottom: -26vmax; }
@@ -95,7 +95,7 @@ body {
   z-index: 1;
   max-width: 440px;
   margin: 0 auto;
-  padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  padding: 16px 16px calc(104px + env(safe-area-inset-bottom));
 }
 
 .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
@@ -342,3 +342,6 @@ body {
 .name-form { display: flex; gap: 8px; margin-top: 10px; }
 .name-form input { flex: 1; min-width: 0; border: 1px solid var(--glass-line); background: var(--glass); color: var(--text); border-radius: 14px; padding: 10px 12px; font-size: 16px; font-family: inherit; }
 .greet .link { margin-top: 6px; display: inline-block; }
+
+/* Bottom fade: ends in the exact color the phone uses behind its bottom bar. */
+.bg::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 200px; z-index: 1; background: linear-gradient(0deg, var(--base-bottom) 0%, color-mix(in srgb, var(--base-bottom) 70%, transparent) 40%, transparent 100%); pointer-events: none; }
