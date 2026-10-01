@@ -141,9 +141,16 @@
     var labels = window.Ingredients.RISK_LABEL;
     var chips = i.risks.map(function (r) { return '<span class="risk">' + esc(labels[r]) + "</span>"; }).join("");
     var helps = i.helps.length ? '<p class="ing-helps">Often used for: ' + esc(i.helps.join(", ")) + "</p>" : "";
-    var src = i.src.map(function (s) {
+    var links = i.src.map(function (s) {
       return '<a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.name) + "</a>";
-    }).join(" · ");
+    });
+    // Peer-reviewed research (universities, hospitals) from PubMed, review articles only.
+    var term = i.name.replace(/\([^)]*\)/g, " ").replace(/[^\w\s,\/.-]/g, " ").replace(/\s+/g, " ").trim();
+    if (term) {
+      var url = "https://pubmed.ncbi.nlm.nih.gov/?term=" + encodeURIComponent(term + " AND skin AND review[pt]");
+      links.push('<a href="' + esc(url) + '" target="_blank" rel="noopener">Research reviews (PubMed)</a>');
+    }
+    var src = links.join(" · ");
     return '<li><details class="ing"><summary>' +
       '<span class="dot ' + i.level + '"></span>' +
       '<span class="ing-main"><span class="ing-name">' + esc(i.name) + '</span><span class="ing-note">' + esc(i.note) + "</span></span>" +
