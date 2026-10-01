@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#7fd0e6" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0b3a4d" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#84cdea" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b2f45" media="(prefers-color-scheme: dark)">
   <title>SkinSafe</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -96,6 +96,12 @@
       <h2 class="quiz-title">My allergies</h2>
       <p class="quiz-sub">Pick what you know bothers you. We'll warn you when a product has it.</p>
       <div class="options grid" id="allergy-options"></div>
+      <p class="field-label">Your own words</p>
+      <form class="word-form" id="word-form" autocomplete="off">
+        <input id="word-input" type="text" maxlength="30" placeholder="Add a word, like mango" aria-label="Add your own word">
+        <button type="submit" class="secondary small-btn">Add</button>
+      </form>
+      <div class="word-chips" id="word-chips"></div>
       <div class="quiz-nav">
         <button class="secondary" id="allergy-cancel" type="button">Cancel</button>
         <button class="primary small" id="allergy-save" type="button"><svg class="ic"><use href="#i-check"/></svg>Save</button>

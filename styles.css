@@ -4,7 +4,8 @@
 @font-face { font-family: "SS Cormorant"; src: url("fonts/cormorant-italic.woff2") format("woff2"); font-weight: 500 700; font-style: italic; font-display: swap; }
 /* SkinSafe: fluid background that starts aqua (top) and melts into sky blue (bottom), with a fine grain; glass cards on top. */
 :root {
-  --tint-top: #7fd0e6;      /* top of the page; matches the phone status bar */
+  --edge: #84cdea;          /* the page fades to this color at BOTH the top and the bottom edge, so the phone's top and bottom bars blend */
+  --tint-top: #7fd0e6;
   --base-top: #63c6df;      /* aqua */
   --base-bottom: #86c8f4;   /* sky */
   --blob1: #c4f3fb; --blob2: #3ba0ee; --blob3: #2fb7d9; --blob4: #d9f2ff; --blob5: #9fdcf3;
@@ -30,6 +31,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
+    --edge: #0b2f45;
     --tint-top: #0b3a4d;
     --base-top: #0b3a4d;
     --base-bottom: #0a1d3a;
@@ -54,7 +56,7 @@
 }
 
 * { box-sizing: border-box; }
-html { min-height: 100%; background-color: var(--base-bottom); background-image: linear-gradient(180deg, var(--tint-top) 0%, var(--base-bottom) 100%); background-repeat: no-repeat; }
+html { min-height: 100%; background: var(--edge); }
 html, body { margin: 0; }
 body {
   background: transparent;
@@ -332,7 +334,7 @@ body {
 .name, .quiz-title { font-variant-numeric: lining-nums; font-feature-settings: "lnum" 1; }
 
 /* Top fade: the page starts in the exact color the phone uses for its status bar, then melts into the background. */
-.bg::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 190px; z-index: 1; background: linear-gradient(180deg, var(--tint-top) 0%, color-mix(in srgb, var(--tint-top) 70%, transparent) 40%, transparent 100%); pointer-events: none; }
+.bg::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 190px; z-index: 1; background: linear-gradient(180deg, var(--edge) 0%, color-mix(in srgb, var(--edge) 70%, transparent) 40%, transparent 100%); pointer-events: none; }
 .grain { z-index: 2; }
 
 /* greeting */
@@ -344,4 +346,10 @@ body {
 .greet .link { margin-top: 6px; display: inline-block; }
 
 /* Bottom fade: ends in the exact color the phone uses behind its bottom bar. */
-.bg::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 200px; z-index: 1; background: linear-gradient(0deg, var(--base-bottom) 0%, color-mix(in srgb, var(--base-bottom) 70%, transparent) 40%, transparent 100%); pointer-events: none; }
+.bg::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 200px; z-index: 1; background: linear-gradient(0deg, var(--edge) 0%, color-mix(in srgb, var(--edge) 70%, transparent) 40%, transparent 100%); pointer-events: none; }
+
+.word-form { display: flex; gap: 8px; }
+.word-form input { flex: 1; min-width: 0; border: 1px solid var(--glass-line); background: var(--glass); color: var(--text); border-radius: 14px; padding: 10px 12px; font-size: 16px; font-family: inherit; }
+.word-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 18px; }
+.word-chip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 6px 5px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--text); font-size: 13px; font-weight: 600; }
+.word-chip button { border: 0; background: transparent; color: var(--text-2); cursor: pointer; display: flex; padding: 2px; }

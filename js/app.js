@@ -6,6 +6,8 @@
   var lastResults = null;
   var quiz = { step: 0, answers: {} };
   var allergyDraft = [];
+  var wordsDraft = [];
+  var importNote = "";
 
   function el(id) { return document.getElementById(id); }
   function esc(s) {
@@ -36,6 +38,23 @@
     return { cls: "bad", label: "Bad", icon: "alert" };
   }
 
+  // ----- private setup link: #setup=<base64 json> loads allergies into THIS phone only. The part after # is never sent to a server. -----
+  function importSetup() {
+    var m = location.hash.match(/^#setup=([A-Za-z0-9_-]+)/);
+    if (!m) return;
+    try {
+      var json = JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, "+").replace(/_/g, "/")))));
+      var known = window.Profile.ALLERGENS.map(function (x) { return x.id; });
+      var ids = (json.a || []).filter(function (id) { return known.indexOf(id) > -1; });
+      var words = (json.w || []).filter(function (w) { return typeof w === "string" && w.trim(); }).map(function (w) { return w.trim().toLowerCase(); });
+      window.Profile.saveAllergies(ids);
+      window.Profile.saveWords(words);
+      if (json.n && typeof json.n === "string" && !getName()) setName(json.n.trim().slice(0, 24));
+      importNote = "Your allergies were loaded on this phone.";
+    } catch (e) { importNote = ""; }
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+  }
+
   // ----- greeting: each person uses their own phone, so the name is asked once and kept on this device -----
   function getName() { try { return (localStorage.getItem("skinsafe.name") || "").trim(); } catch (e) { return ""; } }
   function setName(v) { try { localStorage.setItem("skinsafe.name", v); localStorage.removeItem("skinsafe.nameSkipped"); } catch (e) {} }
@@ -47,7 +66,9 @@
     var box = el("greet");
     var name = getName();
     if (name && !editing) {
-      box.innerHTML = '<p class="greet-hi">Hi, ' + esc(pretty(name)) + '!</p><button type="button" class="link" id="greet-edit">Change name</button>';
+      box.innerHTML = '<p class="greet-hi">Hi, ' + esc(pretty(name)) + '!</p>' +
+        (importNote ? '<p class="greet-sub">' + esc(importNote) + "</p>" : "") +
+        '<button type="button" class="link" id="greet-edit">Change name</button>';
       el("greet-edit").addEventListener("click", function () { renderGreeting(true); });
       return;
     }
@@ -97,6 +118,7 @@
     var ids = window.Profile.loadAllergies();
     var box = el("allergy-card");
     var labels = window.Profile.ALLERGENS.filter(function (a) { return ids.indexOf(a.id) > -1; }).map(function (a) { return a.label; });
+    labels = labels.concat(window.Profile.loadWords());
     box.innerHTML =
       '<p class="profile-label">' + ic("alert") + 'My allergies</p>' +
       '<p class="profile-text">' + (labels.length ? esc(labels.join(", ")) : "None set yet.") + "</p>" +
@@ -107,7 +129,9 @@
   // ----- allergies editor -----
   function startAllergies() {
     allergyDraft = window.Profile.loadAllergies().slice();
+    wordsDraft = window.Profile.loadWords().slice();
     renderAllergyOptions();
+    renderWordChips();
     show("allergies");
   }
   function renderAllergyOptions() {
@@ -126,8 +150,23 @@
       });
     });
   }
+  function renderWordChips() {
+    el("word-chips").innerHTML = wordsDraft.map(function (w, i) {
+      return '<span class="word-chip">' + esc(w) + '<button type="button" data-i="' + i + '" aria-label="Remove ' + esc(w) + '">' + ic("x") + "</button></span>";
+    }).join("");
+    Array.prototype.forEach.call(el("word-chips").querySelectorAll("button"), function (b) {
+      b.addEventListener("click", function () { wordsDraft.splice(Number(b.getAttribute("data-i")), 1); renderWordChips(); });
+    });
+  }
+  function addWord(e) {
+    e.preventDefault();
+    var v = el("word-input").value.trim().toLowerCase();
+    if (v.length >= 3 && wordsDraft.indexOf(v) < 0) { wordsDraft.push(v); renderWordChips(); }
+    el("word-input").value = "";
+  }
   function saveAllergies() {
     window.Profile.saveAllergies(allergyDraft);
+    window.Profile.saveWords(wordsDraft);
     renderAllergyCard();
     if (lastProduct && cameFrom !== "home-only") { renderResult(lastProduct); } else { show("home"); }
   }
@@ -222,8 +261,9 @@
   function renderAllergyBox(items) {
     var box = el("allergy-box");
     var ids = window.Profile.loadAllergies();
-    if (!ids.length) { box.hidden = true; return; }
-    var hits = window.Profile.allergyHits(items, ids);
+    var words = window.Profile.loadWords();
+    if (!ids.length && !words.length) { box.hidden = true; return; }
+    var hits = window.Profile.allergyHits(items, ids, words);
     box.hidden = false;
     if (hits.length) {
       box.className = "match bad allergy-box";
@@ -533,6 +573,16 @@
     lookupCode(el("code").value);
   });
 
+  el("word-form").addEventListener("submit", addWord);
+  // The link can be opened while the app is already open (then the page does not reload, only the # part changes).
+  window.addEventListener("hashchange", function () {
+    importSetup();
+    renderGreeting(false);
+    renderProfileCard();
+    renderAllergyCard();
+    show("home");
+  });
+  importSetup();
   renderGreeting(false);
   renderProfileCard();
   renderAllergyCard();

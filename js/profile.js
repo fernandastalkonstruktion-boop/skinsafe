@@ -111,8 +111,25 @@
     { id: "essential", label: "Essential oils", sub: "Citrus, lavender, tea tree, mint", test: re(/(citrus [a-z ]*(oil)|lavandula|melaleuca|tea tree|eucalyptus|mentha|peppermint|pelargonium|cananga|rosa damascena|leptospermum|anthemis nobilis flower oil|rosmarinus officinalis leaf oil)/) },
     { id: "preservatives", label: "Preservatives", sub: "Formaldehyde releasers, isothiazolinones, parabens", test: re(/(isothiazolinone|dmdm|quaternium-15|imidazolidinyl|diazolidinyl|bronopol|2-bromo-2-nitropropane|hydroxymethylglycinate|paraben|iodopropynyl|formaldehyde)/) },
     { id: "carmine", label: "Insect dye (carmine)", sub: "Carmine, cochineal, CI 75470", test: re(/(carmine|cochineal|ci 75470|carminic)/) },
-    { id: "sulfites", label: "Sulfites", sub: "Sodium metabisulfite", test: re(/(sulfite|metabisulfite)/) }
+    { id: "sulfites", label: "Sulfites", sub: "Sodium metabisulfite", test: re(/(sulfite|metabisulfite)/) },
+    { id: "milk", label: "Milk or casein", sub: "Casein, whey, milk protein, lactoferrin", test: re(/(casein|(^|[^a-z])whey|milk|lactoferrin|lactalbumin|lactoglobulin|(^|[^a-z])lac([^a-z]|$)|lactis)/) },
+    { id: "egg", label: "Egg", sub: "Egg white, yolk, lysozyme", test: re(/(ovum|(^|[^a-z])egg|albumen|ovalbumin|lysozyme|ovo)/) },
+    { id: "fish", label: "Fish", sub: "Fish collagen, marine collagen, roe", test: re(/(fish|salmon|piscis|marine collagen|caviar|(^|[^a-z])roe([^a-z]|$))/) },
+    { id: "shellfish", label: "Shellfish", sub: "Chitosan, glucosamine, crab and shrimp extracts", test: re(/(chitosan|chitin|glucosamine|crustacea|shrimp|crab|lobster|oyster|mussel|shell)/) },
+    { id: "strawberry", label: "Strawberry", sub: "Strawberry fruit and seed extracts", test: re(/(fragaria|strawberry)/) },
+    { id: "tomato", label: "Tomato", sub: "Tomato extracts, lycopene", test: re(/(solanum lycopersicum|lycopersicon|tomato|lycopene)/) },
+    { id: "daisy", label: "Daisy-family plants", sub: "Chamomile, calendula, arnica, sunflower, echinacea", test: re(/(chamomilla|matricaria|anthemis|chamaemelum|calendula|arnica|echinacea|helianthus|bellis perennis|achillea|tanacetum|cosmos)/) }
   ];
+
+  // Words the person adds themselves (stored only on this phone). An ingredient matches if its name contains the word.
+  var WKEY = "skinsafe.words";
+  function loadWords() {
+    try {
+      var w = JSON.parse(localStorage.getItem(WKEY) || "[]");
+      return Array.isArray(w) ? w.filter(function (x) { return typeof x === "string" && x.trim(); }).slice(0, 40) : [];
+    } catch (e) { return []; }
+  }
+  function saveWords(list) { try { localStorage.setItem(WKEY, JSON.stringify(list.slice(0, 40))); } catch (e) {} }
 
   function loadAllergies() {
     try {
@@ -126,15 +143,18 @@
   function allergenLabels(item) {
     return ALLERGENS.filter(function (a) { return a.test(item); }).map(function (a) { return a.label; });
   }
-  // Ingredients in a product that hit the categories the person picked.
-  function allergyHits(items, ids) {
+  // Ingredients in a product that hit the categories the person picked, or their own words.
+  function allergyHits(items, ids, words) {
     var hits = [];
+    words = words || [];
     items.forEach(function (item) {
       var labels = ALLERGENS.filter(function (a) { return ids.indexOf(a.id) > -1 && a.test(item); }).map(function (a) { return a.label; });
+      var lower = item.name.toLowerCase();
+      words.forEach(function (w) { if (lower.indexOf(w.toLowerCase()) > -1) labels.push("your word: " + w); });
       if (labels.length) hits.push({ name: item.name, labels: labels });
     });
     return hits;
   }
 
-  window.Profile = { ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, match: match };
+  window.Profile = { loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, match: match };
 })();
