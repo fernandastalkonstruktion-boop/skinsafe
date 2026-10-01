@@ -1,3 +1,7 @@
+/* Fonts live inside the app (no Google request). Fraunces (soft) is for the logo and the score numbers;
+   Cormorant Garamond italic is for every other title. */
+@font-face { font-family: "SS Fraunces"; src: url("fonts/fraunces-soft-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "SS Cormorant"; src: url("fonts/cormorant-italic.woff2") format("woff2"); font-weight: 500 700; font-style: italic; font-display: swap; }
 /* SkinSafe: fluid background that starts aqua (top) and melts into sky blue (bottom), with a fine grain; glass cards on top. */
 :root {
   --base-top: #63c6df;      /* aqua */
@@ -17,6 +21,8 @@
   --accent-soft: rgba(210, 236, 252, 0.9);
   --on-btn: #0b3558;
   --btn: linear-gradient(100deg, rgba(255,255,255,0.95) 0%, rgba(221,247,255,0.95) 50%, rgba(255,255,255,0.9) 100%);
+  --font-logo: "SS Fraunces", Georgia, serif;
+  --font-display: "SS Cormorant", Georgia, serif;
   --good-bg: #dcf2e8;   --good: #1b6a44;
   --mid-bg: #fbefd5;    --mid: #7f5209;
   --bad-bg: #fbe3e1;    --bad: #a02a24;
@@ -90,7 +96,7 @@ body {
 }
 
 .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
-.home-link { border: 0; background: none; padding: 0; cursor: pointer; font-family: Georgia, "Times New Roman", serif; font-size: 28px; font-weight: 700; color: var(--logo); }
+.home-link { border: 0; background: none; padding: 0; cursor: pointer; font-family: var(--font-logo); font-weight: 600; font-size: 32px; letter-spacing: 0.01em; color: var(--logo); }
 
 .lead { font-size: 16px; color: var(--text); margin: 4px 0 18px; text-shadow: 0 0 14px rgba(255,255,255,0.5); }
 
@@ -128,7 +134,7 @@ body {
 }
 
 .quiz-step { font-size: 12px; color: var(--text); margin: 0 0 6px; }
-.quiz-title { font-family: Georgia, "Times New Roman", serif; font-size: 22px; line-height: 1.25; margin: 0 0 6px; }
+.quiz-title { font-family: var(--font-display); font-style: italic; font-weight: 700; font-size: 29px; line-height: 1.15; margin: 0 0 6px; }
 .quiz-sub { font-size: 13px; color: var(--text); margin: 0 0 14px; min-height: 1.4em; }
 .options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
 .option {
@@ -151,14 +157,14 @@ body {
 .head > div { min-width: 0; }
 #photo { width: 56px; height: 56px; object-fit: contain; border-radius: 12px; background: #fff; border: 1px solid var(--line); flex: none; }
 .brand { font-size: 12px; color: var(--text-2); margin: 0; }
-.name { font-family: Georgia, "Times New Roman", serif; font-size: 22px; font-weight: 700; margin: 2px 0 16px; line-height: 1.25; overflow-wrap: anywhere; }
+.name { font-family: var(--font-display); font-style: italic; font-weight: 700; font-size: 27px; margin: 2px 0 16px; line-height: 1.12; overflow-wrap: anywhere; }
 .head .name { margin-bottom: 12px; }
 
 .summary { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
 .score {
   width: 76px; height: 76px; border-radius: 50%; flex: none;
   display: flex; align-items: center; justify-content: center;
-  font-family: Georgia, "Times New Roman", serif; font-size: 28px; font-weight: 700;
+  font-family: var(--font-logo); font-size: 28px; font-weight: 600;
   box-shadow: 0 0 0 4px var(--soft), 0 0 0 7px var(--glass-line);
 }
 .verdict { font-size: 18px; font-weight: 600; margin: 0; }
@@ -237,3 +243,87 @@ body {
 }
 #ocr-text { resize: vertical; margin-bottom: 4px; }
 #ocr-form .quiz-nav { margin-top: 16px; }
+
+/* ---------- icons ---------- */
+.ic { width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; vertical-align: -0.2em; }
+.primary { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.primary .ic { width: 22px; height: 22px; }
+.primary.small { display: inline-flex; gap: 8px; }
+.primary.small .ic { width: 18px; height: 18px; }
+.secondary { display: inline-flex; align-items: center; gap: 8px; }
+.small-btn { padding: 7px 14px; font-size: 13px; }
+.back { display: inline-flex; align-items: center; gap: 6px; }
+.privacy-note { display: flex; align-items: flex-start; gap: 6px; }
+.privacy-note .ic { margin-top: 2px; }
+
+/* ---------- home ---------- */
+.search {
+  display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 4px 6px 4px 14px;
+  background: var(--glass); border: 1px solid var(--glass-line); border-radius: 18px; color: var(--text-2);
+}
+.search .ic { width: 20px; height: 20px; }
+.search input {
+  flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font-size: 16px; padding: 10px 0; font-family: inherit;
+}
+.search input:focus { outline: none; }
+.search:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.search button { border: 0; border-radius: 14px; width: 42px; height: 42px; background: var(--btn); color: var(--on-btn); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.search button .ic { width: 20px; height: 20px; color: inherit; }
+.tile-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.tile {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; cursor: pointer;
+  padding: 14px 8px; border-radius: 18px; border: 1px solid var(--glass-line); background: var(--glass); color: var(--text); font-size: 13px; font-weight: 600; font-family: inherit;
+}
+.tile .ic { width: 24px; height: 24px; }
+.manual { margin-top: 12px; }
+.cards2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.cards2 .profile-card { margin-top: 0; padding: 12px 14px; }
+.profile-label { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text); }
+.profile-text { font-size: 14px; overflow-wrap: anywhere; }
+.linkrow {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 14px; padding: 14px 16px; text-align: left; cursor: pointer;
+  border-radius: 18px; border: 1px solid var(--glass-line); background: var(--glass); color: var(--text); font-size: 15px; font-weight: 600; font-family: inherit;
+}
+.linkrow .chev-ic { margin-left: auto; color: var(--text-2); }
+
+/* ---------- options (quiz and allergies) ---------- */
+.option { display: flex; align-items: center; gap: 12px; }
+.option-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--text-3); display: flex; align-items: center; justify-content: center; flex: none; color: #fff; }
+.option[aria-pressed="true"] .option-check { background: var(--accent); border-color: var(--accent); }
+.option-check .ic { width: 15px; height: 15px; stroke-width: 3; }
+.option-text { display: flex; flex-direction: column; min-width: 0; }
+
+/* ---------- search results ---------- */
+.result-list { display: flex; flex-direction: column; gap: 8px; }
+.result-item {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer; padding: 8px 12px 8px 8px;
+  border-radius: 18px; border: 1px solid var(--glass-line); background: var(--glass); color: var(--text); font-family: inherit;
+}
+.result-item img, .result-ph { width: 48px; height: 48px; border-radius: 12px; object-fit: contain; background: #fff; flex: none; display: flex; align-items: center; justify-content: center; color: var(--accent); }
+.result-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.result-brand { font-size: 12px; color: var(--text-2); }
+.result-name { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.result-item .chev-ic { color: var(--text-2); }
+
+/* ---------- how we rate ---------- */
+.about { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.about-item { padding: 14px 16px; border-radius: 18px; border: 1px solid var(--glass-line); background: var(--glass); }
+.about-item p { margin: 0; font-size: 14px; line-height: 1.55; }
+.about-item .about-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; margin-bottom: 4px; color: var(--text); }
+.about-title .ic { width: 20px; height: 20px; color: var(--accent); }
+
+/* ---------- result details ---------- */
+.verdict { display: flex; align-items: center; gap: 6px; }
+.pill { display: inline-flex; align-items: center; gap: 5px; }
+.risk { display: inline-flex; align-items: center; gap: 5px; }
+.risk .ic { width: 13px; height: 13px; }
+.risk.allergen { background: var(--mid-bg); color: var(--mid); }
+.ing-hint { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; color: var(--text-2); }
+.ing-hint .ic { margin-top: 2px; width: 14px; height: 14px; }
+.match-title { display: flex; align-items: center; gap: 6px; }
+.alert-kind { display: flex; align-items: center; gap: 6px; }
+.alert-kind .ic { width: 14px; height: 14px; }
+.disclaimer .link { font-size: 11px; }
+
+/* Cormorant uses old-style figures by default ("30mL" looks like "3oml"); use normal figures. */
+.name, .quiz-title { font-variant-numeric: lining-nums; font-feature-settings: "lnum" 1; }

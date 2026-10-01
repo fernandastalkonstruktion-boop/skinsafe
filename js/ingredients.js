@@ -33,9 +33,11 @@
     MTB: { name: "MotherToBaby (pregnancy)", url: "https://mothertobaby.org/fact-sheets/", rank: 2 }
   };
 
+  // "allergy" here means the substance CAN CAUSE allergy in some people (they may become allergic after repeated contact).
+  // Allergens that only matter to people who are already allergic (nuts, wheat, bee products...) are in profile.js.
   var RISK_LABEL = {
-    allergy: "Allergy risk",
-    irritation: "Irritation",
+    allergy: "Can cause allergy",
+    irritation: "Can irritate",
     hormone: "Hormone or reproductive",
     cancer: "Cancer concern",
     restricted: "Regulated",
@@ -43,6 +45,10 @@
     sun: "Sun sensitivity",
     pregnancy: "Ask a doctor if pregnant",
     drying: "Drying"
+  };
+  var RISK_ICON = {
+    allergy: "alert", irritation: "flame", hormone: "activity", cancer: "circle-alert", restricted: "scale",
+    comedogenic: "circle-dot", sun: "sun", pregnancy: "info", drying: "droplet"
   };
 
   var RAW = [
@@ -253,5 +259,5 @@
     return { items: items, counts: n, score: score };
   }
 
-  window.Ingredients = { analyze: analyze, split: split, RISK_LABEL: RISK_LABEL };
+  window.Ingredients = { analyze: analyze, split: split, RISK_LABEL: RISK_LABEL, RISK_ICON: RISK_ICON };
 })();

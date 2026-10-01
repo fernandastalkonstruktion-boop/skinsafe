@@ -95,5 +95,46 @@
     return { level: level, title: title, reasons: reasons, helps: helpLines };
   }
 
-  window.Profile = { QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, match: match };
+  // ----- allergies (what the person already knows bothers them) -----
+  var AKEY = "skinsafe.allergies";
+  function re(r) { return function (item) { return r.test(item.name.toLowerCase()); }; }
+  var ALLERGENS = [
+    { id: "fragrance", label: "Fragrance", sub: "Parfum and fragrance allergens", test: function (i) { return i.family === "fragrance"; } },
+    { id: "nuts", label: "Tree nuts", sub: "Almond, argan, macadamia, shea", test: re(/(prunus amygdalus|argania spinosa|macadamia|corylus|juglans|pistacia|anacardium|bertholletia|butyrospermum|shea|apricot kernel|prunus armeniaca)/) },
+    { id: "peanut", label: "Peanut", sub: "Peanut oil", test: re(/(arachis|peanut)/) },
+    { id: "sesame", label: "Sesame", sub: "Sesame oil", test: re(/(sesamum|sesame)/) },
+    { id: "wheat", label: "Wheat or gluten", sub: "Hydrolyzed wheat protein, barley", test: re(/(triticum|wheat|gluten|hordeum|barley|secale)/) },
+    { id: "soy", label: "Soy", sub: "Soybean oil and extracts", test: re(/(glycine soja|soy)/) },
+    { id: "bee", label: "Bee products", sub: "Beeswax, propolis, honey", test: re(/(cera alba|cera flava|beeswax|propolis|(^|[^a-z])mel([^a-z]|$)|honey|royal jelly|(^|[^a-z])apis)/) },
+    { id: "lanolin", label: "Lanolin (wool)", sub: "Lanolin and wool alcohols", test: re(/(lanolin|adeps lanae|wool)/) },
+    { id: "coconut", label: "Coconut", sub: "Coconut oil and extracts", test: re(/(cocos nucifera|coconut)/) },
+    { id: "essential", label: "Essential oils", sub: "Citrus, lavender, tea tree, mint", test: re(/(citrus [a-z ]*(oil)|lavandula|melaleuca|tea tree|eucalyptus|mentha|peppermint|pelargonium|cananga|rosa damascena|leptospermum|anthemis nobilis flower oil|rosmarinus officinalis leaf oil)/) },
+    { id: "preservatives", label: "Preservatives", sub: "Formaldehyde releasers, isothiazolinones, parabens", test: re(/(isothiazolinone|dmdm|quaternium-15|imidazolidinyl|diazolidinyl|bronopol|2-bromo-2-nitropropane|hydroxymethylglycinate|paraben|iodopropynyl|formaldehyde)/) },
+    { id: "carmine", label: "Insect dye (carmine)", sub: "Carmine, cochineal, CI 75470", test: re(/(carmine|cochineal|ci 75470|carminic)/) },
+    { id: "sulfites", label: "Sulfites", sub: "Sodium metabisulfite", test: re(/(sulfite|metabisulfite)/) }
+  ];
+
+  function loadAllergies() {
+    try {
+      var a = JSON.parse(localStorage.getItem(AKEY) || "[]");
+      return Array.isArray(a) ? a : [];
+    } catch (e) { return []; }
+  }
+  function saveAllergies(ids) { try { localStorage.setItem(AKEY, JSON.stringify(ids)); } catch (e) {} }
+
+  // Every allergy category an ingredient belongs to (used for the chips on each ingredient).
+  function allergenLabels(item) {
+    return ALLERGENS.filter(function (a) { return a.test(item); }).map(function (a) { return a.label; });
+  }
+  // Ingredients in a product that hit the categories the person picked.
+  function allergyHits(items, ids) {
+    var hits = [];
+    items.forEach(function (item) {
+      var labels = ALLERGENS.filter(function (a) { return ids.indexOf(a.id) > -1 && a.test(item); }).map(function (a) { return a.label; });
+      if (labels.length) hits.push({ name: item.name, labels: labels });
+    });
+    return hits;
+  }
+
+  window.Profile = { ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, match: match };
 })();
