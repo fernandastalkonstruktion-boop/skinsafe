@@ -120,6 +120,7 @@
   }
 
   // Score: start at 100, -18 per flag, -6 per watch. Needs at least 3 rated ingredients.
+  // Any flagged ingredient caps the score at 75, so a product with a flag can never be "Excellent".
   function analyze(text) {
     var items = split(text || "").map(function (raw) {
       var hit = lookup(raw);
@@ -131,7 +132,8 @@
     var n = { good: 0, mid: 0, bad: 0, none: 0 };
     items.forEach(function (i) { n[i.level || "none"]++; });
     var rated = n.good + n.mid + n.bad;
-    var score = rated >= 3 ? Math.max(0, Math.min(100, 100 - 18 * n.bad - 6 * n.mid)) : null;
+    var cap = n.bad > 0 ? 75 : 100;
+    var score = rated >= 3 ? Math.max(0, Math.min(cap, 100 - 18 * n.bad - 6 * n.mid)) : null;
     return { items: items, counts: n, score: score };
   }
 
