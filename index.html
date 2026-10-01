@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#63c6df">
+  <meta name="theme-color" content="#7fd0e6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b3a4d" media="(prefers-color-scheme: dark)">
   <title>SkinSafe</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -48,6 +49,7 @@
     </header>
 
     <section id="home">
+      <div class="greet" id="greet"></div>
       <button class="primary" id="scan-btn" type="button"><svg class="ic"><use href="#i-scan"/></svg>Scan barcode</button>
 
       <form class="search" id="search-form" role="search" autocomplete="off">

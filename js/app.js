@@ -36,6 +36,42 @@
     return { cls: "bad", label: "Bad", icon: "alert" };
   }
 
+  // ----- greeting: each person uses their own phone, so the name is asked once and kept on this device -----
+  function getName() { try { return (localStorage.getItem("skinsafe.name") || "").trim(); } catch (e) { return ""; } }
+  function setName(v) { try { localStorage.setItem("skinsafe.name", v); localStorage.removeItem("skinsafe.nameSkipped"); } catch (e) {} }
+  function nameSkipped() { try { return localStorage.getItem("skinsafe.nameSkipped") === "1"; } catch (e) { return false; } }
+  function skipName() { try { localStorage.setItem("skinsafe.nameSkipped", "1"); } catch (e) {} }
+  function pretty(n) { return n ? n.charAt(0).toUpperCase() + n.slice(1) : n; }
+
+  function renderGreeting(editing) {
+    var box = el("greet");
+    var name = getName();
+    if (name && !editing) {
+      box.innerHTML = '<p class="greet-hi">Hi, ' + esc(pretty(name)) + '!</p><button type="button" class="link" id="greet-edit">Change name</button>';
+      el("greet-edit").addEventListener("click", function () { renderGreeting(true); });
+      return;
+    }
+    if (!name && nameSkipped() && !editing) {
+      box.innerHTML = '<button type="button" class="link" id="greet-edit">Add your name</button>';
+      el("greet-edit").addEventListener("click", function () { renderGreeting(true); });
+      return;
+    }
+    box.innerHTML = '<p class="greet-hi">Hi!</p><p class="greet-sub">What should we call you?</p>' +
+      '<form class="name-form" id="name-form"><input id="name-input" type="text" maxlength="24" autocomplete="given-name" aria-label="Your name" placeholder="Your name" value="' + esc(name) + '">' +
+      '<button type="submit" class="primary small">' + ic("check") + 'Save</button></form>' +
+      '<button type="button" class="link" id="name-skip">' + (name ? "Cancel" : "Skip") + "</button>";
+    el("name-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var v = el("name-input").value.trim();
+      if (v) setName(v); else if (!name) skipName();
+      renderGreeting(false);
+    });
+    el("name-skip").addEventListener("click", function () {
+      if (!name) skipName();
+      renderGreeting(false);
+    });
+  }
+
   // ----- home cards: skin and allergies -----
   function renderProfileCard() {
     var p = window.Profile.load();
@@ -462,7 +498,7 @@
     lastProduct = null;
     el("q").value = "";
     el("manual").hidden = true;
-    stopScanner().then(function () { renderProfileCard(); renderAllergyCard(); show("home"); });
+    stopScanner().then(function () { renderGreeting(false); renderProfileCard(); renderAllergyCard(); show("home"); });
   }
 
   el("scan-btn").addEventListener("click", startScanner);
@@ -497,6 +533,7 @@
     lookupCode(el("code").value);
   });
 
+  renderGreeting(false);
   renderProfileCard();
   renderAllergyCard();
   show("home");
