@@ -168,7 +168,7 @@
     window.Profile.saveAllergies(allergyDraft);
     window.Profile.saveWords(wordsDraft);
     renderAllergyCard();
-    if (lastProduct && cameFrom !== "home-only") { renderResult(lastProduct); } else { show("home"); }
+    if (lastProduct && cameFrom !== "home-only") { renderResult(lastProduct); } else { renderSavedList(); show("home"); }
   }
 
   // ----- skin quiz -----
@@ -223,13 +223,59 @@
     quiz.answers.concerns = quiz.answers.concerns || [];
     window.Profile.save(quiz.answers);
     renderProfileCard();
-    if (lastProduct) { renderResult(lastProduct); } else { show("home"); }
+    if (lastProduct) { renderResult(lastProduct); } else { renderSavedList(); show("home"); }
   }
 
   function quizBack() {
     if (quiz.step === 0) { show(lastProduct ? "result" : "home"); return; }
     quiz.step--;
     renderQuiz();
+  }
+
+  // ----- My products (favorites), stored only on this phone -----
+  var SKEY = "skinsafe.saved";
+  function loadSaved() {
+    try { var s = JSON.parse(localStorage.getItem(SKEY) || "[]"); return Array.isArray(s) ? s : []; } catch (e) { return []; }
+  }
+  function storeSaved(list) { try { localStorage.setItem(SKEY, JSON.stringify(list.slice(0, 100))); } catch (e) {} }
+  function productId(p) {
+    if (p.code) return "c:" + p.code;
+    var t = p.name + "|" + p.ingredientsText, h = 0;
+    for (var i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0;
+    return "t:" + h;
+  }
+  function isSaved(p) { var id = productId(p); return loadSaved().some(function (x) { return x.id === id; }); }
+  function toggleSaved(p) {
+    var id = productId(p), list = loadSaved(), at = -1;
+    list.forEach(function (x, i) { if (x.id === id) at = i; });
+    if (at > -1) list.splice(at, 1);
+    else list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, savedAt: Date.now() });
+    storeSaved(list);
+  }
+  function renderHeart(p) {
+    var b = el("heart"), on = isSaved(p);
+    b.setAttribute("aria-pressed", String(on));
+    b.setAttribute("aria-label", on ? "Remove from My products" : "Save to My products");
+    b.classList.toggle("on", on);
+  }
+  function renderSavedList() {
+    var list = loadSaved(), box = el("saved");
+    if (!list.length) { box.hidden = true; box.innerHTML = ""; return; }
+    var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords();
+    box.hidden = false;
+    box.innerHTML = '<div class="saved-head"><p class="saved-title">' + ic("heart") + 'My products</p><span class="saved-count">' + list.length + " saved on this phone</span></div>" +
+      list.map(function (p, i) {
+        var an = window.Ingredients.analyze(p.ingredientsText), b = band(an.score), tags = "";
+        if (window.Alerts && window.Alerts.match(p).length) tags += '<span class="tag bad">' + ic("alert") + "Official alert</span>";
+        if ((ids.length || words.length) && window.Profile.allergyHits(an.items, ids, words).length) tags += '<span class="tag bad">' + ic("alert") + "Your allergy</span>";
+        return '<button type="button" class="result-item saved-item" data-i="' + i + '">' +
+          '<span class="mini-score ' + b.cls + '">' + (an.score === null ? "?" : an.score) + "</span>" +
+          '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
+          (tags ? '<span class="tags">' + tags + "</span>" : "") + "</span>" + ic("chevron-right", "chev-ic") + "</button>";
+      }).join("");
+    Array.prototype.forEach.call(box.querySelectorAll(".saved-item"), function (btn) {
+      btn.addEventListener("click", function () { cameFrom = "home"; renderResult(list[Number(btn.getAttribute("data-i"))]); });
+    });
   }
 
   // ----- result -----
@@ -361,6 +407,7 @@
       '<span class="pill mid">' + ic("eye") + n.mid + " to watch</span>" +
       '<span class="pill bad">' + ic("flag") + plural(n.bad, "flag", "flags") + "</span>";
 
+    renderHeart(product);
     renderAlerts(product);
     renderAllergyBox(a.items);
     renderMatch(a.items);
@@ -538,9 +585,15 @@
     lastProduct = null;
     el("q").value = "";
     el("manual").hidden = true;
-    stopScanner().then(function () { renderGreeting(false); renderProfileCard(); renderAllergyCard(); show("home"); });
+    stopScanner().then(function () { renderGreeting(false); renderProfileCard(); renderAllergyCard(); renderSavedList(); show("home"); });
   }
 
+  el("heart").addEventListener("click", function () {
+    if (!lastProduct) return;
+    toggleSaved(lastProduct);
+    renderHeart(lastProduct);
+    renderSavedList();
+  });
   el("scan-btn").addEventListener("click", startScanner);
   el("search-form").addEventListener("submit", function (e) { e.preventDefault(); runSearch(el("q").value); });
   el("photo-btn").addEventListener("click", startPhoto);
@@ -580,11 +633,13 @@
     renderGreeting(false);
     renderProfileCard();
     renderAllergyCard();
+    renderSavedList();
     show("home");
   });
   importSetup();
   renderGreeting(false);
   renderProfileCard();
   renderAllergyCard();
+  renderSavedList();
   show("home");
 })();
