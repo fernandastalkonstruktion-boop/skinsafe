@@ -48,6 +48,42 @@
       sources: [{ name: "FDA statement", url: "https://www.fda.gov/drugs/drug-alerts-and-statements/limited-number-voluntary-recalls-initiated-after-fda-testing-acne-products-benzene-findings-show" }]
     },
     {
+      id: "pg-aerosol-dry-shampoo-2021",
+      kind: "recall",
+      date: "Dec 17, 2021",
+      title: "Aerosol dry shampoo and conditioner recalled for benzene",
+      text: "Procter & Gamble recalled certain aerosol dry shampoo and dry conditioner sprays because benzene, a known carcinogen, was found in the propellant. The company said daily exposure at those levels was not expected to cause harm. Check the lot codes in the official notice.",
+      targets: [{ brands: ["pantene", "aussie", "herbal essences", "old spice", "hair food", "waterless"], names: ["dry shampoo", "dry conditioner"] }],
+      sources: [{ name: "FDA recall notice", url: "https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/pg-issues-voluntary-recall-aerosol-dry-conditioner-spray-products-and-aerosol-dry-shampoo-spray" }]
+    },
+    {
+      id: "suave-antiperspirant-2022",
+      kind: "recall",
+      date: "Mar 30, 2022",
+      title: "Aerosol antiperspirant recalled for benzene",
+      text: "Unilever recalled Suave 24-Hour Protection aerosol antiperspirants (Powder and Fresh) because slightly elevated benzene was found in the propellant. Lots with expiration dates through September 2023 were included.",
+      targets: [{ brands: ["suave"], names: ["antiperspirant"] }],
+      sources: [{ name: "FDA recall notice", url: "https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/unilever-issues-voluntary-nationwide-recall-suave-24-hour-protection-aerosol-antiperspirant-powder" }]
+    },
+    {
+      id: "banana-boat-hair-scalp-2022",
+      kind: "recall",
+      date: "Jul 29, 2022",
+      title: "Sunscreen spray recalled for benzene",
+      text: "Edgewell recalled three batches of Banana Boat Hair & Scalp Sunscreen Spray SPF 30 because trace benzene came from the propellant. The company said exposure at those levels was not expected to cause harm, and the FDA closed the recall on Jan 30, 2023.",
+      targets: [{ brands: ["banana boat"], names: ["hair & scalp", "hair and scalp"] }],
+      sources: [{ name: "FDA recall notice", url: "https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/edgewell-personal-care-issues-voluntary-nationwide-recall-banana-boat-hair-scalp-sunscreen-due" }]
+    },
+    {
+      id: "jj-baby-powder-lot-2019",
+      kind: "recall",
+      date: "Oct 18, 2019",
+      title: "One lot of baby powder recalled for asbestos",
+      text: "Johnson & Johnson recalled a single lot of Johnson's Baby Powder (lot 22318RB) after an FDA test found trace chrysotile asbestos in a sample. A sample from a different lot tested negative.",
+      targets: [{ brands: ["johnson"], names: ["baby powder"] }],
+      sources: [{ name: "FDA recall notice", url: "https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/johnson-johnson-consumer-inc-voluntarily-recall-single-lot-johnsons-baby-powder-united-states" }]
+    },
+    {
       id: "hair-relaxer-mdl-3060",
       kind: "litigation",
       date: "Pending",

@@ -225,3 +225,15 @@ body {
 .alert-why { color: var(--text-2); }
 .alert-src { font-size: 12px !important; color: var(--text-2); margin-bottom: 0 !important; }
 .alert-src a { color: var(--text-2); }
+
+.secondary.wide { width: 100%; margin-top: 12px; padding: 13px 16px; font-size: 15px; }
+.status-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.bar { height: 8px; border-radius: 999px; background: var(--glass); border: 1px solid var(--glass-line); overflow: hidden; }
+.bar-fill { height: 100%; width: 6%; background: var(--btn); background-color: var(--accent); transition: width 0.25s; }
+.field-label { display: block; font-size: 13px; color: var(--text); margin: 12px 0 6px; }
+#ocr-text, #ocr-name {
+  width: 100%; border: 1px solid var(--glass-line); background: var(--glass); color: var(--text);
+  border-radius: 14px; padding: 10px 12px; font-size: 15px; font-family: inherit; line-height: 1.45;
+}
+#ocr-text { resize: vertical; margin-bottom: 4px; }
+#ocr-form .quiz-nav { margin-top: 16px; }

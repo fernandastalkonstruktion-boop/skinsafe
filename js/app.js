@@ -1,5 +1,5 @@
 (function () {
-  var VIEWS = ["home", "quiz", "scanner", "status", "result"];
+  var VIEWS = ["home", "quiz", "ocr", "scanner", "status", "result"];
   var scanner = null;
   var lastProduct = null;
   var quiz = { step: 0, answers: {} };
@@ -14,8 +14,9 @@
     VIEWS.forEach(function (v) { el(v).hidden = v !== view; });
     window.scrollTo(0, 0);
   }
-  function showStatus(text) {
+  function showStatus(text, offerPhoto) {
     el("status-text").textContent = text;
+    el("status-photo").hidden = !offerPhoto;
     show("status");
   }
 
@@ -242,9 +243,9 @@
     showStatus("Looking up " + code + "…");
     window.OBF.lookup(code).then(function (p) {
       if (!p) {
-        showStatus("We couldn't find " + code + " in Open Beauty Facts yet. Adding a product with a photo of its ingredients is coming soon.");
+        showStatus("We couldn't find " + code + " in Open Beauty Facts yet. You can photograph the ingredient list on the package instead.", true);
       } else if (!p.ingredientsText) {
-        showStatus(p.name + " is in the database but has no ingredient list yet.");
+        showStatus(p.name + " is in the database but has no ingredient list yet. You can photograph the list on the package.", true);
       } else {
         renderResult(p);
       }
@@ -285,6 +286,42 @@
     });
   }
 
+  // ----- photo of the ingredient list -----
+  function startPhoto() {
+    el("photo-input").value = "";
+    el("photo-input").click();
+  }
+
+  function showOcrForm(text, hint) {
+    el("ocr-progress").hidden = true;
+    el("ocr-form").hidden = false;
+    el("ocr-text").value = text || "";
+    el("ocr-hint").textContent = hint || "Photo readers make mistakes. Fix any typo and keep a comma between ingredients.";
+  }
+
+  function runOcr(file) {
+    el("ocr-progress").hidden = false;
+    el("ocr-form").hidden = true;
+    el("ocr-status").textContent = "Preparing the photo\u2026";
+    el("ocr-bar").style.width = "6%";
+    show("ocr");
+    window.OCR.read(file, function (msg, pct) {
+      el("ocr-status").textContent = msg;
+      if (pct !== null) el("ocr-bar").style.width = Math.max(8, Math.round(pct * 100)) + "%";
+    }).then(function (text) {
+      if (!text) showOcrForm("", "We couldn't read any text. Try a sharp, well-lit photo of just the ingredient list, or type it below.");
+      else showOcrForm(text);
+    }).catch(function () {
+      showOcrForm("", "The photo reader couldn't start. It needs an internet connection the first time. You can type or paste the list below.");
+    });
+  }
+
+  function analyzePhoto() {
+    var text = el("ocr-text").value.trim();
+    if (text.length < 3) { el("ocr-hint").textContent = "Add the ingredient list to continue."; return; }
+    renderResult({ brand: "", name: el("ocr-name").value.trim() || "Photographed product", image: "", ingredientsText: text });
+  }
+
   function goHome() {
     lastProduct = null;
     stopScanner().then(function () { renderProfileCard(); show("home"); });
@@ -303,6 +340,14 @@
   }
 
   el("scan-btn").addEventListener("click", startScanner);
+  el("photo-btn").addEventListener("click", startPhoto);
+  el("status-photo").addEventListener("click", startPhoto);
+  el("photo-input").addEventListener("change", function () {
+    var f = this.files && this.files[0];
+    if (f) runOcr(f);
+  });
+  el("ocr-go").addEventListener("click", analyzePhoto);
+  el("ocr-cancel").addEventListener("click", goHome);
   el("scan-cancel").addEventListener("click", goHome);
   el("status-back").addEventListener("click", goHome);
   el("back").addEventListener("click", goHome);
