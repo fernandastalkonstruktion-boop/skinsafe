@@ -25,6 +25,26 @@
    "name": "innisfree",
    "status": "peta",
    "source": "https://crueltyfree.peta.org/company/innisfree/"
+  },
+  "evanyc": {
+   "name": "EVA NYC",
+   "status": "leaping_bunny",
+   "source": "https://www.leapingbunny.org/brand/eva-nyc-0"
+  },
+  "chi": {
+   "name": "CHI",
+   "status": "leaping_bunny",
+   "source": "https://www.leapingbunny.org/brand/chi-0"
+  },
+  "paulmitchell": {
+   "name": "Paul Mitchell",
+   "status": "peta",
+   "source": "https://crueltyfree.peta.org/company/paul-mitchell-systems/"
+  },
+  "joico": {
+   "name": "Joico",
+   "status": "peta",
+   "source": "https://crueltyfree.peta.org/company/joico/"
   }
  }
 }
