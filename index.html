@@ -5,16 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#84cdea" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0b2f45" media="(prefers-color-scheme: dark)">
-  <meta name="app-version" content="20261001220920">
+  <meta name="app-version" content="20261001221253">
   <title>SkinSafe</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-fav-9.png">
-  <link rel="icon" type="image/png" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-9.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-9.png">
-  <link rel="apple-touch-icon-precomposed" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-9.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-fav-10.png">
+  <link rel="icon" type="image/png" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-10.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-10.png">
+  <link rel="apple-touch-icon-precomposed" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-10.png">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="SkinSafe">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="styles.css?v=20261001220920">
+  <link rel="stylesheet" href="styles.css?v=20261001221253">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -83,14 +83,15 @@
         </div>
       </form>
 
-      <div class="cards2">
-        <div class="profile-card" id="profile-card"></div>
-        <div class="profile-card" id="allergy-card"></div>
-      </div>
-
       <div class="saved" id="saved" hidden></div>
 
-      <button class="linkrow" id="about-btn" type="button"><svg class="ic"><use href="#i-shield-check"/></svg><span>How we rate</span><svg class="ic chev-ic"><use href="#i-chevron-right"/></svg></button>
+    </section>
+
+    <section id="skin" hidden>
+      <h2 class="quiz-title">My skin</h2>
+      <p class="quiz-sub">Tell us about your skin once and every product shows if it suits you.</p>
+      <div class="profile-card" id="profile-card"></div>
+      <p class="privacy-note"><svg class="ic"><use href="#i-lock"/></svg>Your answers stay on this device. SkinSafe has no accounts.</p>
     </section>
 
     <section id="quiz" hidden>
@@ -119,6 +120,7 @@
         <button class="secondary" id="allergy-cancel" type="button">Cancel</button>
         <button class="primary small" id="allergy-save" type="button"><svg class="ic"><use href="#i-check"/></svg>Save</button>
       </div>
+      <p class="saved-ok" id="allergy-note" hidden><svg class="ic"><use href="#i-check"/></svg>Saved. We will warn you on every product.</p>
       <p class="privacy-note"><svg class="ic"><use href="#i-lock"/></svg>Saved only on this device. Not a medical record.</p>
     </section>
 
@@ -211,13 +213,19 @@
     </section>
   </main>
 
+  <nav class="tabbar" id="tabbar" aria-label="Main">
+    <button type="button" class="tab" id="tab-skin" data-tab="skin"><svg class="ic" aria-hidden="true"><use href="#i-droplet"/></svg><span>My skin</span></button>
+    <button type="button" class="tab" id="tab-allergies" data-tab="allergies"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span>My allergies</span></button>
+    <button type="button" class="tab" id="tab-about" data-tab="about"><svg class="ic" aria-hidden="true"><use href="#i-shield-check"/></svg><span>How we rate</span></button>
+  </nav>
+
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/ingredients.js?v=20261001220920"></script>
-  <script src="js/alerts.js?v=20261001220920"></script>
-  <script src="js/profile.js?v=20261001220920"></script>
-  <script src="js/api.js?v=20261001220920"></script>
-  <script src="js/ocr.js?v=20261001220920"></script>
-  <script src="js/app.js?v=20261001220920"></script>
-  <script src="js/update.js?v=20261001220920"></script>
+  <script src="js/ingredients.js?v=20261001221253"></script>
+  <script src="js/alerts.js?v=20261001221253"></script>
+  <script src="js/profile.js?v=20261001221253"></script>
+  <script src="js/api.js?v=20261001221253"></script>
+  <script src="js/ocr.js?v=20261001221253"></script>
+  <script src="js/app.js?v=20261001221253"></script>
+  <script src="js/update.js?v=20261001221253"></script>
 </body>
 </html>

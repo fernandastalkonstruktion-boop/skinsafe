@@ -1,5 +1,5 @@
 (function () {
-  var VIEWS = ["home", "quiz", "allergies", "results", "about", "ocr", "scanner", "status", "result"];
+  var VIEWS = ["home", "skin", "quiz", "allergies", "results", "about", "ocr", "scanner", "status", "result"];
   var scanner = null;
   var lastProduct = null;
   var cameFrom = "home";        // where "Back" on a result should go
@@ -20,8 +20,15 @@
   function ic(name, cls) {
     return '<svg class="ic ' + (cls || "") + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
   }
+  var TAB_OF = { skin: "skin", quiz: "skin", allergies: "allergies", about: "about" };
   function show(view) {
     VIEWS.forEach(function (v) { el(v).hidden = v !== view; });
+    var active = TAB_OF[view] || "";
+    Array.prototype.forEach.call(document.querySelectorAll("#tabbar .tab"), function (b) {
+      var on = b.getAttribute("data-tab") === active;
+      b.classList.toggle("on", on);
+      if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    });
     window.scrollTo(0, 0);
   }
   function showStatus(text, offerPhoto) {
@@ -137,6 +144,7 @@
   function renderAllergyCard() {
     var ids = window.Profile.loadAllergies();
     var box = el("allergy-card");
+    if (!box) return;
     var labels = window.Profile.ALLERGENS.filter(function (a) { return ids.indexOf(a.id) > -1; }).map(function (a) { return a.label; });
     labels = labels.concat(window.Profile.loadWords());
     box.innerHTML =
@@ -150,6 +158,7 @@
   function startAllergies() {
     allergyDraft = window.Profile.loadAllergies().slice();
     wordsDraft = window.Profile.loadWords().slice();
+    el("allergy-note").hidden = true;
     renderAllergyOptions();
     renderWordChips();
     show("allergies");
@@ -188,7 +197,8 @@
     window.Profile.saveAllergies(allergyDraft);
     window.Profile.saveWords(wordsDraft);
     renderAllergyCard();
-    if (lastProduct && cameFrom !== "home-only") { renderResult(lastProduct); } else { renderSavedList(); show("home"); }
+    if (lastProduct && cameFrom !== "home-only") { renderResult(lastProduct); }
+    else { renderSavedList(); startAllergies(); el("allergy-note").hidden = false; }
   }
 
   // ----- skin quiz -----
@@ -243,11 +253,11 @@
     quiz.answers.concerns = quiz.answers.concerns || [];
     window.Profile.save(quiz.answers);
     renderProfileCard();
-    if (lastProduct) { renderResult(lastProduct); } else { renderSavedList(); show("home"); }
+    if (lastProduct) { renderResult(lastProduct); } else { renderProfileCard(); show("skin"); }
   }
 
   function quizBack() {
-    if (quiz.step === 0) { show(lastProduct ? "result" : "home"); return; }
+    if (quiz.step === 0) { if (lastProduct) show("result"); else { renderProfileCard(); show("skin"); } return; }
     quiz.step--;
     renderQuiz();
   }
@@ -747,7 +757,9 @@
   el("quiz-back").addEventListener("click", quizBack);
   el("allergy-save").addEventListener("click", saveAllergies);
   el("allergy-cancel").addEventListener("click", function () { if (lastProduct) show("result"); else show("home"); });
-  el("about-btn").addEventListener("click", function () { renderAbout(); show("about"); });
+  el("tab-skin").addEventListener("click", function () { lastProduct = null; renderProfileCard(); show("skin"); });
+  el("tab-allergies").addEventListener("click", function () { lastProduct = null; startAllergies(); });
+  el("tab-about").addEventListener("click", function () { lastProduct = null; renderAbout(); show("about"); });
   el("disclaimer-about").addEventListener("click", function () { renderAbout(); show("about"); });
   el("about-back").addEventListener("click", function () { if (lastProduct) show("result"); else show("home"); });
   el("manual").addEventListener("submit", function (e) {
