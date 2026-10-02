@@ -74,6 +74,7 @@
       for (var i = 0; i < tries.length; i++) if (c[tries[i]]) return c[tries[i]];
       return null;
     },
+    all: function () { var c = loadCatalog(); return Object.keys(c).map(function (k) { return c[k]; }); },
     put: function (p) {
       if (!p.code) return;
       var c = loadCatalog();
@@ -137,6 +138,48 @@
         });
       });
     }
+  };
+
+
+  // Work out which product a photo shows from the words printed on it (OCR text). Scores every product by how many of
+  // its brand/name words were read, giving rare words more weight. Tolerates one-letter reading mistakes.
+  function words(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean);
+  }
+  function close(a, b) {
+    if (a === b) return true;
+    if (a.length < 5 || b.length < 5 || Math.abs(a.length - b.length) > 1) return false;
+    var i = 0, j = 0, miss = 0;
+    while (i < a.length && j < b.length) {
+      if (a[i] === b[j]) { i++; j++; continue; }
+      if (++miss > 1) return false;
+      if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++; }
+    }
+    return miss + (a.length - i) + (b.length - j) <= 1;
+  }
+  Shop.identify = function (text) {
+    var tokens = [];
+    words(text).forEach(function (w) { if (w.length >= 3 && !/^\d+$/.test(w) && tokens.indexOf(w) < 0) tokens.push(w); });
+    return loadShop().then(function (list) {
+      var pool = list.concat(Catalog.all().map(function (p) { return { brand: p.brand, name: p.name, code: p.code, image: p.image, ingredientsText: p.ingredientsText, local: true, shop: p.shop, partial: p.partial, note: p.note, source: p.source, linked: p.linked, hay: flat(p.brand + " " + p.name) }; }));
+      var docs = pool.map(function (p) { return { p: p, w: words(p.hay) }; });
+      var df = {};
+      docs.forEach(function (d) { var seen = {}; d.w.forEach(function (w) { if (!seen[w]) { seen[w] = 1; df[w] = (df[w] || 0) + 1; } }); });
+      var N = docs.length || 1;
+      function idf(w) { return Math.log(N / ((df[w] || 0) + 1)) + 1; }
+      var scored = docs.map(function (d) {
+        var score = 0, hits = 0, brandWords = words(d.p.brand || ""), brandHit = 0;
+        d.w.forEach(function (hw) {
+          for (var i = 0; i < tokens.length; i++) {
+            if (close(tokens[i], hw)) { score += idf(hw); hits++; if (brandWords.indexOf(hw) > -1) brandHit++; break; }
+          }
+        });
+        if (brandWords.length && brandHit === brandWords.length) score += 2;
+        return { p: d.p, score: score, hits: hits, brand: brandWords.length && brandHit === brandWords.length };
+      }).filter(function (x) { return x.score >= 4 && (x.hits >= 2 || x.brand); });
+      scored.sort(function (a, b) { return b.score - a.score; });
+      return { tokens: tokens, matches: scored.slice(0, 6).map(function (x) { return x.p; }) };
+    });
   };
 
   // Brand-level facts we checked ourselves (data/brands.json, built by tools/build_brands.py): cruelty-free certifications.

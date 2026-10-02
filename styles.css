@@ -276,7 +276,7 @@ body {
 .search:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 .search button { border: 0; border-radius: 14px; width: 42px; height: 42px; background: var(--btn); color: var(--on-btn); cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .search button .ic { width: 20px; height: 20px; color: inherit; }
-.tile-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.tile-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
 .tile {
   display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; cursor: pointer;
   padding: 14px 8px; border-radius: 18px; border: 1px solid var(--glass-line); background: var(--glass); color: var(--text); font-size: 13px; font-weight: 600; font-family: inherit;
@@ -411,3 +411,4 @@ body {
 .saved-ok .ic { width: 16px; height: 16px; }
 #skin .profile-card { margin-top: 6px; }
 #skin .profile-label { display: none; }
+.tile-row .tile span { font-size: 12px; line-height: 1.25; }

@@ -82,5 +82,26 @@
     }).then(function (result) { return clean(result.data.text); });
   }
 
-  window.OCR = { read: read, clean: clean };
+  // Reads ALL the text on a photo (not an ingredient list): once normally and once inverted, for light text on dark packages.
+  function readRaw(file, onProgress) {
+    onProgress("Preparing the photo…", null);
+    return prepare(file).then(function (canvas) {
+      onProgress("Loading the reader (first time only)…", null);
+      return loadLibrary().then(function () {
+        var inv = document.createElement("canvas");
+        inv.width = canvas.width; inv.height = canvas.height;
+        var x = inv.getContext("2d", { willReadFrequently: true });
+        x.drawImage(canvas, 0, 0);
+        var d = x.getImageData(0, 0, inv.width, inv.height), p = d.data;
+        for (var i = 0; i < p.length; i += 4) { p[i] = 255 - p[i]; p[i + 1] = 255 - p[i + 1]; p[i + 2] = 255 - p[i + 2]; }
+        x.putImageData(d, 0, 0);
+        var T = window.Tesseract, opts = { langPath: LANG_PATH, logger: function (m) { if (m.status === "recognizing text") onProgress("Reading the package…", m.progress); } };
+        return T.recognize(canvas, "eng", opts).then(function (a) {
+          return T.recognize(inv, "eng", opts).then(function (b) { return String(a.data.text || "") + "\n" + String(b.data.text || ""); });
+        });
+      });
+    });
+  }
+
+  window.OCR = { read: read, readRaw: readRaw, clean: clean };
 })();

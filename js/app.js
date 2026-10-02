@@ -655,6 +655,42 @@
     renderResult(product);
   }
 
+  // ----- photo of the product itself: try its barcode first, then read the words printed on it -----
+  function runProductPhoto(file) {
+    el("ocr-progress").hidden = false;
+    el("ocr-form").hidden = true;
+    el("ocr-status").textContent = "Looking at the photo…";
+    el("ocr-bar").style.width = "6%";
+    show("ocr");
+    function tryBarcode() {
+      if (!window.Html5Qrcode) return Promise.resolve(null);
+      var q = new window.Html5Qrcode("reader-file", { verbose: false });
+      return q.scanFile(file, false).then(function (t) { try { q.clear(); } catch (e) {} return t; }).catch(function () { return null; });
+    }
+    tryBarcode().then(function (code) {
+      var digits = String(code || "").replace(/\D/g, "");
+      if (digits.length >= 8) { lookupCode(digits); return null; }
+      return window.OCR.readRaw(file, function (msg, pct) {
+        el("ocr-status").textContent = msg;
+        if (pct !== null) el("ocr-bar").style.width = Math.max(8, Math.round(pct * 100)) + "%";
+      }).then(function (text) { return window.Shop.identify(text); });
+    }).then(function (r) {
+      if (!r) return;
+      linking = null; lastResults = r.matches; cameFrom = "results";
+      el("results-title").textContent = r.matches.length ? "Is it one of these?" : "We couldn't tell which product it is";
+      el("results-sub").textContent = r.matches.length
+        ? "Tap the one on your package. If it isn't here, take a photo of the barcode or of the ingredient list."
+        : "Try again with the front label in good light, or use the barcode or a photo of the ingredient list." + (r.tokens.length ? " We read: " + r.tokens.slice(0, 8).join(" ") + "." : " We couldn't read any words.");
+      el("results-list").innerHTML = resultRows(r.matches) + (r.matches.length ? "" :
+        '<div class="status-actions"><button type="button" class="primary small" id="results-photo">' + ic("camera") + "Photo of ingredients</button></div>");
+      wireResultRows();
+      var rp = el("results-photo"); if (rp) rp.addEventListener("click", function () { pending = null; startPhoto(); });
+      show("results");
+    }).catch(function () {
+      showStatus("The photo reader couldn't start. It needs an internet connection the first time. You can search by name or type the barcode instead.");
+    });
+  }
+
   // ----- photo of the ingredient list -----
   function startPhoto() {
     el("photo-input").value = "";
@@ -708,6 +744,7 @@
     ["alert", "Allergy is not irritation", "Can cause allergy: some people become allergic after repeated contact, and it usually stays. Allergen if you're allergic: only matters to people who already have that allergy, like nuts or wheat. Can irritate: depends on the amount and your skin, and goes away when you stop."],
     ["info", "Product alerts", "Official recalls are facts, with the date and a link to the notice. Lawsuits only appear when a court grouped many cases from different people and published science backs the claim. They are always labeled not proven."],
     ["ban", "What we can't know", "The list order tells us the biggest ingredients, not the exact amounts. Photos can be misread. Product data comes from a community database that can be out of date. A cosmetic scientist has not reviewed our ratings yet. This is not medical advice."],
+    ["package", "Find a product", "Scan the barcode, search by name, take a photo of the product (we read its barcode first, then the words on the label), or photograph the ingredient list. Reading a label from a photo can miss stylized fonts, so check that the match is your product. Photos are read on your phone and are not uploaded."],
     ["leaf", "Vegan and cruelty-free marks", "These small marks appear only when they are true, and they never change the score. Vegan-friendly means we found no animal-derived ingredient in the list (honey, beeswax, collagen, lanolin, milk proteins and similar). Some common ingredients, like glycerin or stearic acid, can come from animals or plants and the list does not say which, so this is not a vegan certification. Cruelty-free means the brand is listed by Leaping Bunny or PETA, two independent nonprofits; we do not use the brand's own claim."],
     ["lock", "Your data", "Nothing is uploaded. Your skin answers and allergies stay on your device, and there are no accounts."]
   ];
@@ -735,6 +772,8 @@
   el("scan-btn").addEventListener("click", startScanner);
   el("search-form").addEventListener("submit", function (e) { e.preventDefault(); runSearch(el("q").value); });
   el("photo-btn").addEventListener("click", function () { pending = null; startPhoto(); });
+  el("product-btn").addEventListener("click", function () { el("product-input").value = ""; el("product-input").click(); });
+  el("product-input").addEventListener("change", function () { var f = el("product-input").files && el("product-input").files[0]; if (f) runProductPhoto(f); });
   el("status-photo").addEventListener("click", startPhoto);
   el("status-find").addEventListener("submit", function (e) { e.preventDefault(); findForBarcode(el("status-find-q").value); });
   el("manual-btn").addEventListener("click", function () {
