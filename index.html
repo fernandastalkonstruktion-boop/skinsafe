@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#84cdea" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0b2f45" media="(prefers-color-scheme: dark)">
-  <meta name="app-version" content="20261001203349">
+  <meta name="app-version" content="20261001205827">
   <title>SkinSafe</title>
-  <link rel="stylesheet" href="styles.css?v=20261001203349">
+  <link rel="stylesheet" href="styles.css?v=20261001205827">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -154,6 +154,12 @@
 
     <section id="status" hidden>
       <p id="status-text" class="status-text"></p>
+      <form class="search status-find" id="status-find" autocomplete="off" hidden>
+        <svg class="ic"><use href="#i-search"/></svg>
+        <input id="status-find-q" type="search" placeholder="Find it by name, like “Anua toner”" aria-label="Find this product by name">
+        <button type="submit" aria-label="Search"><svg class="ic"><use href="#i-arrow-right"/></svg></button>
+      </form>
+      <p class="status-find-hint" id="status-find-hint" hidden>Pick the same product from our list and this phone will remember the barcode.</p>
       <div class="status-actions">
         <button class="primary small" id="status-photo" type="button" hidden><svg class="ic"><use href="#i-camera"/></svg>Photo of ingredients</button>
         <button class="secondary" id="status-back" type="button">Back</button>
@@ -196,12 +202,12 @@
   </main>
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/ingredients.js?v=20261001203349"></script>
-  <script src="js/alerts.js?v=20261001203349"></script>
-  <script src="js/profile.js?v=20261001203349"></script>
-  <script src="js/api.js?v=20261001203349"></script>
-  <script src="js/ocr.js?v=20261001203349"></script>
-  <script src="js/app.js?v=20261001203349"></script>
-  <script src="js/update.js?v=20261001203349"></script>
+  <script src="js/ingredients.js?v=20261001205827"></script>
+  <script src="js/alerts.js?v=20261001205827"></script>
+  <script src="js/profile.js?v=20261001205827"></script>
+  <script src="js/api.js?v=20261001205827"></script>
+  <script src="js/ocr.js?v=20261001205827"></script>
+  <script src="js/app.js?v=20261001205827"></script>
+  <script src="js/update.js?v=20261001205827"></script>
 </body>
 </html>

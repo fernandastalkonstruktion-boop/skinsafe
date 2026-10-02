@@ -9,6 +9,7 @@
   var wordsDraft = [];
   var importNote = "";
   var pending = null;           // barcode (and any known name) waiting for a photo of its ingredient list
+  var linking = null;           // barcode waiting to be linked to a product from our list
 
   function el(id) { return document.getElementById(id); }
   function esc(s) {
@@ -26,6 +27,10 @@
   function showStatus(text, offerPhoto) {
     el("status-text").textContent = text;
     el("status-photo").hidden = !offerPhoto;
+    var canLink = !!(offerPhoto && pending && pending.code);
+    el("status-find").hidden = !canLink;
+    el("status-find-hint").hidden = !canLink;
+    el("status-find-q").value = "";
     show("status");
   }
   function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
@@ -409,7 +414,16 @@
       '<span class="pill bad">' + ic("flag") + plural(n.bad, "flag", "flags") + "</span>";
 
     var note = el("catalog-note");
-    if (product.local && product.code) {
+    if (product.shop) {
+      var host = "";
+      try { host = new URL(product.source).hostname.replace(/^www\./, ""); } catch (e) {}
+      note.hidden = false;
+      note.innerHTML = ic("info") + "<span>" +
+        (product.linked ? "You linked this barcode to this product on this phone. " : "") +
+        "Ingredient list copied from an online listing" + (host ? " (" + esc(host) + ")" : "") + ". Packages sold in Mexico can differ, so check the label." +
+        (product.partial ? " <strong>This list may be incomplete</strong>, so the score could change." : "") +
+        (product.note ? " " + esc(product.note) : "") + "</span>";
+    } else if (product.local && product.code) {
       note.hidden = false;
       note.innerHTML = ic("camera") + '<span>Saved from your photo. When you scan this barcode again it will appear here, on this phone. ' +
         '<a href="https://world.openbeautyfacts.org/cgi/product.pl?type=search_or_add&code=' + encodeURIComponent(product.code) + '" target="_blank" rel="noopener">Add it to Open Beauty Facts</a> so everyone finds it.</span>';
@@ -452,7 +466,11 @@
     var mine = window.Catalog.get(code);
     if (mine) { pending = null; cameFrom = "home"; renderResult(mine); return; }
     showStatus("Looking up " + code + "…");
-    window.OBF.lookup(code).then(function (p) {
+    window.Shop.byCode(code).then(function (s) {
+      if (s) return s;
+      return window.OBF.lookup(code);
+    }).then(function (p) {
+      if (p && p.shop) { pending = null; cameFrom = "home"; renderResult(p); return; }
       if (!p) {
         pending = { code: code, brand: "", name: "", image: "" };
         showStatus("We don't have " + code + " yet. Take a photo of the ingredient list on the package and we'll remember this product on this phone.", true);
@@ -502,9 +520,31 @@
   }
 
   // ----- search by name -----
+  function resultRows(list) {
+    return list.map(function (p, idx) {
+      var tag = p.shop ? ic("book") + "From our list" : p.local ? ic("camera") + "From your photo" : "";
+      return '<button type="button" class="result-item" data-i="' + idx + '">' +
+        (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy">' : '<span class="result-ph">' + ic("droplet") + "</span>") +
+        '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
+        (tag ? '<span class="tags"><span class="tag mine">' + tag + "</span></span>" : "") + "</span>" +
+        ic("chevron-right", "chev-ic") + "</button>";
+    }).join("");
+  }
+  function wireResultRows() {
+    Array.prototype.forEach.call(el("results-list").querySelectorAll(".result-item"), function (b) {
+      b.addEventListener("click", function () {
+        var p = lastResults[Number(b.getAttribute("data-i"))];
+        if (linking) { linkBarcode(p); return; }
+        cameFrom = "results";
+        renderResult(p);
+      });
+    });
+  }
+
   function runSearch(raw) {
     var q = String(raw || "").trim();
     if (q.length < 2) return;
+    linking = null;
     lastResults = null;
     cameFrom = "results";
     el("results-title").textContent = "Searching…";
@@ -512,48 +552,70 @@
     el("results-list").innerHTML = "";
     show("results");
     var mineFound = window.Catalog.search(q);
-    window.OBF.search(q).then(function (r) {
-      var codes = {};
-      mineFound.forEach(function (p) { codes[p.code] = true; });
-      r.products = mineFound.concat(r.products.filter(function (p) { return !(p.code && codes[p.code]); }));
-      lastResults = r.products;
-      el("results-title").textContent = r.products.length ? "Results for “" + q + "”" : "No results for “" + q + "”";
-      var hidden = r.withoutIngredients;
-      el("results-sub").textContent = r.products.length
-        ? (hidden > 0 ? plural(hidden, "more product", "more products") + " found without an ingredient list, so we can't rate " + (hidden === 1 ? "it" : "them") + "." : "Tap a product to see what's in it.")
-        : (hidden > 0 ? "We found " + plural(hidden, "product", "products") + " but none has an ingredient list yet." : "Try fewer words, like the brand and one product word.");
-      el("results-list").innerHTML = r.products.map(function (p, idx) {
-        return '<button type="button" class="result-item" data-i="' + idx + '">' +
-          (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy">' : '<span class="result-ph">' + ic("droplet") + "</span>") +
-          '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
-          (p.local ? '<span class="tags"><span class="tag mine">' + ic("camera") + "From your photo</span></span>" : "") + "</span>" +
-          ic("chevron-right", "chev-ic") + "</button>";
-      }).join("") + (r.products.length ? "" :
-        '<div class="status-actions"><button type="button" class="primary small" id="results-photo">' + ic("camera") + "Photo of ingredients</button></div>");
-      Array.prototype.forEach.call(el("results-list").querySelectorAll(".result-item"), function (b) {
-        b.addEventListener("click", function () {
-          cameFrom = "results";
-          renderResult(lastResults[Number(b.getAttribute("data-i"))]);
-        });
+    window.Shop.search(q).then(function (shopFound) {
+      var local = mineFound.concat(shopFound.filter(function (s) {
+        return !mineFound.some(function (m) { return m.brand === s.brand && m.name === s.name; });
+      }));
+      return window.OBF.search(q).then(function (r) {
+        var codes = {};
+        local.forEach(function (p) { if (p.code) codes[p.code] = true; });
+        r.products = local.concat(r.products.filter(function (p) { return !(p.code && codes[p.code]); }));
+        lastResults = r.products;
+        el("results-title").textContent = r.products.length ? "Results for “" + q + "”" : "No results for “" + q + "”";
+        var hidden = r.withoutIngredients;
+        el("results-sub").textContent = r.products.length
+          ? (hidden > 0 ? plural(hidden, "more product", "more products") + " found without an ingredient list, so we can't rate " + (hidden === 1 ? "it" : "them") + "." : "Tap a product to see what's in it.")
+          : (hidden > 0 ? "We found " + plural(hidden, "product", "products") + " but none has an ingredient list yet." : "Try fewer words, like the brand and one product word.");
+        el("results-list").innerHTML = resultRows(r.products) + (r.products.length ? "" :
+          '<div class="status-actions"><button type="button" class="primary small" id="results-photo">' + ic("camera") + "Photo of ingredients</button></div>");
+        wireResultRows();
+        var rp = el("results-photo");
+        if (rp) rp.addEventListener("click", startPhoto);
+      }).catch(function () {
+        if (local.length) {
+          lastResults = local;
+          el("results-title").textContent = "Results for “" + q + "”";
+          el("results-sub").textContent = "The online search didn't work, so this shows only our list and what you saved from photos.";
+          el("results-list").innerHTML = resultRows(local);
+          wireResultRows();
+          return;
+        }
+        el("results-title").textContent = "Couldn't search";
+        el("results-sub").textContent = "Check your connection and try again.";
       });
-      var rp = el("results-photo");
-      if (rp) rp.addEventListener("click", startPhoto);
-    }).catch(function () {
-      if (mineFound.length) {
-        lastResults = mineFound;
-        el("results-title").textContent = "Your saved products";
-        el("results-sub").textContent = "The online search didn't work, so this shows only what you saved from photos.";
-        el("results-list").innerHTML = mineFound.map(function (p, idx) {
-          return '<button type="button" class="result-item" data-i="' + idx + '"><span class="result-ph">' + ic("camera") + '</span><span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span></span>" + ic("chevron-right", "chev-ic") + "</button>";
-        }).join("");
-        Array.prototype.forEach.call(el("results-list").querySelectorAll(".result-item"), function (b) {
-          b.addEventListener("click", function () { cameFrom = "results"; renderResult(lastResults[Number(b.getAttribute("data-i"))]); });
-        });
-        return;
-      }
-      el("results-title").textContent = "Couldn't search";
-      el("results-sub").textContent = "Check your connection and try again.";
     });
+  }
+
+  // Unknown barcode: pick the same product from our list and remember the barcode on this phone.
+  function findForBarcode(raw) {
+    var q = String(raw || "").trim();
+    if (q.length < 2 || !pending || !pending.code) return;
+    linking = { code: pending.code };
+    lastResults = null;
+    cameFrom = "results";
+    el("results-title").textContent = "Pick your product";
+    el("results-sub").textContent = "Searching…";
+    el("results-list").innerHTML = "";
+    show("results");
+    window.Shop.search(q).then(function (list) {
+      lastResults = list;
+      el("results-title").textContent = list.length ? "Is it one of these?" : "Not on our list yet";
+      el("results-sub").textContent = list.length
+        ? "Tap the one that matches your package. This phone will remember barcode " + linking.code + " for it."
+        : "Try fewer words, like the brand and one product word, or go back and take a photo of the ingredient list.";
+      el("results-list").innerHTML = resultRows(list);
+      wireResultRows();
+    });
+  }
+  function linkBarcode(p) {
+    var code = linking && linking.code;
+    linking = null;
+    if (!code) return;
+    var product = { code: code, brand: p.brand, name: p.name, image: "", ingredientsText: p.ingredientsText, local: true, shop: true, linked: true, partial: p.partial, note: p.note, source: p.source };
+    window.Catalog.put(product);
+    pending = null;
+    cameFrom = "home";
+    renderResult(product);
   }
 
   // ----- photo of the ingredient list -----
@@ -620,6 +682,7 @@
   function goHome() {
     lastProduct = null;
     pending = null;
+    linking = null;
     el("q").value = "";
     el("manual").hidden = true;
     stopScanner().then(function () { renderGreeting(false); renderProfileCard(); renderAllergyCard(); renderSavedList(); show("home"); });
@@ -635,6 +698,7 @@
   el("search-form").addEventListener("submit", function (e) { e.preventDefault(); runSearch(el("q").value); });
   el("photo-btn").addEventListener("click", function () { pending = null; startPhoto(); });
   el("status-photo").addEventListener("click", startPhoto);
+  el("status-find").addEventListener("submit", function (e) { e.preventDefault(); findForBarcode(el("status-find-q").value); });
   el("manual-btn").addEventListener("click", function () {
     var f = el("manual");
     f.hidden = !f.hidden;

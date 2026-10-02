@@ -78,6 +78,7 @@
       if (!p.code) return;
       var c = loadCatalog();
       c[p.code] = { code: p.code, brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, local: true, savedAt: Date.now() };
+      if (p.shop) { c[p.code].shop = true; c[p.code].linked = !!p.linked; c[p.code].partial = !!p.partial; c[p.code].note = p.note || ""; c[p.code].source = p.source || ""; }
       var keys = Object.keys(c);
       if (keys.length > 300) {
         keys.sort(function (a, b) { return c[a].savedAt - c[b].savedAt; });
@@ -94,6 +95,51 @@
     }
   };
 
+  // Shared catalog of products we looked up ourselves (data/catalog.json, built by tools/build_catalog.py).
+  // Loaded once, on first search. Matches brand, name and alternate names, ignoring punctuation and spacing (Medipeel = Medi-Peel).
+  var shopPromise = null;
+  function flat(s) { return String(s).toLowerCase().replace(/[^a-z0-9À-ɏ가-힯\s]/g, ""); }
+  function loadShop() {
+    if (!shopPromise) {
+      var meta = document.querySelector('meta[name="app-version"]');
+      var v = meta ? meta.getAttribute("content") : "dev";
+      shopPromise = fetch("data/catalog.json?v=" + encodeURIComponent(v))
+        .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+        .then(function (j) {
+          return (j.products || []).map(function (p) {
+            return {
+              code: p.barcode || "", brand: p.brand, name: p.name, image: "", ingredientsText: p.ingredients,
+              shop: true, partial: !!p.partial, note: p.note || "", source: p.source,
+              hay: flat(p.brand + " " + p.name + " " + (p.aliases || []).join(" "))
+            };
+          });
+        })
+        .catch(function () { shopPromise = null; return []; });
+    }
+    return shopPromise;
+  }
+  var Shop = {
+    load: loadShop,
+    byCode: function (code) {
+      var tries = candidates(String(code));
+      return loadShop().then(function (list) {
+        for (var i = 0; i < list.length; i++) if (list[i].code && tries.indexOf(list[i].code) > -1) return list[i];
+        return null;
+      });
+    },
+    search: function (query) {
+      var words = flat(query).split(/\s+/).filter(Boolean);
+      return loadShop().then(function (list) {
+        if (!words.length) return [];
+        return list.filter(function (p) {
+          var squashed = p.hay.replace(/\s+/g, "");
+          return words.every(function (w) { return p.hay.indexOf(w) > -1 || squashed.indexOf(w) > -1; });
+        });
+      });
+    }
+  };
+
   window.OBF = { lookup: lookup, search: search };
   window.Catalog = Catalog;
+  window.Shop = Shop;
 })();
