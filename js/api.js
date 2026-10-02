@@ -58,5 +58,42 @@
       });
   }
 
+  // Products the person teaches the app by photographing the ingredient list. Stored only on this phone,
+  // keyed by barcode, and checked BEFORE the online database so a re-scan finds them instantly.
+  var CKEY = "skinsafe.catalog";
+  function loadCatalog() {
+    try {
+      var o = JSON.parse(localStorage.getItem(CKEY) || "{}");
+      return o && typeof o === "object" && !Array.isArray(o) ? o : {};
+    } catch (e) { return {}; }
+  }
+  var Catalog = {
+    get: function (code) {
+      var c = loadCatalog();
+      var tries = candidates(String(code));
+      for (var i = 0; i < tries.length; i++) if (c[tries[i]]) return c[tries[i]];
+      return null;
+    },
+    put: function (p) {
+      if (!p.code) return;
+      var c = loadCatalog();
+      c[p.code] = { code: p.code, brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, local: true, savedAt: Date.now() };
+      var keys = Object.keys(c);
+      if (keys.length > 300) {
+        keys.sort(function (a, b) { return c[a].savedAt - c[b].savedAt; });
+        keys.slice(0, keys.length - 300).forEach(function (k) { delete c[k]; });
+      }
+      try { localStorage.setItem(CKEY, JSON.stringify(c)); } catch (e) {}
+    },
+    search: function (query) {
+      var words = String(query).toLowerCase().split(/\s+/).filter(Boolean);
+      var c = loadCatalog();
+      return Object.keys(c).map(function (k) { return c[k]; })
+        .filter(function (p) { var hay = (p.brand + " " + p.name).toLowerCase(); return words.every(function (w) { return hay.indexOf(w) > -1; }); })
+        .sort(function (a, b) { return b.savedAt - a.savedAt; });
+    }
+  };
+
   window.OBF = { lookup: lookup, search: search };
+  window.Catalog = Catalog;
 })();

@@ -8,6 +8,7 @@
   var allergyDraft = [];
   var wordsDraft = [];
   var importNote = "";
+  var pending = null;           // barcode (and any known name) waiting for a photo of its ingredient list
 
   function el(id) { return document.getElementById(id); }
   function esc(s) {
@@ -407,6 +408,12 @@
       '<span class="pill mid">' + ic("eye") + n.mid + " to watch</span>" +
       '<span class="pill bad">' + ic("flag") + plural(n.bad, "flag", "flags") + "</span>";
 
+    var note = el("catalog-note");
+    if (product.local && product.code) {
+      note.hidden = false;
+      note.innerHTML = ic("camera") + '<span>Saved from your photo. When you scan this barcode again it will appear here, on this phone. ' +
+        '<a href="https://world.openbeautyfacts.org/cgi/product.pl?type=search_or_add&code=' + encodeURIComponent(product.code) + '" target="_blank" rel="noopener">Add it to Open Beauty Facts</a> so everyone finds it.</span>';
+    } else { note.hidden = true; note.innerHTML = ""; }
     renderHeart(product);
     renderAlerts(product);
     renderAllergyBox(a.items);
@@ -442,13 +449,18 @@
       showStatus("That doesn't look like a barcode. Barcodes have 8 to 13 digits.");
       return;
     }
+    var mine = window.Catalog.get(code);
+    if (mine) { pending = null; cameFrom = "home"; renderResult(mine); return; }
     showStatus("Looking up " + code + "…");
     window.OBF.lookup(code).then(function (p) {
       if (!p) {
-        showStatus("We couldn't find " + code + " yet. You can search by name or take a photo of the ingredient list.", true);
+        pending = { code: code, brand: "", name: "", image: "" };
+        showStatus("We don't have " + code + " yet. Take a photo of the ingredient list on the package and we'll remember this product on this phone.", true);
       } else if (!p.ingredientsText) {
-        showStatus(p.name + " is in the database but has no ingredient list yet. You can take a photo of the list on the package.", true);
+        pending = { code: code, brand: p.brand, name: p.name, image: p.image };
+        showStatus(p.name + " is in the database but has no ingredient list yet. Take a photo of the list on the package and we'll remember it on this phone.", true);
       } else {
+        pending = null;
         cameFrom = "home";
         renderResult(p);
       }
@@ -499,7 +511,11 @@
     el("results-sub").textContent = "";
     el("results-list").innerHTML = "";
     show("results");
+    var mineFound = window.Catalog.search(q);
     window.OBF.search(q).then(function (r) {
+      var codes = {};
+      mineFound.forEach(function (p) { codes[p.code] = true; });
+      r.products = mineFound.concat(r.products.filter(function (p) { return !(p.code && codes[p.code]); }));
       lastResults = r.products;
       el("results-title").textContent = r.products.length ? "Results for “" + q + "”" : "No results for “" + q + "”";
       var hidden = r.withoutIngredients;
@@ -509,7 +525,8 @@
       el("results-list").innerHTML = r.products.map(function (p, idx) {
         return '<button type="button" class="result-item" data-i="' + idx + '">' +
           (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy">' : '<span class="result-ph">' + ic("droplet") + "</span>") +
-          '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span></span>" +
+          '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
+          (p.local ? '<span class="tags"><span class="tag mine">' + ic("camera") + "From your photo</span></span>" : "") + "</span>" +
           ic("chevron-right", "chev-ic") + "</button>";
       }).join("") + (r.products.length ? "" :
         '<div class="status-actions"><button type="button" class="primary small" id="results-photo">' + ic("camera") + "Photo of ingredients</button></div>");
@@ -522,6 +539,18 @@
       var rp = el("results-photo");
       if (rp) rp.addEventListener("click", startPhoto);
     }).catch(function () {
+      if (mineFound.length) {
+        lastResults = mineFound;
+        el("results-title").textContent = "Your saved products";
+        el("results-sub").textContent = "The online search didn't work, so this shows only what you saved from photos.";
+        el("results-list").innerHTML = mineFound.map(function (p, idx) {
+          return '<button type="button" class="result-item" data-i="' + idx + '"><span class="result-ph">' + ic("camera") + '</span><span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span></span>" + ic("chevron-right", "chev-ic") + "</button>";
+        }).join("");
+        Array.prototype.forEach.call(el("results-list").querySelectorAll(".result-item"), function (b) {
+          b.addEventListener("click", function () { cameFrom = "results"; renderResult(lastResults[Number(b.getAttribute("data-i"))]); });
+        });
+        return;
+      }
       el("results-title").textContent = "Couldn't search";
       el("results-sub").textContent = "Check your connection and try again.";
     });
@@ -537,6 +566,7 @@
     el("ocr-progress").hidden = true;
     el("ocr-form").hidden = false;
     el("ocr-text").value = text || "";
+    el("ocr-name").value = pending && pending.name ? pending.name : "";
     el("ocr-hint").textContent = hint || "Photo readers make mistakes. Fix any typo and keep a comma between ingredients.";
   }
 
@@ -561,7 +591,13 @@
     var text = el("ocr-text").value.trim();
     if (text.length < 3) { el("ocr-hint").textContent = "Add the ingredient list to continue."; return; }
     cameFrom = "home";
-    renderResult({ brand: "", name: el("ocr-name").value.trim() || "Photographed product", image: "", ingredientsText: text });
+    var product = { brand: "", name: el("ocr-name").value.trim() || "Photographed product", image: "", ingredientsText: text };
+    if (pending && pending.code) {
+      product = { code: pending.code, brand: pending.brand || "", name: el("ocr-name").value.trim() || pending.name || ("Product " + pending.code), image: pending.image || "", ingredientsText: text, local: true };
+      window.Catalog.put(product);
+      pending = null;
+    }
+    renderResult(product);
   }
 
   // ----- how we rate -----
@@ -583,6 +619,7 @@
 
   function goHome() {
     lastProduct = null;
+    pending = null;
     el("q").value = "";
     el("manual").hidden = true;
     stopScanner().then(function () { renderGreeting(false); renderProfileCard(); renderAllergyCard(); renderSavedList(); show("home"); });
@@ -596,7 +633,7 @@
   });
   el("scan-btn").addEventListener("click", startScanner);
   el("search-form").addEventListener("submit", function (e) { e.preventDefault(); runSearch(el("q").value); });
-  el("photo-btn").addEventListener("click", startPhoto);
+  el("photo-btn").addEventListener("click", function () { pending = null; startPhoto(); });
   el("status-photo").addEventListener("click", startPhoto);
   el("manual-btn").addEventListener("click", function () {
     var f = el("manual");

@@ -377,3 +377,8 @@ body {
 /* ---------- update pill ---------- */
 .update-banner { position: fixed; left: 16px; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 20; max-width: 408px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 18px; border: 1px solid var(--glass-line); background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); font-size: 14px; font-weight: 600; }
 .update-banner button { border: 0; border-radius: 12px; padding: 8px 16px; background: var(--btn); color: var(--on-btn); font-weight: 600; font-size: 14px; cursor: pointer; }
+
+.catalog-note { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; line-height: 1.5; color: var(--text-2); padding: 10px 12px; border-radius: 14px; background: var(--accent-soft); margin-bottom: 14px; }
+.catalog-note .ic { margin-top: 2px; width: 15px; height: 15px; }
+.catalog-note a { color: var(--text-2); }
+.tag.mine { background: var(--accent-soft); color: var(--text-2); }
