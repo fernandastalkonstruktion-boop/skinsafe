@@ -266,7 +266,12 @@
   }
   function renderSavedList() {
     var list = loadSaved(), box = el("saved");
-    if (!list.length) { box.hidden = true; box.innerHTML = ""; return; }
+    if (!list.length) {
+      box.hidden = false;
+      box.innerHTML = '<div class="saved-head"><p class="saved-title">' + ic("heart") + 'My products</p><span class="saved-count">Nothing saved yet</span></div>' +
+        '<p class="saved-empty">Open any product and tap the heart to keep it here. Your list stays on this phone and the scores update as we learn more.</p>';
+      return;
+    }
     var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords();
     box.hidden = false;
     box.innerHTML = '<div class="saved-head"><p class="saved-title">' + ic("heart") + 'My products</p><span class="saved-count">' + list.length + " saved on this phone</span></div>" +

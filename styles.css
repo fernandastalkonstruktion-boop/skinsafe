@@ -366,6 +366,7 @@ body {
 .saved-title { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 15px; margin: 0; }
 .saved-count { font-size: 12px; color: var(--text-2); }
 .saved-item { margin-bottom: 8px; }
+.saved-empty { font-size: 13px; line-height: 1.5; color: var(--text-2); margin: 0; padding: 12px 14px; border-radius: 16px; background: var(--accent-soft); }
 .mini-score { width: 42px; height: 42px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; font-family: var(--font-logo); font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
 .mini-score.good { background: var(--good-bg); color: var(--good); }
 .mini-score.mid { background: var(--mid-bg); color: var(--mid); }
