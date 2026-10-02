@@ -1,1 +1,30 @@
-{"updated":"2026-10-01","brands":{}}
+{
+ "updated": "2026-10-01",
+ "brands": {
+  "dearklairs": {
+   "name": "Dear Klairs",
+   "status": "peta",
+   "source": "https://crueltyfree.peta.org/company/dear-klairs/"
+  },
+  "medipeel": {
+   "name": "Medi-Peel",
+   "status": "peta",
+   "source": "https://crueltyfree.peta.org/company/medi-peel/"
+  },
+  "skin1004": {
+   "name": "SKIN1004",
+   "status": "peta",
+   "source": "https://crueltyfree.peta.org/company/skin1004-co/"
+  },
+  "unleashia": {
+   "name": "Unleashia",
+   "status": "peta",
+   "source": "https://crueltyfree.peta.org/company/unleashia/"
+  },
+  "innisfree": {
+   "name": "innisfree",
+   "status": "peta",
+   "source": "https://crueltyfree.peta.org/company/innisfree/"
+  }
+ }
+}
