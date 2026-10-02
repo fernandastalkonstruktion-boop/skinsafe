@@ -33,6 +33,20 @@
     el("status-find-q").value = "";
     show("status");
   }
+  // Small "yes" marks shown on products. They never change the score. Only shown when true.
+  function marksFor(product, items) {
+    var marks = [];
+    var v = window.Ingredients.veganCheck(items);
+    if (v.ok && !product.partial) marks.push({ id: "vegan", label: "Vegan-friendly", icon: "leaf", note: "No animal-derived ingredients spotted in the list." });
+    var cf = window.Brands && window.Brands.get(product.brand);
+    if (cf) marks.push({ id: "cf", label: "Cruelty-free", icon: "paw", note: "The brand is " + (cf.status === "both" ? "certified by Leaping Bunny and PETA" : cf.status === "peta" ? "listed by PETA as cruelty-free" : "certified by Leaping Bunny") + "." });
+    return marks;
+  }
+  function markTags(product) {
+    var items;
+    try { items = window.Ingredients.analyze(product.ingredientsText).items; } catch (e) { return ""; }
+    return marksFor(product, items).map(function (m) { return '<span class="tag ok">' + ic(m.icon) + m.label + "</span>"; }).join("");
+  }
   function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
 
   // Score bands: 76-100 excellent, 51-75 good, 26-50 not great, 0-25 bad.
@@ -277,6 +291,7 @@
     box.innerHTML = '<div class="saved-head"><p class="saved-title">' + ic("heart") + 'My products</p><span class="saved-count">' + list.length + " saved on this phone</span></div>" +
       list.map(function (p, i) {
         var an = window.Ingredients.analyze(p.ingredientsText), b = band(an.score), tags = "";
+        tags += markTags(p);
         if (window.Alerts && window.Alerts.match(p).length) tags += '<span class="tag bad">' + ic("alert") + "Official alert</span>";
         if ((ids.length || words.length) && window.Profile.allergyHits(an.items, ids, words).length) tags += '<span class="tag bad">' + ic("alert") + "Your allergy</span>";
         return '<button type="button" class="result-item saved-item" data-i="' + i + '">' +
@@ -418,6 +433,12 @@
       '<span class="pill mid">' + ic("eye") + n.mid + " to watch</span>" +
       '<span class="pill bad">' + ic("flag") + plural(n.bad, "flag", "flags") + "</span>";
 
+    var marks = marksFor(product, a.items), badges = el("badges");
+    badges.hidden = marks.length === 0;
+    badges.innerHTML = marks.length
+      ? marks.map(function (m) { return '<span class="pill ok">' + ic(m.icon) + m.label + "</span>"; }).join("") +
+        '<p class="badge-note">' + marks.map(function (m) { return esc(m.note); }).join(" ") + " These marks don't change the score, and they aren't a certification of this exact package.</p>"
+      : "";
     var note = el("catalog-note");
     if (product.shop) {
       var host = "";
@@ -528,10 +549,11 @@
   function resultRows(list) {
     return list.map(function (p, idx) {
       var tag = p.shop ? ic("book") + "From our list" : p.local ? ic("camera") + "From your photo" : "";
+      var marks = markTags(p);
       return '<button type="button" class="result-item" data-i="' + idx + '">' +
         (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy">' : '<span class="result-ph">' + ic("droplet") + "</span>") +
         '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
-        (tag ? '<span class="tags"><span class="tag mine">' + tag + "</span></span>" : "") + "</span>" +
+        (tag || marks ? '<span class="tags">' + (tag ? '<span class="tag mine">' + tag + "</span>" : "") + marks + "</span>" : "") + "</span>" +
         ic("chevron-right", "chev-ic") + "</button>";
     }).join("");
   }
@@ -676,6 +698,7 @@
     ["alert", "Allergy is not irritation", "Can cause allergy: some people become allergic after repeated contact, and it usually stays. Allergen if you're allergic: only matters to people who already have that allergy, like nuts or wheat. Can irritate: depends on the amount and your skin, and goes away when you stop."],
     ["info", "Product alerts", "Official recalls are facts, with the date and a link to the notice. Lawsuits only appear when a court grouped many cases from different people and published science backs the claim. They are always labeled not proven."],
     ["ban", "What we can't know", "The list order tells us the biggest ingredients, not the exact amounts. Photos can be misread. Product data comes from a community database that can be out of date. A cosmetic scientist has not reviewed our ratings yet. This is not medical advice."],
+    ["leaf", "Vegan and cruelty-free marks", "These small marks appear only when they are true, and they never change the score. Vegan-friendly means we found no animal-derived ingredient in the list (honey, beeswax, collagen, lanolin, milk proteins and similar). Some common ingredients, like glycerin or stearic acid, can come from animals or plants and the list does not say which, so this is not a vegan certification. Cruelty-free means the brand is listed by Leaping Bunny or PETA, two independent nonprofits; we do not use the brand's own claim."],
     ["lock", "Your data", "Nothing is uploaded. Your skin answers and allergies stay on your device, and there are no accounts."]
   ];
   function renderAbout() {
@@ -748,4 +771,6 @@
   renderAllergyCard();
   renderSavedList();
   show("home");
+  // Brand facts load after the first screen; redraw the saved list once they are in.
+  window.Brands.load().then(function () { renderSavedList(); });
 })();

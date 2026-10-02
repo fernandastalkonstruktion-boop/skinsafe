@@ -139,7 +139,27 @@
     }
   };
 
+  // Brand-level facts we checked ourselves (data/brands.json, built by tools/build_brands.py): cruelty-free certifications.
+  var brandMap = null;
+  function loadBrands() {
+    var meta = document.querySelector('meta[name="app-version"]');
+    var v = meta ? meta.getAttribute("content") : "dev";
+    return fetch("data/brands.json?v=" + encodeURIComponent(v))
+      .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+      .then(function (j) { brandMap = j && j.brands ? j.brands : {}; return brandMap; })
+      .catch(function () { brandMap = {}; return brandMap; });
+  }
+  var Brands = {
+    load: loadBrands,
+    // Returns {status, source} when this brand is certified by Leaping Bunny or PETA, otherwise null.
+    get: function (brand) {
+      if (!brandMap || !brand) return null;
+      return brandMap[flat(brand).replace(/\s+/g, "")] || null;
+    }
+  };
+
   window.OBF = { lookup: lookup, search: search };
   window.Catalog = Catalog;
   window.Shop = Shop;
+  window.Brands = Brands;
 })();

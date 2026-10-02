@@ -172,6 +172,9 @@
     ["mid", ["lanolin acid"], "Lanolin derivative, can cause allergy", "A wool-fat derivative that softens hair and skin. Lanolin is a known cause of contact allergy for some people.", ["allergy"], [], ["COSING"]],
     ["good", ["honey", "gelatin", "phosphatidylcholine", "hydrogenated phosphatidylcholine", "hydrolyzed milk protein", "milk protein", "whey protein", "hydrolyzed vegetable protein", "hydrolyzed jojoba esters", "hydrolyzed glycosaminoglycans", "soluble proteoglycan", "cystine", "pyridoxine", "beta-carotene", "caffeic acid", "lysine hcl", "sarcosine", "capryloyl glycine", "sodium soy hydrolyzed collagen", "zinc hydrolyzed collagen", "cocodimonium hydroxypropyl hydrolyzed wheat protein", "glycine max polypeptide", "yeast beta-glucan", "biosaccharide gum-4", "saccharide isomerate", "saccharide hydrolysate", "hydroxydecyl ubiquinone"], "Conditioning protein, vitamin or natural extract", "Proteins, vitamins and natural substances that condition skin and hair. If you are allergic to bee products, milk, soy or wheat, check the label.", [], [], ["COSING"]],
     ["good", ["sea salt", "vegetable oil", "dimethyl sulfone", "methyl gluceth-20", "c12-14 pareth-12", "c12-13 pareth-9", "c12-16 alcohols", "t-butyl alcohol", "heptyl undecylenate", "caproic acid", "sodium succinate", "ammonium sulfate", "isopropanolamine", "sodium surfactin", "glyceryl stearates", "myristyl glucoside", "hydrogenated starch hydrolysate", "oleic/linoleic/linolenic polyglycerides", "bis-peg-18 methyl ether dimethyl silane", "peg/ppg-9/2 dimethyl ether", "peg/ppg-14/7 dimethyl ether", "zinc chloride", "juglans regia shell powder", "mineral salts", "ceramide as"], "Texture, solvent or helper ingredient", "Gives the product its feel, cleans, dissolves or stabilizes. Rarely causes problems.", [], [], ["COSING"]],
+    // Third pass (Sally hair lists). General knowledge, not checked one by one.
+    ["mid", ["quaternium-80", "quaternium-91", "quaternium-95", "dicetyldimonium chloride", "cetrimonium methosulfate", "stearalkonium chloride", "laurdimonium hydroxypropyl hydrolyzed keratin", "c10-40 isoalkylamidopropylethyldimonium ethosulfate"], "Hair conditioning agent", "A conditioning agent for hair. Quaternary ammonium types can irritate the scalp or eyes in strong formulas; fine in normal use.", ["irritation"], [], ["COSING"]],
+    ["good", ["phytantriol", "acetic acid", "etidronic acid", "sodium lauryl sulfoacetate", "c11-15 pareth-7", "c12-13 pareth-23", "c12-13 pareth-3", "hydroxypropylammonium gluconate", "hydroxypropylgluconamide", "hydrolyzed vegetable protein pg-propyl silanetriol", "hydrolyzed quinoa", "arginine hcl", "sodium glycolate", "sodium cocoate", "methyl cocoate", "sodium cocoamphoacetate", "sodium phosphate", "fumaric acid", "sodium formate", "sodium starch octenylsuccinate", "hydroxypropyl guar", "ethylhexyl olivate", "butyloctanol", "polyester-37", "avena sativa peptide", "bis-aminopropyl diglycol dimaleate", "palmitoyl myristyl serinate", "sodium methyl 2-sulfolaurate", "dilauryl thiodipropionate"], "Conditioning, cleansing or helper ingredient", "Used to condition hair, adjust pH, stabilize or give the product its feel. Rarely causes problems.", [], [], ["COSING"]],
     ["mid", ["potassium cocoate"], "Coconut soap, can dry skin", "Soap made from coconut oil. It cleans well but is alkaline, so it can dry or irritate skin that is dry or sensitive.", ["irritation", "drying"], [], ["COSING"]]
   ];
 
@@ -276,5 +279,18 @@
     return { items: items, counts: n, score: score };
   }
 
-  window.Ingredients = { analyze: analyze, split: split, RISK_LABEL: RISK_LABEL, RISK_ICON: RISK_ICON };
+    // Animal-derived ingredients, matched by name. Names that say synthetic, vegan or plant milks are skipped.
+  // This is a flag-spotting aid, not a certification: glycerin, stearic acid and similar can come from animals or plants.
+  var ANIMAL = /(beeswax|cera alba|cera flava|(^|[^a-z])honey|(^|[^a-z])mel([^a-z]|$)|propolis|royal jelly|(^|[^a-z])apis|lanolin|adeps lanae|(^|[^a-z])wool|collagen|elastin|keratin|(^|[^a-z])silk|sericin|(^|[^a-z])milk|(^|[^a-z])lac([^a-z]|$)|lactis|whey|casein|lactoferrin|lactalbumin|(^|[^a-z])egg([^a-z]|$)|ovum|albumen|ovalbumin|lysozyme|gelatin|carmine|ci 75470|cochineal|carminic|snail|secretion filtrate|placenta|tallow|guanine|ci 75170|(^|[^a-z])pearl|nacre|conchiolin|caviar|(^|[^a-z])fish|salmon|oyster|mussel|(^|[^a-z])crab|shrimp|chitosan|swiftlet|bird.?s nest|(^|[^a-z])deer|antler|bee pollen|sodium dna|(^|[^a-z])pdrn|proteoglycan|glycosaminoglycan|cholesterol|castoreum)/;
+  var NOT_ANIMAL = /(synthetic|vegan|recombinant|plant|coconut|cocos|soy|glycine soja|oat|avena|almond|amygdal|rice|oryza|eggplant|solanum melongena|milk thistle|silybum|pearl millet|beeswax substitute)/;
+  function veganCheck(items) {
+    var animal = [];
+    (items || []).forEach(function (i) {
+      var n = String(i.name || "").toLowerCase();
+      if (ANIMAL.test(n) && !NOT_ANIMAL.test(n)) animal.push(i.name);
+    });
+    return { ok: animal.length === 0 && (items || []).length >= 5, animal: animal };
+  }
+
+window.Ingredients = { analyze: analyze, split: split, veganCheck: veganCheck, RISK_LABEL: RISK_LABEL, RISK_ICON: RISK_ICON };
 })();

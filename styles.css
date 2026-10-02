@@ -385,3 +385,9 @@ body {
 .catalog-note .ic { margin-top: 2px; width: 15px; height: 15px; }
 .catalog-note a { color: var(--text-2); }
 .tag.mine { background: var(--accent-soft); color: var(--text-2); }
+
+/* marks that never change the score */
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; align-items: center; }
+.pill.ok { background: var(--good-bg); color: var(--good); }
+.badge-note { flex-basis: 100%; margin: 2px 0 0; font-size: 11px; line-height: 1.5; color: var(--text-2); }
+.tag.ok { background: var(--good-bg); color: var(--good); }
