@@ -418,6 +418,7 @@
     el("name").textContent = product.name;
     var photo = el("photo");
     if (product.image) {
+      photo.referrerPolicy = "no-referrer";
       photo.src = product.image;
       photo.hidden = false;
       photo.onerror = function () { photo.hidden = true; };
@@ -561,7 +562,7 @@
       var tag = p.shop ? ic("book") + "From our list" : p.local ? ic("camera") + "From your photo" : "";
       var marks = markTags(p);
       return '<button type="button" class="result-item" data-i="' + idx + '">' +
-        (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy">' : '<span class="result-ph">' + ic("droplet") + "</span>") +
+        (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<span class="result-ph">' + ic("droplet") + "</span>") +
         '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
         (tag || marks ? '<span class="tags">' + (tag ? '<span class="tag mine">' + tag + "</span>" : "") + marks + "</span>" : "") + "</span>" +
         ic("chevron-right", "chev-ic") + "</button>";
@@ -746,6 +747,7 @@
     ["ban", "What we can't know", "The list order tells us the biggest ingredients, not the exact amounts. Photos can be misread. Product data comes from a community database that can be out of date. A cosmetic scientist has not reviewed our ratings yet. This is not medical advice."],
     ["package", "Find a product", "Scan the barcode, search by name, take a photo of the product (we read its barcode first, then the words on the label), or photograph the ingredient list. Reading a label from a photo can miss stylized fonts, so check that the match is your product. Photos are read on your phone and are not uploaded."],
     ["leaf", "Vegan and cruelty-free marks", "These small marks appear only when they are true, and they never change the score. Vegan-friendly means we found no animal-derived ingredient in the list (honey, beeswax, collagen, lanolin, milk proteins and similar). Some common ingredients, like glycerin or stearic acid, can come from animals or plants and the list does not say which, so this is not a vegan certification. Cruelty-free means the brand is listed by Leaping Bunny or PETA, two independent nonprofits; we do not use the brand's own claim."],
+    ["camera", "Product photos", "Where we have one, the product photo is the brand's own or a large beauty retailer's studio photo, shown straight from their website. The photos belong to those brands and shops. We never store or sell them, and a photo can disappear if the website changes it."],
     ["lock", "Your data", "Nothing is uploaded. Your skin answers and allergies stay on your device, and there are no accounts."]
   ];
   function renderAbout() {
@@ -816,6 +818,13 @@
     renderSavedList();
     show("home");
   });
+  // One theme-color tag, switched by script: iPhones in app mode pick the LAST of several theme-color tags no matter the mode.
+  (function () {
+    var meta = el("theme-color"), mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    function sync() { if (meta) meta.setAttribute("content", mq && mq.matches ? "#0b2f45" : "#84cdea"); }
+    sync();
+    if (mq && mq.addEventListener) mq.addEventListener("change", sync);
+  })();
   importSetup();
   renderGreeting(false);
   renderProfileCard();

@@ -160,7 +160,7 @@ body {
 .card { background: var(--card); -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2); border: 1px solid var(--glass-line); border-radius: 24px; padding: 20px 18px; }
 .head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
 .head > div { min-width: 0; }
-#photo { width: 56px; height: 56px; object-fit: contain; border-radius: 12px; background: #fff; border: 1px solid var(--line); flex: none; }
+#photo { width: 92px; height: 92px; padding: 4px; object-fit: contain; border-radius: 16px; background: #fff; border: 1px solid var(--line); flex: none; }
 .brand { font-size: 12px; color: var(--text-2); margin: 0; }
 .name { font-family: var(--font-display); font-style: italic; font-weight: 700; font-size: 27px; margin: 2px 0 16px; line-height: 1.12; overflow-wrap: anywhere; }
 .head .name { margin-bottom: 12px; }
@@ -306,7 +306,7 @@ body {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer; padding: 8px 12px 8px 8px;
   border-radius: 18px; border: 1px solid var(--glass-line); background: var(--glass); color: var(--text); font-family: inherit;
 }
-.result-item img, .result-ph { width: 48px; height: 48px; border-radius: 12px; object-fit: contain; background: #fff; flex: none; display: flex; align-items: center; justify-content: center; color: var(--accent); }
+.result-item img, .result-ph { width: 56px; height: 56px; border-radius: 12px; object-fit: contain; background: #fff; flex: none; display: flex; align-items: center; justify-content: center; color: var(--accent); }
 .result-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .result-brand { font-size: 12px; color: var(--text-2); }
 .result-name { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }

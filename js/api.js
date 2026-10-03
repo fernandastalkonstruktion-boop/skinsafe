@@ -116,7 +116,7 @@
         .then(function (j) {
           return (j.products || []).map(function (p) {
             return {
-              code: p.barcode || "", brand: p.brand, name: p.name, image: "", ingredientsText: p.ingredients,
+              code: p.barcode || "", brand: p.brand, name: p.name, image: p.image || "", ingredientsText: p.ingredients,
               shop: true, partial: !!p.partial, note: p.note || "", source: p.source,
               hay: flat(p.brand + " " + p.name + " " + (p.aliases || []).join(" "))
             };
