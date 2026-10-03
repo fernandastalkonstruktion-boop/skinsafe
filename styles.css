@@ -68,6 +68,10 @@ body {
   min-height: 100vh;
 }
 [hidden] { display: none !important; }
+html, body { touch-action: manipulation; overscroll-behavior-y: none; }
+body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+input, textarea, select { font-size: max(16px, 1em); }
+button { touch-action: manipulation; }
 
 /* Fluid background: soft blurred color blobs that drift slowly, plus film grain. */
 .bg { position: fixed; top: 0; left: 0; right: 0; height: 100vh; height: 100lvh; z-index: 0; overflow: hidden; pointer-events: none; background: linear-gradient(180deg, var(--base-top) 0%, var(--base-bottom) 100%); }
@@ -457,9 +461,12 @@ body.cam-open { overflow: hidden; }
 .cam-busy { position: absolute; inset: 0; background: rgba(0,0,0,0.5); z-index: 5; }
 .cam-snapbox { position: absolute; left: 20px; right: 20px; top: 17%; bottom: 35%; border-radius: 28px; overflow: hidden; border: 3px solid #fff; background: #000; }
 .cam-snapbox img { width: 100%; height: 100%; object-fit: cover; opacity: 0.85; }
-.cam-line { position: absolute; left: 0; right: 0; height: 3px; top: 0; background: #fff; box-shadow: 0 0 18px 6px rgba(255,255,255,0.6); animation: camline 1.8s ease-in-out infinite alternate; }
-@keyframes camline { from { top: 0; } to { top: calc(100% - 3px); } }
-@media (prefers-reduced-motion: reduce) { .cam-line { animation: none; top: 50%; } }
+.cam-line { position: absolute; inset: 0; animation: camsweep 1.7s ease-in-out infinite alternate; will-change: transform; }
+.cam-line::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: #fff; box-shadow: 0 0 18px 6px rgba(255,255,255,0.6); }
+.cam-line::after { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 100%; background: linear-gradient(0deg, rgba(120,226,214,0.42), rgba(120,226,214,0)); }
+@keyframes camsweep { from { transform: translateY(0); } to { transform: translateY(calc(100% - 3px)); } }
+.cam-spark { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; opacity: 0; background: #fff; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation: camspark 1.6s ease-in-out infinite; }
+@keyframes camspark { 0%, 100% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1); } }
 .cam-busy-text { position: absolute; left: 24px; right: 24px; bottom: calc(env(safe-area-inset-bottom) + 150px); margin: 0; text-align: center; font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 30px; line-height: 1.15; text-shadow: 0 2px 12px rgba(0,0,0,0.6); }
 .cam-sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 84%; overflow-y: auto; background: var(--sheet); color: var(--text); border-radius: 30px 30px 0 0; padding: 24px 16px calc(env(safe-area-inset-bottom) + 18px); z-index: 6; box-shadow: 0 -10px 40px rgba(0,0,0,0.35); }
 .cam-sheet > .cam-round.light { position: absolute; top: 16px; right: 16px; }

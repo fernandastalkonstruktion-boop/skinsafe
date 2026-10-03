@@ -711,11 +711,12 @@
       var old = el("cam-snap").src;
       el("cam-snap").src = URL.createObjectURL(file);
       if (old && old.indexOf("blob:") === 0) URL.revokeObjectURL(old);
-      el("cam-busy-text").textContent = "Searching the database…";
+      el("cam-busy-text").textContent = "Searching…";
       el("cam-card").hidden = true; el("cam-hint").hidden = true;
     }
   }
   function progress(msg) { if (cam.busy) el("cam-busy-text").textContent = msg.replace(/…$/, "") + "…"; }
+  function stage(msg) { progress(msg); }
 
   function onShutter() {
     if (cam.busy || cam.mode === "code") return;
@@ -752,9 +753,10 @@
 
   // Product: try a barcode in the photo first, then read the words printed on the package.
   function identifyProduct(file) {
+    stage("Looking for a barcode");
     return tryBarcodeFile(file).then(function (code) {
       if (code.length >= 8) return { code: code };
-      return window.OCR.readRaw(file, progress).then(function (text) { return window.Shop.identify(text); });
+      return window.OCR.readRaw(file, progress).then(function (text) { stage("Matching products"); return window.Shop.identify(text); });
     });
   }
 
@@ -765,6 +767,7 @@
     }
     function identifyAll(gs) {
       var found = [];
+      stage("Matching products");
       return gs.reduce(function (chain, g) {
         return chain.then(function () {
           return window.Shop.identify(g.text).then(function (r) {
@@ -1070,6 +1073,8 @@
     sync();
     if (mq && mq.addEventListener) mq.addEventListener("change", sync);
   })();
+  ["gesturestart", "gesturechange", "gestureend"].forEach(function (t) { document.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false }); });
+  document.addEventListener("touchmove", function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   importSetup();
   renderGreeting(false);
   renderProfileCard();
