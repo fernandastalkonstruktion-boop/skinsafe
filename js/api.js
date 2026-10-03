@@ -99,7 +99,14 @@
   // Shared catalog of products we looked up ourselves (data/catalog.json, built by tools/build_catalog.py).
   // Loaded once, on first search. Matches brand, name and alternate names, ignoring punctuation and spacing (Medipeel = Medi-Peel).
   var shopPromise = null;
-  function flat(s) { return String(s).toLowerCase().replace(/[^a-z0-9À-ɏ가-힯\s]/g, ""); }
+  function flat(s) { return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\uac00-\ud7af\s]/g, ""); }
+  // Everyday Spanish / French words people type or that are printed on Mexican packages, mapped to the English words used in product names.
+  var SYN = { champu: "shampoo", shampooing: "shampoo", acondicionador: "conditioner", apres: "conditioner", fondant: "conditioner", mascarilla: "mask", masque: "mask", masquintense: "mask", crema: "cream", creme: "cream", jabon: "soap", savon: "soap", aceite: "oil", huile: "oil", solar: "sunscreen", protector: "sunscreen", limpiador: "cleanser", hidratante: "moisturizing", micelar: "micellar", agua: "water", locion: "lotion", talco: "talcum", rimel: "mascara", pestanas: "lash", cabello: "hair", pelo: "hair", caida: "loss", tratamiento: "treatment", espuma: "mousse", bain: "shampoo", gel: "gel" };
+  function withSyn(list) {
+    var out = list.slice();
+    list.forEach(function (w) { if (SYN[w] && out.indexOf(SYN[w]) < 0) out.push(SYN[w]); });
+    return out;
+  }
   function loadShop() {
     if (!shopPromise) {
       var meta = document.querySelector('meta[name="app-version"]');
@@ -134,7 +141,7 @@
         if (!words.length) return [];
         return list.filter(function (p) {
           var squashed = p.hay.replace(/\s+/g, "");
-          return words.every(function (w) { return p.hay.indexOf(w) > -1 || squashed.indexOf(w) > -1; });
+          return words.every(function (w) { var alt = SYN[w]; return p.hay.indexOf(w) > -1 || squashed.indexOf(w) > -1 || (alt && p.hay.indexOf(alt) > -1); });
         });
       });
     }
@@ -159,7 +166,7 @@
   }
   Shop.identify = function (text) {
     var tokens = [];
-    words(text).forEach(function (w) { if (w.length >= 3 && !/^\d+$/.test(w) && tokens.indexOf(w) < 0) tokens.push(w); });
+    withSyn(words(text)).forEach(function (w) { if (w.length >= 3 && !/^\d+$/.test(w) && tokens.indexOf(w) < 0) tokens.push(w); });
     return loadShop().then(function (list) {
       var pool = list.concat(Catalog.all().map(function (p) { return { brand: p.brand, name: p.name, code: p.code, image: p.image, ingredientsText: p.ingredientsText, local: true, shop: p.shop, partial: p.partial, note: p.note, source: p.source, linked: p.linked, hay: flat(p.brand + " " + p.name) }; }));
       var docs = pool.map(function (p) { return { p: p, w: words(p.hay) }; });
