@@ -1,5 +1,5 @@
 (function () {
-  var VIEWS = ["home", "skin", "quiz", "allergies", "results", "about", "ocr", "scanner", "status", "result"];
+  var VIEWS = ["home", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result"];
   var scanner = null;
   var lastProduct = null;
   var cameFrom = "home";        // where "Back" on a result should go
@@ -490,38 +490,44 @@
 
   function backFromResult() {
     lastProduct = null;
-    if (cameFrom === "results" && lastResults) show("results"); else goHome();
+    if (cameFrom === "cam") openCam("code");
+    else if (cameFrom === "results" && lastResults) show("results"); else goHome();
   }
 
-  // ----- barcode lookup and scanner -----
-  function lookupCode(raw) {
+  // ----- barcode lookup -----
+  // Finds a barcode in this phone's own catalog, our list, then Open Beauty Facts. Resolves to {state, product?, p?}.
+  function resolveCode(raw) {
     var code = String(raw || "").replace(/\D/g, "");
-    if (code.length < 8) {
-      showStatus("That doesn't look like a barcode. Barcodes have 8 to 13 digits.");
-      return;
-    }
+    if (code.length < 8) return Promise.resolve({ state: "bad" });
     var mine = window.Catalog.get(code);
-    if (mine) { pending = null; cameFrom = "home"; renderResult(mine); return; }
-    showStatus("Looking up " + code + "…");
-    window.Shop.byCode(code).then(function (s) {
+    if (mine) return Promise.resolve({ state: "found", product: mine });
+    return window.Shop.byCode(code).then(function (s) {
       if (s) return s;
       return window.OBF.lookup(code);
     }).then(function (p) {
-      if (p && p.shop) { pending = null; cameFrom = "home"; renderResult(p); return; }
-      if (!p) {
-        pending = { code: code, brand: "", name: "", image: "" };
-        showStatus("We don't have " + code + " yet. Take a photo of the ingredient list on the package and we'll remember this product on this phone.", true);
-      } else if (!p.ingredientsText) {
-        pending = { code: code, brand: p.brand, name: p.name, image: p.image };
-        showStatus(p.name + " is in the database but has no ingredient list yet. Take a photo of the list on the package and we'll remember it on this phone.", true);
-      } else {
-        pending = null;
-        cameFrom = "home";
-        renderResult(p);
-      }
-    }).catch(function () {
-      showStatus("Couldn't reach the product database. Check your connection and try again.");
-    });
+      if (p && p.shop) return { state: "found", product: p };
+      if (!p) return { state: "missing" };
+      if (!p.ingredientsText) return { state: "noingredients", p: p };
+      return { state: "found", product: p };
+    }).catch(function () { return { state: "error" }; });
+  }
+  function applyResolved(r, code) {
+    if (r.state === "bad") { showStatus("That doesn't look like a barcode. Barcodes have 8 to 13 digits."); return; }
+    if (r.state === "error") { showStatus("Couldn't reach the product database. Check your connection and try again."); return; }
+    if (r.state === "found") { pending = null; cameFrom = "home"; renderResult(r.product); return; }
+    if (r.state === "missing") {
+      pending = { code: code, brand: "", name: "", image: "" };
+      showStatus("We don't have " + code + " yet. Take a photo of the ingredient list on the package and we'll remember this product on this phone.", true);
+    } else {
+      pending = { code: code, brand: r.p.brand, name: r.p.name, image: r.p.image };
+      showStatus(r.p.name + " is in the database but has no ingredient list yet. Take a photo of the list on the package and we'll remember it on this phone.", true);
+    }
+  }
+  function lookupCode(raw) {
+    var code = String(raw || "").replace(/\D/g, "");
+    if (code.length < 8) { applyResolved({ state: "bad" }, code); return; }
+    if (!window.Catalog.get(code)) showStatus("Looking up " + code + "…");
+    resolveCode(code).then(function (r) { applyResolved(r, code); });
   }
 
   function stopScanner() {
@@ -531,36 +537,306 @@
     return s.stop().then(function () { s.clear(); }).catch(function () {});
   }
 
-  function startScanner() {
-    if (!window.Html5Qrcode) {
-      showStatus("The scanner couldn't load. Type the barcode number instead.");
+  // ----- one camera for everything: barcode (live), product, shelf and ingredient list (photo) -----
+  var MODE_HINT = {
+    code: "Point the camera at a barcode",
+    product: "Fit the front of the product in the frame, then tap the button",
+    shelf: "Fit the shelf in the frame, then tap the button",
+    ingredients: "Fill the frame with the ingredient list, then tap the button"
+  };
+  var cam = { open: false, mode: "code", busy: false, cand: "", candAt: 0, shown: "", job: 0, list: null };
+  var GUIDE = [
+    ["scan", "One camera, four ways", "Barcode reads by itself. Product, Shelf and Ingredients take a photo when you tap the round button."],
+    ["package", "Fit it all in the frame", "Step back a little so the whole label is inside the frame. Good light helps a lot."],
+    ["shield-check", "See what's inside", "You get a safety score and every ingredient, checked against EU and Korean rules."]
+  ];
+  var guideStep = 0;
+
+  function validGtin(code) {
+    var n = code.length, sum = 0;
+    for (var i = 0; i < n - 1; i++) {
+      var d = Number(code.charAt(n - 2 - i));
+      sum += i % 2 === 0 ? d * 3 : d;
+    }
+    return (10 - (sum % 10)) % 10 === Number(code.charAt(n - 1));
+  }
+
+  function camMsg(text) {
+    var m = el("cam-msg");
+    m.textContent = text;
+    m.hidden = !text;
+    if (text) {
+      clearTimeout(camMsg.t);
+      camMsg.t = setTimeout(function () { m.hidden = true; }, 5000);
+    }
+  }
+  function setMode(mode) {
+    cam.mode = mode;
+    el("cam").className = "cam m-" + mode;
+    el("cam-hint").textContent = MODE_HINT[mode];
+    el("cam-hint").hidden = false;
+    Array.prototype.forEach.call(el("cam-modes").querySelectorAll("button"), function (b) {
+      var on = b.getAttribute("data-mode") === mode;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    hideCard();
+    el("cam-sheet").hidden = true;
+    cam.shown = ""; cam.cand = "";
+  }
+  function hideCard() { el("cam-card").hidden = true; el("cam-card").innerHTML = ""; if (cam.open) el("cam-hint").hidden = false; }
+
+  function openCam(mode) {
+    cam.open = true; cam.busy = false; cam.job++;
+    el("cam").hidden = false;
+    document.body.classList.add("cam-open");
+    el("cam-busy").hidden = true;
+    el("cam-sheet").hidden = true;
+    el("cam-guide").hidden = true;
+    camMsg("");
+    setMode(mode || "code");
+    startCamera();
+    if (!guideSeen()) showGuide(0);
+  }
+  function hideCam() {
+    cam.open = false; cam.busy = false; cam.job++;
+    el("cam").hidden = true;
+    document.body.classList.remove("cam-open");
+  }
+  function closeCam() { hideCam(); return stopScanner(); }
+
+  function camUnavailable(text) {
+    el("cam-hint").hidden = true;
+    camMsg(text);
+    clearTimeout(camMsg.t);   // keep this one on screen
+  }
+  function startCamera() {
+    if (!window.Html5Qrcode || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      camUnavailable("The camera can't start here. Tap the picture button to use a photo from your gallery, or close this and type the barcode.");
       return;
     }
-    show("scanner");
-    var F = window.Html5QrcodeSupportedFormats;
-    scanner = new window.Html5Qrcode("reader", {
-      formatsToSupport: [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E],
-      useBarCodeDetectorIfSupported: true,
-      verbose: false
-    });
-    scanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 260, height: 140 } },
-      function (text) {
-        stopScanner().then(function () { lookupCode(text); });
-      },
-      function () {}
-    ).catch(function () {
-      scanner = null;
-      showStatus("The camera isn't available. Allow camera access, or search by name or type the barcode instead.");
+    stopScanner().then(function () {
+      if (!cam.open) return;
+      var F = window.Html5QrcodeSupportedFormats;
+      var s = new window.Html5Qrcode("cam-reader", {
+        formatsToSupport: [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E],
+        useBarCodeDetectorIfSupported: true,
+        verbose: false
+      });
+      scanner = s;
+      s.start(
+        { facingMode: "environment" },
+        { fps: 10, videoConstraints: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } },
+        onDecoded,
+        function () {}
+      ).then(function () {
+        if (!cam.open || scanner !== s) { if (scanner === s) scanner = null; s.stop().then(function () { s.clear(); }).catch(function () {}); }
+      }).catch(function () {
+        if (scanner === s) scanner = null;
+        if (cam.open) camUnavailable("The camera isn't available. Allow camera access in your browser, or tap the picture button to use a photo from your gallery.");
+      });
     });
   }
 
+  // A barcode counts when the same valid number is read twice in a row (avoids reading a wrong number once).
+  function onDecoded(text) {
+    if (!cam.open || cam.busy || cam.mode !== "code") return;
+    var code = String(text || "").replace(/\D/g, "");
+    if (code.length < 8 || code.length > 14 || code === cam.shown) return;
+    if ((code.length === 12 || code.length === 13) && !validGtin(code)) return;
+    var now = Date.now();
+    if (code !== cam.cand || now - cam.candAt > 1500) { cam.cand = code; cam.candAt = now; return; }
+    cam.cand = "";
+    camLookup(code);
+  }
+
+  function showCard(html) {
+    var c = el("cam-card");
+    c.innerHTML = html;
+    c.hidden = false;
+    el("cam-hint").hidden = true;
+  }
+  function camLookup(code) {
+    cam.shown = code;
+    showCard('<p class="cam-card-note">Looking up ' + esc(code) + "…</p>");
+    resolveCode(code).then(function (r) {
+      if (!cam.open || cam.shown !== code) return;
+      if (r.state === "found") {
+        var p = r.product, marks = scorePill(p) + markTags(p);
+        showCard('<button type="button" class="cam-card-btn" id="cam-card-open">' +
+          (p.image ? '<img src="' + esc(p.image) + '" alt="" referrerpolicy="no-referrer">' : '<span class="result-ph">' + ic("droplet") + "</span>") +
+          '<span class="cam-card-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
+          (marks ? '<span class="tags">' + marks + "</span>" : "") + "</span>" + ic("arrow-right", "chev-ic") + "</button>");
+        el("cam-card-open").addEventListener("click", function () {
+          closeCam(); pending = null; linking = null; cameFrom = "cam"; renderResult(p);
+        });
+      } else if (r.state === "error") {
+        showCard('<p class="cam-card-note">Couldn\'t reach the product database. Check your connection and scan again.</p>');
+        cam.shown = "";
+      } else {
+        showCard('<p class="cam-card-note"><strong>' + esc(code) + "</strong> " +
+          (r.state === "missing" ? "isn't in our database yet." : "is in the database but has no ingredient list yet.") + "</p>" +
+          '<button type="button" class="primary small" id="cam-card-add">' + ic("camera") + "Add it with a photo</button>");
+        el("cam-card-add").addEventListener("click", function () { closeCam(); applyResolved(r, code); });
+      }
+    });
+  }
+
+  // Crop the live picture to what is inside the white frame (the video is shown "cover", so map screen to video pixels).
+  function grabFrame() {
+    var v = document.querySelector("#cam-reader video");
+    if (!v || !v.videoWidth) return Promise.reject(new Error("no-video"));
+    var vr = v.getBoundingClientRect(), fr = el("cam-frame").getBoundingClientRect();
+    var k = Math.max(vr.width / v.videoWidth, vr.height / v.videoHeight);
+    var offX = (vr.width - v.videoWidth * k) / 2, offY = (vr.height - v.videoHeight * k) / 2;
+    var sx = Math.max(0, (fr.left - vr.left - offX) / k), sy = Math.max(0, (fr.top - vr.top - offY) / k);
+    var sw = Math.min(v.videoWidth - sx, fr.width / k), sh = Math.min(v.videoHeight - sy, fr.height / k);
+    var c = document.createElement("canvas");
+    c.width = Math.round(sw); c.height = Math.round(sh);
+    c.getContext("2d").drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    return new Promise(function (resolve, reject) {
+      c.toBlob(function (b) { if (b) resolve(new File([b], "snap.jpg", { type: "image/jpeg" })); else reject(new Error("no-blob")); }, "image/jpeg", 0.92);
+    });
+  }
+
+  function tryBarcodeFile(file) {
+    if (!window.Html5Qrcode) return Promise.resolve("");
+    var q = new window.Html5Qrcode("reader-file", { verbose: false });
+    return q.scanFile(file, false).then(function (t) { try { q.clear(); } catch (e) {} return String(t || "").replace(/\D/g, ""); }).catch(function () { return ""; });
+  }
+
+  function setBusy(on, file) {
+    el("cam-busy").hidden = !on;
+    if (on) {
+      var old = el("cam-snap").src;
+      el("cam-snap").src = URL.createObjectURL(file);
+      if (old && old.indexOf("blob:") === 0) URL.revokeObjectURL(old);
+      el("cam-busy-text").textContent = "Searching the database…";
+      el("cam-card").hidden = true; el("cam-hint").hidden = true;
+    }
+  }
+  function progress(msg) { if (cam.busy) el("cam-busy-text").textContent = msg.replace(/…$/, "") + "…"; }
+
+  function onShutter() {
+    if (cam.busy || cam.mode === "code") return;
+    grabFrame().then(function (file) { handleFile(file, cam.mode); }).catch(function () {
+      camMsg("The camera isn't ready yet. Wait a second and try again.");
+    });
+  }
+
+  function handleFile(file, mode) {
+    if (mode === "code") {
+      tryBarcodeFile(file).then(function (code) {
+        if (code.length >= 8) camLookup(code);
+        else camMsg("We couldn't find a barcode in that photo. Try a closer, sharper one.");
+      });
+      return;
+    }
+    if (mode === "ingredients") { closeCam().then(function () { runOcr(file); }); return; }
+    cam.busy = true;
+    var job = ++cam.job;
+    setBusy(true, file);
+    var work = mode === "product" ? identifyProduct(file) : findShelf(file);
+    work.then(function (r) {
+      if (!cam.open || cam.job !== job) return;
+      cam.busy = false; setBusy(false);
+      if (r.code) { closeCam().then(function () { lookupCode(r.code); }); return; }
+      showSheet(mode, r);
+    }).catch(function () {
+      if (!cam.open || cam.job !== job) return;
+      cam.busy = false; setBusy(false);
+      el("cam-hint").hidden = false;
+      camMsg("The photo reader couldn't start. It needs an internet connection the first time. Try again, or use the barcode.");
+    });
+  }
+
+  // Product: try a barcode in the photo first, then read the words printed on the package.
+  function identifyProduct(file) {
+    return tryBarcodeFile(file).then(function (code) {
+      if (code.length >= 8) return { code: code };
+      return window.OCR.readRaw(file, progress).then(function (text) { return window.Shop.identify(text); });
+    });
+  }
+
+  // Shelf (best effort): read all the words, group the ones that sit together into labels, and identify each label.
+  function findShelf(file) {
+    function pass(invert) {
+      return window.OCR.readWords(file, progress, invert).then(function (words) { return window.OCR.groups(words); });
+    }
+    function identifyAll(gs) {
+      var found = [];
+      return gs.reduce(function (chain, g) {
+        return chain.then(function () {
+          return window.Shop.identify(g.text).then(function (r) {
+            var m = r.matches[0];
+            if (m && !found.some(function (f) { return f.brand === m.brand && f.name === m.name; })) found.push(m);
+          });
+        });
+      }, Promise.resolve()).then(function () { return found; });
+    }
+    return pass(false).then(identifyAll).then(function (found) {
+      if (found.length >= 2) return found;
+      return pass(true).then(identifyAll).then(function (more) {
+        more.forEach(function (m) { if (!found.some(function (f) { return f.brand === m.brand && f.name === m.name; })) found.push(m); });
+        return found;
+      });
+    }).then(function (found) { return { matches: found, shelf: true, tokens: [] }; });
+  }
+
+  function showSheet(mode, r) {
+    var list = r.matches || [];
+    cam.list = list;
+    var n = list.length;
+    el("sheet-title").textContent = n ? (mode === "shelf" ? "Products found: " + n : "Is it one of these?") : (mode === "shelf" ? "No products recognized" : "We couldn't tell which product it is");
+    el("sheet-sub").textContent = n
+      ? (mode === "shelf" ? "Tap a product to see the full breakdown. Shelf reading is best effort, so a label it couldn't read may be missing." : "Tap the one on your package. If it isn't here, scan its barcode or photograph the ingredient list.")
+      : (mode === "shelf" ? "Try fewer products at once, closer, in good light. Or scan one product at a time with Product or Barcode." : "Try again with the front label in good light, or use the barcode or a photo of the ingredient list." + (r.tokens && r.tokens.length ? " We read: " + r.tokens.slice(0, 8).join(" ") + "." : " We couldn't read any words."));
+    el("sheet-list").innerHTML = resultRows(list);
+    Array.prototype.forEach.call(el("sheet-list").querySelectorAll(".result-item"), function (b) {
+      b.addEventListener("click", function () {
+        var p = list[Number(b.getAttribute("data-i"))];
+        lastResults = list;
+        el("results-title").textContent = el("sheet-title").textContent;
+        el("results-sub").textContent = "Tap a product to see what's in it.";
+        el("results-list").innerHTML = resultRows(list);
+        wireResultRows();
+        closeCam(); pending = null; linking = null; cameFrom = "results"; renderResult(p);
+      });
+    });
+    el("cam-sheet").hidden = false;
+    el("cam-sheet").scrollTop = 0;
+    el("cam-hint").hidden = true;
+  }
+  function closeSheet() { el("cam-sheet").hidden = true; el("cam-hint").hidden = false; }
+
+  // First-time guide (also from the (i) button).
+  function guideSeen() { try { return localStorage.getItem("skinsafe.camGuide") === "1"; } catch (e) { return true; } }
+  function showGuide(i) {
+    guideStep = i;
+    var g = GUIDE[i];
+    el("guide-ic").innerHTML = ic(g[0]);
+    el("guide-title").textContent = g[1];
+    el("guide-text").textContent = g[2];
+    el("guide-dots").innerHTML = GUIDE.map(function (_, k) { return '<i class="' + (k === i ? "on" : "") + '"></i>'; }).join("");
+    el("guide-next").textContent = i === GUIDE.length - 1 ? "Start scanning" : "Next";
+    el("cam-guide").hidden = false;
+  }
+  function endGuide() {
+    el("cam-guide").hidden = true;
+    try { localStorage.setItem("skinsafe.camGuide", "1"); } catch (e) {}
+  }
+
   // ----- search by name -----
+  function scorePill(p) {
+    var a;
+    try { a = window.Ingredients.analyze(p.ingredientsText); } catch (e) { return ""; }
+    if (a.score === null) return "";
+    return '<span class="tag score ' + band(a.score).cls + '">Safety ' + a.score + "/100</span>";
+  }
   function resultRows(list) {
     return list.map(function (p, idx) {
       var tag = p.shop ? ic("book") + "From our list" : p.local ? ic("camera") + "From your photo" : "";
-      var marks = markTags(p);
+      var marks = scorePill(p) + markTags(p);
       return '<button type="button" class="result-item" data-i="' + idx + '">' +
         (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<span class="result-ph">' + ic("droplet") + "</span>") +
         '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
@@ -656,47 +932,8 @@
     renderResult(product);
   }
 
-  // ----- photo of the product itself: try its barcode first, then read the words printed on it -----
-  function runProductPhoto(file) {
-    el("ocr-progress").hidden = false;
-    el("ocr-form").hidden = true;
-    el("ocr-status").textContent = "Looking at the photo…";
-    el("ocr-bar").style.width = "6%";
-    show("ocr");
-    function tryBarcode() {
-      if (!window.Html5Qrcode) return Promise.resolve(null);
-      var q = new window.Html5Qrcode("reader-file", { verbose: false });
-      return q.scanFile(file, false).then(function (t) { try { q.clear(); } catch (e) {} return t; }).catch(function () { return null; });
-    }
-    tryBarcode().then(function (code) {
-      var digits = String(code || "").replace(/\D/g, "");
-      if (digits.length >= 8) { lookupCode(digits); return null; }
-      return window.OCR.readRaw(file, function (msg, pct) {
-        el("ocr-status").textContent = msg;
-        if (pct !== null) el("ocr-bar").style.width = Math.max(8, Math.round(pct * 100)) + "%";
-      }).then(function (text) { return window.Shop.identify(text); });
-    }).then(function (r) {
-      if (!r) return;
-      linking = null; lastResults = r.matches; cameFrom = "results";
-      el("results-title").textContent = r.matches.length ? "Is it one of these?" : "We couldn't tell which product it is";
-      el("results-sub").textContent = r.matches.length
-        ? "Tap the one on your package. If it isn't here, take a photo of the barcode or of the ingredient list."
-        : "Try again with the front label in good light, or use the barcode or a photo of the ingredient list." + (r.tokens.length ? " We read: " + r.tokens.slice(0, 8).join(" ") + "." : " We couldn't read any words.");
-      el("results-list").innerHTML = resultRows(r.matches) + (r.matches.length ? "" :
-        '<div class="status-actions"><button type="button" class="primary small" id="results-photo">' + ic("camera") + "Photo of ingredients</button></div>");
-      wireResultRows();
-      var rp = el("results-photo"); if (rp) rp.addEventListener("click", function () { pending = null; startPhoto(); });
-      show("results");
-    }).catch(function () {
-      showStatus("The photo reader couldn't start. It needs an internet connection the first time. You can search by name or type the barcode instead.");
-    });
-  }
-
   // ----- photo of the ingredient list -----
-  function startPhoto() {
-    el("photo-input").value = "";
-    el("photo-input").click();
-  }
+  function startPhoto() { openCam("ingredients"); }
 
   function showOcrForm(text, hint) {
     el("ocr-progress").hidden = true;
@@ -762,7 +999,8 @@
     linking = null;
     el("q").value = "";
     el("manual").hidden = true;
-    stopScanner().then(function () { renderGreeting(false); renderProfileCard(); renderAllergyCard(); renderSavedList(); show("home"); });
+    hideCam();
+    return stopScanner().then(function () { renderGreeting(false); renderProfileCard(); renderAllergyCard(); renderSavedList(); show("home"); });
   }
 
   el("heart").addEventListener("click", function () {
@@ -771,11 +1009,8 @@
     renderHeart(lastProduct);
     renderSavedList();
   });
-  el("scan-btn").addEventListener("click", startScanner);
+  el("scan-btn").addEventListener("click", function () { openCam("code"); });
   el("search-form").addEventListener("submit", function (e) { e.preventDefault(); runSearch(el("q").value); });
-  el("photo-btn").addEventListener("click", function () { pending = null; startPhoto(); });
-  el("product-btn").addEventListener("click", function () { el("product-input").value = ""; el("product-input").click(); });
-  el("product-input").addEventListener("change", function () { var f = el("product-input").files && el("product-input").files[0]; if (f) runProductPhoto(f); });
   el("status-photo").addEventListener("click", startPhoto);
   el("status-find").addEventListener("submit", function (e) { e.preventDefault(); findForBarcode(el("status-find-q").value); });
   el("manual-btn").addEventListener("click", function () {
@@ -783,13 +1018,22 @@
     f.hidden = !f.hidden;
     if (!f.hidden) el("code").focus();
   });
-  el("photo-input").addEventListener("change", function () {
-    var f = this.files && this.files[0];
-    if (f) runOcr(f);
+  el("cam-close").addEventListener("click", function () { goHome(); });
+  el("cam-help").addEventListener("click", function () { showGuide(0); });
+  el("guide-close").addEventListener("click", endGuide);
+  el("guide-next").addEventListener("click", function () { if (guideStep >= GUIDE.length - 1) endGuide(); else showGuide(guideStep + 1); });
+  el("cam-shutter").addEventListener("click", onShutter);
+  el("cam-gallery").addEventListener("click", function () { el("cam-file").value = ""; el("cam-file").click(); });
+  el("cam-file").addEventListener("change", function () { var f = el("cam-file").files && el("cam-file").files[0]; if (f) handleFile(f, cam.mode); });
+  el("cam-modes").addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("button[data-mode]") : null;
+    if (b && !cam.busy) setMode(b.getAttribute("data-mode"));
   });
+  el("sheet-close").addEventListener("click", closeSheet);
+  el("sheet-code").addEventListener("click", function () { setMode("code"); });
+  el("sheet-search").addEventListener("click", function () { goHome().then(function () { el("q").focus(); }); });
   el("ocr-go").addEventListener("click", analyzePhoto);
   el("ocr-cancel").addEventListener("click", goHome);
-  el("scan-cancel").addEventListener("click", goHome);
   el("status-back").addEventListener("click", goHome);
   el("back").addEventListener("click", backFromResult);
   el("results-back").addEventListener("click", goHome);

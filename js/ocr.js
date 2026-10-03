@@ -103,5 +103,57 @@
     });
   }
 
-  window.OCR = { read: read, readRaw: readRaw, clean: clean };
+  // Reads a photo with several products on it (a shelf): returns every word with its position. "Sparse text" mode looks for
+  // words scattered all over the picture instead of one block of text. invert=true reads light letters on a dark package.
+  function readWords(file, onProgress, invert) {
+    onProgress("Preparing the photo…", null);
+    return prepare(file).then(function (canvas) {
+      if (invert) {
+        var x = canvas.getContext("2d", { willReadFrequently: true });
+        var d = x.getImageData(0, 0, canvas.width, canvas.height), p = d.data;
+        for (var i = 0; i < p.length; i += 4) { p[i] = 255 - p[i]; p[i + 1] = 255 - p[i + 1]; p[i + 2] = 255 - p[i + 2]; }
+        x.putImageData(d, 0, 0);
+      }
+      onProgress("Loading the reader (first time only)…", null);
+      return loadLibrary().then(function () {
+        return window.Tesseract.createWorker("eng", 1, {
+          langPath: LANG_PATH,
+          logger: function (m) { if (m.status === "recognizing text") onProgress("Reading the shelf…", m.progress); }
+        });
+      }).then(function (w) {
+        return w.setParameters({ tessedit_pageseg_mode: "11" })
+          .then(function () { return w.recognize(canvas); })
+          .then(function (r) {
+            var words = (r.data && r.data.words) || [];
+            return w.terminate().then(function () { return words; }, function () { return words; });
+          });
+      });
+    });
+  }
+
+  // Groups nearby words into "labels": words that touch or sit close together belong to the same package.
+  function groups(words) {
+    var ws = (words || []).filter(function (w) { return w.bbox && w.confidence >= 35 && /[A-Za-z]{2,}/.test(w.text || ""); });
+    var parent = ws.map(function (_, i) { return i; });
+    function find(i) { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; }
+    for (var i = 0; i < ws.length; i++) {
+      for (var j = i + 1; j < ws.length; j++) {
+        var a = ws[i].bbox, b = ws[j].bbox;
+        var h = Math.max(a.y1 - a.y0, b.y1 - b.y0);
+        var gx = Math.max(0, Math.max(a.x0, b.x0) - Math.min(a.x1, b.x1));
+        var gy = Math.max(0, Math.max(a.y0, b.y0) - Math.min(a.y1, b.y1));
+        if (gx <= 1.2 * h && gy <= 0.9 * h) parent[find(i)] = find(j);
+      }
+    }
+    var map = {};
+    ws.forEach(function (w, k) {
+      var r = find(k);
+      (map[r] = map[r] || []).push(w);
+    });
+    return Object.keys(map).map(function (k) { return map[k]; })
+      .filter(function (g) { return g.length >= 2; })
+      .map(function (g) { return { text: g.map(function (w) { return w.text; }).join(" "), words: g.length }; });
+  }
+
+  window.OCR = { read: read, readRaw: readRaw, readWords: readWords, groups: groups, clean: clean };
 })();

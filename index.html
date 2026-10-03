@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#84cdea" id="theme-color">
-  <meta name="app-version" content="20261003073035">
+  <meta name="app-version" content="20261003073957">
   <title>SkinSafe</title>
   <link rel="icon" type="image/png" sizes="32x32" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-fav-10.png">
   <link rel="icon" type="image/png" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-10.png">
@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="SkinSafe">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="styles.css?v=20261003073035">
+  <link rel="stylesheet" href="styles.css?v=20261003073957">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -45,6 +45,7 @@
       <symbol id="i-package" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/><path d="m7.5 4.27 9 5.15"/></symbol>
       <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></symbol>
       <symbol id="i-paw" viewBox="0 0 24 24"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
       <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
     </defs>
   </svg>
@@ -61,7 +62,7 @@
 
     <section id="home">
       <div class="greet" id="greet"></div>
-      <button class="primary" id="scan-btn" type="button"><svg class="ic"><use href="#i-scan"/></svg>Scan barcode</button>
+      <button class="primary" id="scan-btn" type="button"><svg class="ic"><use href="#i-scan"/></svg>Scan barcode, product or shelf</button>
 
       <form class="search" id="search-form" role="search" autocomplete="off">
         <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
@@ -69,13 +70,9 @@
         <button type="submit" aria-label="Search"><svg class="ic"><use href="#i-arrow-right"/></svg></button>
       </form>
 
-      <div class="tile-row">
-        <button class="tile" id="product-btn" type="button"><svg class="ic"><use href="#i-package"/></svg><span>Photo of product</span></button>
-        <button class="tile" id="photo-btn" type="button"><svg class="ic"><use href="#i-camera"/></svg><span>Photo of ingredients</span></button>
-        <button class="tile" id="manual-btn" type="button"><svg class="ic"><use href="#i-keyboard"/></svg><span>Type barcode</span></button>
+      <div class="tile-row one">
+        <button class="tile" id="manual-btn" type="button"><svg class="ic"><use href="#i-keyboard"/></svg><span>Type a barcode number</span></button>
       </div>
-      <input type="file" id="photo-input" accept="image/*" hidden>
-      <input type="file" id="product-input" accept="image/*" capture="environment" hidden>
       <div id="reader-file" style="display:none"></div>
 
       <form class="manual" id="manual" autocomplete="off" hidden>
@@ -160,12 +157,6 @@
       </div>
     </section>
 
-    <section id="scanner" hidden>
-      <div id="reader"></div>
-      <p class="hint">Point the camera at the barcode on the package.</p>
-      <button class="secondary" id="scan-cancel" type="button">Cancel</button>
-    </section>
-
     <section id="status" hidden>
       <p id="status-text" class="status-text"></p>
       <form class="search status-find" id="status-find" autocomplete="off" hidden>
@@ -222,13 +213,63 @@
     <button type="button" class="tab" id="tab-about" data-tab="about"><svg class="ic" aria-hidden="true"><use href="#i-shield-check"/></svg><span>How we rate</span></button>
   </nav>
 
+
+  <div class="cam m-code" id="cam" hidden role="dialog" aria-label="Camera">
+    <div id="cam-reader"></div>
+    <div class="cam-frame" id="cam-frame" aria-hidden="true"></div>
+    <div class="cam-top">
+      <button type="button" class="cam-round" id="cam-close" aria-label="Close the camera"><svg class="ic"><use href="#i-x"/></svg></button>
+      <p class="cam-title">Scan a barcode, product or shelf</p>
+      <button type="button" class="cam-round" id="cam-help" aria-label="How the camera works"><svg class="ic"><use href="#i-info"/></svg></button>
+    </div>
+    <p class="cam-hint" id="cam-hint"></p>
+    <p class="cam-msg" id="cam-msg" role="status" hidden></p>
+    <div class="cam-controls">
+      <button type="button" class="cam-round" id="cam-gallery" aria-label="Pick a photo from your gallery"><svg class="ic"><use href="#i-image"/></svg></button>
+      <button type="button" class="cam-shutter" id="cam-shutter" aria-label="Take the photo"></button>
+      <span></span>
+    </div>
+    <div class="cam-card" id="cam-card" hidden></div>
+    <nav class="cam-modes" id="cam-modes" aria-label="What to scan">
+      <button type="button" data-mode="code" class="on">Barcode</button>
+      <button type="button" data-mode="product">Product</button>
+      <button type="button" data-mode="shelf">Shelf</button>
+      <button type="button" data-mode="ingredients">Ingredients</button>
+    </nav>
+    <div class="cam-busy" id="cam-busy" hidden>
+      <div class="cam-snapbox"><img id="cam-snap" alt=""><span class="cam-line"></span></div>
+      <p class="cam-busy-text" id="cam-busy-text">Searching…</p>
+    </div>
+    <div class="cam-sheet" id="cam-sheet" hidden>
+      <button type="button" class="cam-round light" id="sheet-close" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+      <h2 class="quiz-title" id="sheet-title"></h2>
+      <p class="quiz-sub" id="sheet-sub"></p>
+      <div class="result-list" id="sheet-list"></div>
+      <div class="sheet-actions">
+        <button type="button" class="secondary" id="sheet-code"><svg class="ic"><use href="#i-scan"/></svg>Scan code</button>
+        <button type="button" class="secondary" id="sheet-search"><svg class="ic"><use href="#i-search"/></svg>Search by name</button>
+      </div>
+    </div>
+    <div class="cam-scrim" id="cam-guide" hidden>
+      <div class="cam-sheet guide">
+        <button type="button" class="cam-round light" id="guide-close" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+        <div class="guide-ic" id="guide-ic"></div>
+        <h2 class="quiz-title" id="guide-title"></h2>
+        <p class="quiz-sub" id="guide-text"></p>
+        <div class="guide-dots" id="guide-dots"></div>
+        <button type="button" class="primary small" id="guide-next">Next</button>
+      </div>
+    </div>
+    <input type="file" id="cam-file" accept="image/*" hidden>
+  </div>
+
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/ingredients.js?v=20261003073035"></script>
-  <script src="js/alerts.js?v=20261003073035"></script>
-  <script src="js/profile.js?v=20261003073035"></script>
-  <script src="js/api.js?v=20261003073035"></script>
-  <script src="js/ocr.js?v=20261003073035"></script>
-  <script src="js/app.js?v=20261003073035"></script>
-  <script src="js/update.js?v=20261003073035"></script>
+  <script src="js/ingredients.js?v=20261003073957"></script>
+  <script src="js/alerts.js?v=20261003073957"></script>
+  <script src="js/profile.js?v=20261003073957"></script>
+  <script src="js/api.js?v=20261003073957"></script>
+  <script src="js/ocr.js?v=20261003073957"></script>
+  <script src="js/app.js?v=20261003073957"></script>
+  <script src="js/update.js?v=20261003073957"></script>
 </body>
 </html>

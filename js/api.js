@@ -16,16 +16,20 @@
     // French
     lait: "milk", nettoyant: "cleanser", moussant: "foaming", hydratant: "moisturizing", huile: "oil", visage: "face", mains: "hands", yeux: "eye", contour: "contour",
     "réparatrice": "repairing", apaisant: "soothing", soin: "care", quotidien: "daily", peau: "skin", "sèche": "dry", sensible: "sensitive", protecteur: "protective",
-    solaire: "sun", shampooing: "shampoo", masque: "mask", jour: "day", gommage: "scrub", eau: "water", micellaire: "micellar", "démaquillant": "makeup remover",
+    solaire: "sun", shampooing: "shampoo", masque: "mask", gommage: "scrub", micellaire: "micellar", "démaquillant": "makeup remover",
     lavant: "wash", corps: "body", cheveux: "hair", baume: "balm", "sérum": "serum",
     // German
     reinigungs: "cleansing", gesichts: "face", feuchtigkeits: "moisturizing", feuchtigkeitsspendende: "moisturizing", pflege: "care", tages: "day", "körper": "body",
     haut: "skin", trockene: "dry", empfindliche: "sensitive", schaum: "foam", sonnen: "sun", schutz: "protection", seife: "soap",
     // Italian and Portuguese
-    crema: "cream", detergente: "cleanser", idratante: "hydrating", hidratante: "hydrating", viso: "face", mani: "hands", corpo: "body", schiuma: "foam", olio: "oil",
+    detergente: "cleanser", idratante: "hydrating", viso: "face", mani: "hands", corpo: "body", schiuma: "foam", olio: "oil",
     latte: "milk", pelle: "skin", limpeza: "cleansing", rosto: "face", sabonete: "soap", "óleo": "oil", protetor: "protector",
+    // Turkish
+    "şampuan": "shampoo", "saç": "hair", krem: "cream", nemlendirici: "moisturizing", "yüz": "face", temizleyici: "cleanser", jel: "gel", losyon: "lotion",
+    "bakım": "care", "güneş": "sun", sabun: "soap", maske: "mask", "vücut": "body", "yağ": "oil", "onarıcı": "repairing", kuru: "dry", hassas: "sensitive",
+    "günlük": "daily", gece: "night", "gündüz": "day", durulama: "rinse", "koruyucu": "protective", "sülfatsız": "sulfate-free",
     // shared
-    gel: "gel", lotion: "lotion", shampoo: "shampoo", conditioner: "conditioner", serum: "serum", scrub: "scrub", tonic: "toner", anti: "anti"
+    gel: "gel", lotion: "lotion", shampoo: "shampoo", conditioner: "conditioner", serum: "serum", scrub: "scrub", anti: "anti"
   };
   var STEM_KEYS = Object.keys(STEMS).sort(function (a, b) { return b.length - a.length; });
   function stripAccents(s) { return s.normalize("NFD").replace(/[̀-ͯ]/g, ""); }
@@ -51,12 +55,13 @@
       return t ? t.replace(/\b\w/g, function (c) { return c.toUpperCase(); }) : w;
     }).join(" ");
   }
+  // Open Beauty Facts mislabels languages (a Turkish name tagged "en"), so the language tag is only trusted for Spanish.
   function displayName(p) {
     var lang = p.lang || "", en = (p.product_name_en || "").trim(), es = (p.product_name_es || "").trim(), raw = (p.product_name || "").trim();
-    if (lang === "en" || lang === "es") return raw || en || es;
-    if (en) return en;
-    if (es) return es;
-    return raw ? translateName(raw) : "";
+    if (lang === "es") return raw || es || en;
+    var latin = function (t) { return t && !/[^\u0000-\u024F\u1E00-\u1EFF]/.test(t); };
+    var base = [en, raw, es].filter(latin)[0] || "";
+    return base ? translateName(base) : "";
   }
   window.ProductName = { display: displayName, translate: translateName };
 
