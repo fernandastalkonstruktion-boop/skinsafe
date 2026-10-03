@@ -483,3 +483,11 @@ body.cam-open { overflow: hidden; }
 .guide-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
 .guide-dots i.on { width: 24px; border-radius: 4px; background: var(--accent); }
 .cam-sheet.guide .primary.small { min-width: 200px; justify-content: center; }
+
+/* collapsible allergy / skin-match boxes */
+.fold > summary { display: flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; list-style: none; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary .chev { margin: 0 4px 0 auto; }
+.fold[open] > summary .chev { transform: rotate(-135deg); margin-top: 4px; }
+.fold[open] > summary { margin-bottom: 6px; }
+.fold .match-text { margin-top: 6px; }

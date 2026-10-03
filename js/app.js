@@ -315,6 +315,10 @@
   }
 
   // ----- result -----
+  // A box whose title stays visible and whose details open on tap.
+  function fold(title, body, open) {
+    return '<details class="fold"' + (open ? " open" : "") + '><summary class="match-title">' + title + '<span class="chev" aria-hidden="true"></span></summary>' + body + "</details>";
+  }
   function renderMatch(items) {
     var box = el("match");
     var p = window.Profile.load();
@@ -329,7 +333,7 @@
     var m = window.Profile.match(items, p);
     box.className = "match " + m.level;
     var icon = m.level === "good" ? "check" : "alert";
-    var html = '<p class="match-title">' + ic(icon) + esc(m.title) + "</p>";
+    var html = "";
     if (m.reasons.length) {
       html += '<ul class="match-list">' + m.reasons.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + "</ul>";
     }
@@ -337,7 +341,7 @@
       html += '<ul class="match-list helps">' + m.helps.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + "</ul>";
     }
     if (!m.reasons.length && !m.helps.length) html += '<p class="match-text">Nothing here conflicts with your answers.</p>';
-    box.innerHTML = html;
+    box.innerHTML = fold(ic(icon) + esc(m.title), html, false);
   }
 
   function renderAllergyBox(items) {
@@ -355,8 +359,8 @@
         }).join("") + "</ul>";
     } else {
       box.className = "match good allergy-box";
-      box.innerHTML = '<p class="match-title">' + ic("check") + "Nothing from your allergy list</p>" +
-        '<p class="match-text">We only check the ingredients we can read, so look at the label if your allergy is serious.</p>';
+      box.innerHTML = fold(ic("check") + "Nothing from your allergy list",
+        '<p class="match-text">We only check the ingredients we can read, so look at the label if your allergy is serious.</p>', false);
     }
   }
 
@@ -417,13 +421,12 @@
     el("brand").textContent = product.brand;
     el("name").textContent = product.name;
     var photo = el("photo");
+    photo.hidden = true;
     if (product.image) {
       photo.referrerPolicy = "no-referrer";
-      photo.src = product.image;
-      photo.hidden = false;
       photo.onerror = function () { photo.hidden = true; };
-    } else {
-      photo.hidden = true;
+      var showPhoto = function () { if (lastProduct === product) { photo.src = product.image; photo.hidden = false; } };
+      if (product.shop) showPhoto(); else photoOk(product.image).then(function (ok) { if (ok) showPhoto(); });
     }
 
     var n = a.counts;
@@ -664,7 +667,7 @@
       if (r.state === "found") {
         var p = r.product, marks = scorePill(p) + markTags(p);
         showCard('<button type="button" class="cam-card-btn" id="cam-card-open">' +
-          (p.image ? '<img src="' + esc(p.image) + '" alt="" referrerpolicy="no-referrer">' : '<span class="result-ph">' + ic("droplet") + "</span>") +
+          photoHtml(p) +
           '<span class="cam-card-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
           (marks ? '<span class="tags">' + marks + "</span>" : "") + "</span>" + ic("arrow-right", "chev-ic") + "</button>");
         el("cam-card-open").addEventListener("click", function () {
@@ -831,6 +834,67 @@
   }
 
   // ----- search by name -----
+  // ----- product photos: a photo is shown only when it looks like a clean studio shot -----
+  // Photos from our own list were checked when we collected them. Photos from Open Beauty Facts come from users and are
+  // often blurry, dark or full of background, so they are checked here (big enough, near-white edges) and otherwise hidden.
+  var photoCache = {};
+  function photoOk(url) {
+    if (photoCache[url]) return photoCache[url];
+    photoCache[url] = new Promise(function (resolve) {
+      var im = new Image();
+      im.crossOrigin = "anonymous";
+      im.referrerPolicy = "no-referrer";
+      im.onerror = function () { resolve(false); };
+      im.onload = function () {
+        try {
+          if (Math.max(im.naturalWidth, im.naturalHeight) < 400 || Math.min(im.naturalWidth, im.naturalHeight) < 150) { resolve(false); return; }
+          var N = 64, c = document.createElement("canvas");
+          c.width = N; c.height = N;
+          var x = c.getContext("2d", { willReadFrequently: true });
+          x.drawImage(im, 0, 0, N, N);
+          var d = x.getImageData(0, 0, N, N).data, edge = 0, white = 0;
+          for (var yy = 0; yy < N; yy++) for (var xx = 0; xx < N; xx++) {
+            if (xx > 1 && yy > 1 && xx < N - 2 && yy < N - 2) continue;
+            var i = (yy * N + xx) * 4;
+            edge++;
+            if (d[i + 3] < 40 || Math.min(d[i], d[i + 1], d[i + 2]) >= 225) white++;
+          }
+          resolve(white / edge >= 0.8);
+        } catch (e) { resolve(false); }
+      };
+      im.src = url;
+    });
+    return photoCache[url];
+  }
+  function photoHtml(p) {
+    if (!p.image) return '<span class="result-ph">' + ic("droplet") + "</span>";
+    if (p.shop) return '<img data-shop="1" src="' + esc(p.image) + '" alt="" loading="lazy" referrerpolicy="no-referrer">';
+    return '<span class="result-ph" data-photo="' + esc(p.image) + '">' + ic("droplet") + "</span>";
+  }
+  function upgradePhotos(root) {
+    Array.prototype.forEach.call(root.querySelectorAll("[data-photo]"), function (sp) {
+      var url = sp.getAttribute("data-photo");
+      sp.removeAttribute("data-photo");
+      photoOk(url).then(function (ok) {
+        if (!ok || !sp.parentNode) return;
+        var im = document.createElement("img");
+        im.alt = ""; im.referrerPolicy = "no-referrer"; im.src = url;
+        sp.parentNode.replaceChild(im, sp);
+      });
+    });
+    Array.prototype.forEach.call(root.querySelectorAll("img[data-shop]"), function (im) {
+      im.removeAttribute("data-shop");
+      im.addEventListener("error", function () {
+        var sp = document.createElement("span");
+        sp.className = "result-ph"; sp.innerHTML = ic("droplet");
+        if (im.parentNode) im.parentNode.replaceChild(sp, im);
+      });
+    });
+  }
+  new MutationObserver(function (muts) {
+    muts.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) upgradePhotos(n); }); });
+  }).observe(document.body, { childList: true, subtree: true });
+
   function scorePill(p) {
     var a;
     try { a = window.Ingredients.analyze(p.ingredientsText); } catch (e) { return ""; }
@@ -842,7 +906,7 @@
       var tag = p.shop ? ic("book") + "From our list" : p.local ? ic("camera") + "From your photo" : "";
       var marks = scorePill(p) + markTags(p);
       return '<button type="button" class="result-item" data-i="' + idx + '">' +
-        (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<span class="result-ph">' + ic("droplet") + "</span>") +
+        photoHtml(p) +
         '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
         (tag || marks ? '<span class="tags">' + (tag ? '<span class="tag mine">' + tag + "</span>" : "") + marks + "</span>" : "") + "</span>" +
         ic("chevron-right", "chev-ic") + "</button>";

@@ -2,7 +2,7 @@
 (function () {
   var BASE = "https://world.openbeautyfacts.org/api/v2/product/";
   var SEARCH = "https://world.openbeautyfacts.org/cgi/search.pl";
-  var FIELDS = "code,product_name,product_name_en,product_name_es,lang,brands,ingredients_text,ingredients_text_en,image_front_small_url";
+  var FIELDS = "code,product_name,product_name_en,product_name_es,lang,brands,ingredients_text,ingredients_text_en,image_front_url";
 
   // Name language rule: Spanish stays Spanish, every other language is shown in English.
   // Open Beauty Facts often has an English name (product_name_en); if not, translate generic words.
@@ -142,7 +142,7 @@
       code: p.code || fallbackCode || "",
       brand: p.brands ? p.brands.split(",")[0].trim() : "",
       name: displayName(p) || "Unnamed product",
-      image: p.image_front_small_url || "",
+      image: p.image_front_url || "",
       ingredientsText: p.ingredients_text_en || p.ingredients_text || ""
     };
   }
