@@ -6,36 +6,76 @@
 
   // Name language rule: Spanish stays Spanish, every other language is shown in English.
   // Open Beauty Facts often has an English name (product_name_en); if not, translate generic words.
+  // Open Beauty Facts mislabels languages (a Turkish name tagged "en"), so the tag is only trusted for Spanish.
+  // Brand and line names (Elvive, Effaclar...) are never in the dictionary, so they pass through untouched.
   var STEMS = {
     // Dutch
     schuimende: "foaming", schuimend: "foaming", schuim: "foam", reinigings: "cleansing", reiniging: "cleansing", reinigende: "cleansing", reiniger: "cleanser",
-    hydraterende: "hydrating", hydraterend: "hydrating", verbeterende: "repairing", herstellende: "repairing", verzorging: "care", "crème": "cream", creme: "cream",
-    melk: "lotion", olie: "oil", gezichts: "face", gezicht: "face", oog: "eye", ogen: "eye", handen: "hand", lichaams: "body", lichaam: "body", zonnebrand: "sun",
-    zonne: "sun", bescherming: "protection", dagelijkse: "daily", dag: "day", nacht: "night", huid: "skin", droge: "dry", gevoelige: "sensitive",
-    onzuiverheden: "blemish", geconcentreerde: "concentrated", haar: "hair", masker: "mask", zeep: "soap", wasgel: "wash gel", verzachtende: "soothing", kalmerende: "soothing",
+    hydraterende: "hydrating", hydraterend: "hydrating", verbeterende: "repairing", herstellende: "repairing", verzorging: "care", verzorgende: "caring",
+    melk: "lotion", olie: "oil", gezichts: "face", gezicht: "face", oog: "eye", ogen: "eye", handen: "hand", lichaams: "body", lichaam: "body",
+    zonnebrand: "sun", zonne: "sun", zon: "sun", bescherming: "protection", beschermen: "protection", dagelijkse: "daily", dag: "day", nacht: "night", huid: "skin",
+    droge: "dry", gevoelige: "sensitive", onzuiverheden: "blemish", geconcentreerde: "concentrated", haar: "hair", masker: "mask", zeep: "soap",
+    wasgel: "wash gel", verzachtende: "soothing", kalmerende: "soothing", tandpasta: "toothpaste", handzeep: "hand soap", douche: "shower", antitranspirant: "antiperspirant",
+    micellair: "micellar", water: "water", mannen: "men", vrouwen: "women", bodyspray: "body spray", crme: "cream",
     // French
-    lait: "milk", nettoyant: "cleanser", moussant: "foaming", hydratant: "moisturizing", huile: "oil", visage: "face", mains: "hands", yeux: "eye", contour: "contour",
-    "réparatrice": "repairing", apaisant: "soothing", soin: "care", quotidien: "daily", peau: "skin", "sèche": "dry", sensible: "sensitive", protecteur: "protective",
-    solaire: "sun", shampooing: "shampoo", masque: "mask", gommage: "scrub", micellaire: "micellar", "démaquillant": "makeup remover",
-    lavant: "wash", corps: "body", cheveux: "hair", baume: "balm", "sérum": "serum",
+    lait: "milk", nettoyant: "cleanser", moussant: "foaming", hydratant: "moisturizing", hydratante: "moisturizing", huile: "oil", visage: "face", mains: "hands", yeux: "eye",
+    contour: "contour", "réparatrice": "repairing", apaisant: "soothing", soin: "care", quotidien: "daily", peau: "skin", peaux: "skin", "sèche": "dry", "sèches": "dry",
+    protecteur: "protective", solaire: "sun", shampooing: "shampoo", shampoing: "shampoo", masque: "mask", gommage: "scrub", micellaire: "micellar",
+    "démaquillant": "makeup remover", lavant: "wash", corps: "body", cheveux: "hair", baume: "balm", "sérum": "serum", "déodorant": "deodorant", deodorant: "deodorant",
+    transpirant: "antiperspirant", antitranspirant: "antiperspirant", doux: "gentle", douce: "gentle", dentifrice: "toothpaste", savon: "soap", nourrissante: "nourishing",
+    nourrissant: "nourishing", "fraîcheur": "freshness", "karité": "shea", "lèvres": "lips", "lèvre": "lip", vaisselle: "dish", liquide: "liquid", blancheur: "whitening",
+    naturelle: "natural", "très": "very", "bébé": "baby", lavande: "lavender", "cèdre": "cedar", vert: "green", rasage: "shaving",
     // German
-    reinigungs: "cleansing", gesichts: "face", feuchtigkeits: "moisturizing", feuchtigkeitsspendende: "moisturizing", pflege: "care", tages: "day", "körper": "body",
-    haut: "skin", trockene: "dry", empfindliche: "sensitive", schaum: "foam", sonnen: "sun", schutz: "protection", seife: "soap",
-    // Italian and Portuguese
-    detergente: "cleanser", idratante: "hydrating", viso: "face", mani: "hands", corpo: "body", schiuma: "foam", olio: "oil",
-    latte: "milk", pelle: "skin", limpeza: "cleansing", rosto: "face", sabonete: "soap", "óleo": "oil", protetor: "protector",
+    reinigungs: "cleansing", feuchtigkeits: "moisturizing", feuchtigkeitsspendende: "moisturizing", pflege: "care", tages: "day", "körper": "body",
+    haut: "skin", trockene: "dry", empfindliche: "sensitive", sonnen: "sun", schutz: "protection", seife: "soap", zahnpasta: "toothpaste", zahncreme: "toothpaste",
+    duschgel: "shower gel", handcreme: "hand cream", "mundspülung": "mouthwash", toilettenpapier: "toilet paper", schuppen: "dandruff", kamille: "chamomile",
+    milde: "mild", frische: "fresh", duft: "scent", dusche: "shower", intensiv: "intensive", sensitiv: "sensitive", haarspray: "hair spray", "spülung": "conditioner",
+    lippenpflege: "lip care", lippen: "lip", deo: "deodorant", "flüssigseife": "liquid soap", "öl": "oil", kinder: "kids", bodylotion: "body lotion", haarfarbe: "hair color",
+    // Scandinavian
+    tannkrem: "toothpaste", "tandkräm": "toothpaste", "håndsåpe": "hand soap", "håndsæbe": "hand soap", "hårfarge": "hair color", "hårfarve": "hair color",
+    barberskum: "shaving foam", "såpe": "soap", "sæbe": "soap", "tvål": "soap", "hårbalsam": "conditioner", solkrem: "sunscreen", ansiktskrem: "face cream", kroppslotion: "body lotion",
     // Turkish
-    "şampuan": "shampoo", "saç": "hair", krem: "cream", nemlendirici: "moisturizing", "yüz": "face", temizleyici: "cleanser", jel: "gel", losyon: "lotion",
-    "bakım": "care", "güneş": "sun", sabun: "soap", maske: "mask", "vücut": "body", "yağ": "oil", "onarıcı": "repairing", kuru: "dry", hassas: "sensitive",
-    "günlük": "daily", gece: "night", "gündüz": "day", durulama: "rinse", "koruyucu": "protective", "sülfatsız": "sulfate-free",
+    "şampuan": "shampoo", "şampuanı": "shampoo", "saç": "hair", krem: "cream", kremi: "cream", nemlendirici: "moisturizing", "yüz": "face", temizleyici: "cleanser",
+    jel: "gel", jeli: "gel", losyon: "lotion", losyonu: "lotion", losyo: "lotion", "bakım": "care", "güneş": "sun", sabun: "soap", maske: "mask", "vücut": "body", "yağ": "oil", "yağı": "oil",
+    "onarıcı": "repairing", kuru: "dry", hassas: "sensitive", "günlük": "daily", gece: "night", "gündüz": "day", durulama: "rinse", "koruyucu": "protective",
+    "sülfatsız": "sulfate-free", dudak: "lip", "balmı": "balm", "doğal": "natural", karanfil: "clove", "özlü": "extract", "sıvı": "liquid", leke: "spot", koyu: "dark",
+    "kadın": "women", erkek: "men", sprey: "spray", cilt: "skin", ciltler: "skin", besleyici: "nourishing", nane: "mint", "ağız": "mouth",
+    suyu: "water", "çıkarıcı": "remover", "sütü": "milk", pamuk: "cotton", mucizevi: "miracle", "duş": "shower", taze: "fresh", macunu: "paste",
+    // Italian and Portuguese
+    detergente: "cleanser", idratante: "hydrating", viso: "face", mani: "hands", corpo: "body", schiuma: "foam", olio: "oil", latte: "milk", pelle: "skin",
+    limpeza: "cleansing", rosto: "face", sabonete: "soap", "óleo": "oil", protetor: "protector", dentifricio: "toothpaste", acqua: "water", micellare: "micellar",
+    carbone: "charcoal", vegetale: "vegetable", sapone: "soap", doccia: "shower", condicionador: "conditioner", "loção": "lotion", roxa: "purple", creme: "cream",
+    // Czech and Polish
+    "šampon": "shampoo", szampon: "shampoo", "zubní": "dental", pasta: "paste", "uhlím": "charcoal", "černým": "black", "mydło": "soap", "odżywka": "conditioner", "żel": "gel",
+    frais: "fresh", fraiche: "fresh", verveine: "verbena", nagellack: "nail polish", "kräuter": "herbal", minze: "mint", "wattestäbchen": "cotton swabs", mouchoirs: "tissues",
+    sonnenfluid: "sun fluid", "yoğun": "intense", sabonetes: "soaps", protezione: "protection", thermale: "thermal", riche: "rich",
+    // connecting words
+    "für": "for", pour: "for", voor: "for", "için": "for", ve: "and", und: "and", ile: "with", mit: "with", avec: "with",
     // shared
-    gel: "gel", lotion: "lotion", shampoo: "shampoo", conditioner: "conditioner", serum: "serum", scrub: "scrub", anti: "anti"
+    gel: "gel", lotion: "lotion", shampoo: "shampoo", shampo: "shampoo", conditioner: "conditioner", serum: "serum", scrub: "scrub", anti: "anti", spray: "spray"
   };
+  // Multi-word phrases where word-by-word order or meaning would be wrong (plain, lowercase, no accents).
+  var PHRASES = {
+    "apres shampoing": "conditioner", "apres shampooing": "conditioner", "gel douche": "shower gel", "eau micellaire": "micellar water", "lait corporel": "body lotion",
+    "creme mains": "hand cream", "creme visage": "face cream", "creme jour": "day cream", "creme nuit": "night cream", "creme de jour": "day cream", "creme de nuit": "night cream",
+    "dis macunu": "toothpaste", "hindistan cevizi": "coconut", "taze nane": "fresh mint", "the vert": "green tea", "acqua micellare": "micellar water", "bagno schiuma": "bubble bath",
+    "pasta do zebow": "toothpaste", "zubni pasta": "toothpaste", "sampon na vlasy": "hair shampoo", "liquide vaisselle": "dish liquid"
+  };
+  // French/Italian put the noun first ("Crème Mains" = hand cream); these move to the end of a translated run.
+  var HEADS = { creme: 1, lait: 1, nettoyant: 1, huile: 1, baume: 1, gommage: 1, masque: 1, soin: 1, lavant: 1, savon: 1, olio: 1, latte: 1, sapone: 1, detergente: 1 };
+  // Words that tell us a name is already Spanish: it stays as is (no articles; those overlap French and Italian).
+  var SPANISH = ("crema manos ojos unas pestanas sombras aceite hidratante desodorante champu acondicionador mascarilla locion cabello piel labios labial jabon mujer hombre " +
+    "brillo laca bucal bano perfilador tratamiento esmalte pintalabios protector cuerpo rostro facial toallitas dientes dental limpiador desmaquillante espuma depilar").split(" ")
+    .reduce(function (o, w) { o[w] = 1; return o; }, {});
   var STEM_KEYS = Object.keys(STEMS).sort(function (a, b) { return b.length - a.length; });
   function stripAccents(s) { return s.normalize("NFD").replace(/[̀-ͯ]/g, ""); }
-  var STEM_PLAIN = STEM_KEYS.map(function (k) { return { plain: stripAccents(k), out: STEMS[k] }; });
+  // Letters like ı, ø, ł, đ do not decompose, so map them by hand before matching.
+  function plain(s) { return stripAccents(s.toLowerCase()).replace(/ı/g, "i").replace(/ø/g, "o").replace(/ł/g, "l").replace(/đ/g, "d").replace(/ß/g, "ss").replace(/[^a-z]/g, ""); }
+  var STEM_PLAIN = STEM_KEYS.map(function (k) { return { plain: plain(k), out: STEMS[k] }; });
+  var STEM_BY_PLAIN = {}; STEM_PLAIN.forEach(function (m) { if (!STEM_BY_PLAIN[m.plain]) STEM_BY_PLAIN[m.plain] = m; });
   function translateWord(w) {
-    var lw = stripAccents(w.toLowerCase()), i = 0, out = [];
+    var lw = plain(w), i = 0, out = [];
+    if (!lw) return null;
     function stemAt(pos) { for (var k = 0; k < STEM_PLAIN.length; k++) if (lw.indexOf(STEM_PLAIN[k].plain, pos) === pos) return STEM_PLAIN[k]; return null; }
     while (i < lw.length) {
       var m = stemAt(i);
@@ -49,17 +89,49 @@
     }
     return out.join(" ");
   }
+  var cap = function (t) { return t.replace(/\b\w/g, function (c) { return c.toUpperCase(); }); };
   function translateName(name) {
-    return name.split(/\s+/).map(function (w) {
-      var t = translateWord(w.replace(/[^\p{L}]/gu, ""));
-      return t ? t.replace(/\b\w/g, function (c) { return c.toUpperCase(); }) : w;
-    }).join(" ");
+    // Keep the original separators (hyphens, slashes) and punctuation; only the words change.
+    var parts = name.split(/([\s\-\/]+)/), items = [];
+    for (var q = 0; q < parts.length; q += 2) if (parts[q]) items.push({ w: parts[q], sep: parts[q + 1] || "" });
+    var pl = items.map(function (it) { return plain(it.w); });
+    // A name that already contains Spanish words is left alone.
+    if (pl.some(function (t) { return SPANISH[t]; })) return name;
+    var res = [], changed = false, i = 0;
+    while (i < items.length) {
+      var phrase = null;
+      for (var n = 3; n >= 2 && !phrase; n--) {
+        if (i + n <= items.length && PHRASES[pl.slice(i, i + n).join(" ")]) phrase = { out: PHRASES[pl.slice(i, i + n).join(" ")], len: n };
+      }
+      if (phrase) { res.push({ t: cap(phrase.out), tr: true, src: "", sep: items[i + phrase.len - 1].sep }); i += phrase.len; changed = true; continue; }
+      var w = items[i].w, core = w.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, ""), at = w.indexOf(core);
+      var tw = core ? translateWord(core.replace(/[^\p{L}]/gu, "")) : null;
+      if (tw) {
+        if (tw.toLowerCase() !== core.toLowerCase()) changed = true;
+        res.push({ t: w.slice(0, at) + cap(tw) + w.slice(at + core.length), tr: true, src: pl[i], sep: items[i].sep });
+      } else res.push({ t: w, tr: false, src: pl[i], sep: items[i].sep });
+      i++;
+    }
+    if (!changed) return name;
+    // "Anti-Transpirant" is already "antiperspirant"; "Men Erkek" says men twice.
+    res = res.filter(function (r, k) {
+      var next = res[k + 1];
+      if (r.tr && /^anti$/i.test(r.t) && next && /^antiperspirant/i.test(next.t)) return false;
+      return !(k > 0 && r.tr && res[k - 1].t.toLowerCase().replace(/\W/g, "") === r.t.toLowerCase().replace(/\W/g, ""));
+    });
+    // Noun-first languages: move the head noun after the words translated together with it.
+    for (var h = 0; h < res.length; h++) {
+      if (!HEADS[res[h].src] || !res[h].tr) continue;
+      var e = h;
+      while (e + 1 < res.length && res[e + 1].tr) e++;
+      if (e > h) res.splice(e, 0, res.splice(h, 1)[0]);
+    }
+    return res.map(function (r, k) { return r.t + (k < res.length - 1 ? (r.sep || " ") : ""); }).join("");
   }
-  // Open Beauty Facts mislabels languages (a Turkish name tagged "en"), so the language tag is only trusted for Spanish.
   function displayName(p) {
     var lang = p.lang || "", en = (p.product_name_en || "").trim(), es = (p.product_name_es || "").trim(), raw = (p.product_name || "").trim();
     if (lang === "es") return raw || es || en;
-    var latin = function (t) { return t && !/[^\u0000-\u024F\u1E00-\u1EFF]/.test(t); };
+    var latin = function (t) { return t && !/[^\u0000-ɏḀ-ỿ]/.test(t); };
     var base = [en, raw, es].filter(latin)[0] || "";
     return base ? translateName(base) : "";
   }
@@ -246,7 +318,8 @@
         return { p: d.p, score: score, hits: hits, brand: brandWords.length && brandHit === brandWords.length };
       }).filter(function (x) { return x.score >= 4 && (x.hits >= 2 || x.brand); });
       scored.sort(function (a, b) { return b.score - a.score; });
-      return { tokens: tokens, matches: scored.slice(0, 6).map(function (x) { return x.p; }) };
+      var top = scored.slice(0, 6);
+      return { tokens: tokens, matches: top.map(function (x) { return x.p; }), evidence: top.map(function (x) { return { hits: x.hits, brand: x.brand, score: x.score }; }) };
     });
   };
 

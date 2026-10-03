@@ -142,7 +142,7 @@
         var h = Math.max(a.y1 - a.y0, b.y1 - b.y0);
         var gx = Math.max(0, Math.max(a.x0, b.x0) - Math.min(a.x1, b.x1));
         var gy = Math.max(0, Math.max(a.y0, b.y0) - Math.min(a.y1, b.y1));
-        if (gx <= 1.2 * h && gy <= 0.9 * h) parent[find(i)] = find(j);
+        if (gx <= 1.2 * h && gy <= 1.5 * h) parent[find(i)] = find(j);
       }
     }
     var map = {};

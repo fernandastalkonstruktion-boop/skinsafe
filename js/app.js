@@ -768,8 +768,9 @@
       return gs.reduce(function (chain, g) {
         return chain.then(function () {
           return window.Shop.identify(g.text).then(function (r) {
-            var m = r.matches[0];
-            if (m && !found.some(function (f) { return f.brand === m.brand && f.name === m.name; })) found.push(m);
+            var m = r.matches[0], ev = r.evidence[0];
+            // Keep only solid matches: the brand plus another word, or at least three words of the name.
+            if (m && ev && (ev.hits >= 3 || (ev.brand && ev.hits >= 2)) && !found.some(function (f) { return f.brand === m.brand && f.name === m.name; })) found.push(m);
           });
         });
       }, Promise.resolve()).then(function () { return found; });
@@ -831,7 +832,7 @@
     var a;
     try { a = window.Ingredients.analyze(p.ingredientsText); } catch (e) { return ""; }
     if (a.score === null) return "";
-    return '<span class="tag score ' + band(a.score).cls + '">Safety ' + a.score + "/100</span>";
+    return '<span class="tag sc ' + band(a.score).cls + '">Safety ' + a.score + "/100</span>";
   }
   function resultRows(list) {
     return list.map(function (p, idx) {
