@@ -2,13 +2,69 @@
 (function () {
   var BASE = "https://world.openbeautyfacts.org/api/v2/product/";
   var SEARCH = "https://world.openbeautyfacts.org/cgi/search.pl";
-  var FIELDS = "code,product_name,brands,ingredients_text,ingredients_text_en,image_front_small_url";
+  var FIELDS = "code,product_name,product_name_en,product_name_es,lang,brands,ingredients_text,ingredients_text_en,image_front_small_url";
+
+  // Name language rule: Spanish stays Spanish, every other language is shown in English.
+  // Open Beauty Facts often has an English name (product_name_en); if not, translate generic words.
+  var STEMS = {
+    // Dutch
+    schuimende: "foaming", schuimend: "foaming", schuim: "foam", reinigings: "cleansing", reiniging: "cleansing", reinigende: "cleansing", reiniger: "cleanser",
+    hydraterende: "hydrating", hydraterend: "hydrating", verbeterende: "repairing", herstellende: "repairing", verzorging: "care", "crème": "cream", creme: "cream",
+    melk: "lotion", olie: "oil", gezichts: "face", gezicht: "face", oog: "eye", ogen: "eye", handen: "hand", lichaams: "body", lichaam: "body", zonnebrand: "sun",
+    zonne: "sun", bescherming: "protection", dagelijkse: "daily", dag: "day", nacht: "night", huid: "skin", droge: "dry", gevoelige: "sensitive",
+    onzuiverheden: "blemish", geconcentreerde: "concentrated", haar: "hair", masker: "mask", zeep: "soap", wasgel: "wash gel", verzachtende: "soothing", kalmerende: "soothing",
+    // French
+    lait: "milk", nettoyant: "cleanser", moussant: "foaming", hydratant: "moisturizing", huile: "oil", visage: "face", mains: "hands", yeux: "eye", contour: "contour",
+    "réparatrice": "repairing", apaisant: "soothing", soin: "care", quotidien: "daily", peau: "skin", "sèche": "dry", sensible: "sensitive", protecteur: "protective",
+    solaire: "sun", shampooing: "shampoo", masque: "mask", jour: "day", gommage: "scrub", eau: "water", micellaire: "micellar", "démaquillant": "makeup remover",
+    lavant: "wash", corps: "body", cheveux: "hair", baume: "balm", "sérum": "serum",
+    // German
+    reinigungs: "cleansing", gesichts: "face", feuchtigkeits: "moisturizing", feuchtigkeitsspendende: "moisturizing", pflege: "care", tages: "day", "körper": "body",
+    haut: "skin", trockene: "dry", empfindliche: "sensitive", schaum: "foam", sonnen: "sun", schutz: "protection", seife: "soap",
+    // Italian and Portuguese
+    crema: "cream", detergente: "cleanser", idratante: "hydrating", hidratante: "hydrating", viso: "face", mani: "hands", corpo: "body", schiuma: "foam", olio: "oil",
+    latte: "milk", pelle: "skin", limpeza: "cleansing", rosto: "face", sabonete: "soap", "óleo": "oil", protetor: "protector",
+    // shared
+    gel: "gel", lotion: "lotion", shampoo: "shampoo", conditioner: "conditioner", serum: "serum", scrub: "scrub", tonic: "toner", anti: "anti"
+  };
+  var STEM_KEYS = Object.keys(STEMS).sort(function (a, b) { return b.length - a.length; });
+  function stripAccents(s) { return s.normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+  var STEM_PLAIN = STEM_KEYS.map(function (k) { return { plain: stripAccents(k), out: STEMS[k] }; });
+  function translateWord(w) {
+    var lw = stripAccents(w.toLowerCase()), i = 0, out = [];
+    function stemAt(pos) { for (var k = 0; k < STEM_PLAIN.length; k++) if (lw.indexOf(STEM_PLAIN[k].plain, pos) === pos) return STEM_PLAIN[k]; return null; }
+    while (i < lw.length) {
+      var m = stemAt(i);
+      if (!m) return null;
+      out.push(m.out); i += m.plain.length;
+      // Skip a linking letter between compound parts (Dutch/German "reinigings-gel", "gezichts-creme").
+      if (i < lw.length && !stemAt(i)) {
+        var link = /^(s|en|e)/.exec(lw.slice(i));
+        if (link && stemAt(i + link[0].length)) i += link[0].length;
+      }
+    }
+    return out.join(" ");
+  }
+  function translateName(name) {
+    return name.split(/\s+/).map(function (w) {
+      var t = translateWord(w.replace(/[^\p{L}]/gu, ""));
+      return t ? t.replace(/\b\w/g, function (c) { return c.toUpperCase(); }) : w;
+    }).join(" ");
+  }
+  function displayName(p) {
+    var lang = p.lang || "", en = (p.product_name_en || "").trim(), es = (p.product_name_es || "").trim(), raw = (p.product_name || "").trim();
+    if (lang === "en" || lang === "es") return raw || en || es;
+    if (en) return en;
+    if (es) return es;
+    return raw ? translateName(raw) : "";
+  }
+  window.ProductName = { display: displayName, translate: translateName };
 
   function toProduct(p, fallbackCode) {
     return {
       code: p.code || fallbackCode || "",
       brand: p.brands ? p.brands.split(",")[0].trim() : "",
-      name: p.product_name || "Unnamed product",
+      name: displayName(p) || "Unnamed product",
       image: p.image_front_small_url || "",
       ingredientsText: p.ingredients_text_en || p.ingredients_text || ""
     };
