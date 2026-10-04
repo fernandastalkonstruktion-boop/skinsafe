@@ -49,6 +49,7 @@
     "šampon": "shampoo", szampon: "shampoo", "zubní": "dental", pasta: "paste", "uhlím": "charcoal", "černým": "black", "mydło": "soap", "odżywka": "conditioner", "żel": "gel",
     frais: "fresh", fraiche: "fresh", verveine: "verbena", nagellack: "nail polish", "kräuter": "herbal", minze: "mint", "wattestäbchen": "cotton swabs", mouchoirs: "tissues",
     sonnenfluid: "sun fluid", "yoğun": "intense", sabonetes: "soaps", protezione: "protection", thermale: "thermal", riche: "rich",
+    femme: "women", fleur: "flower", fleurs: "flowers", douceur: "gentle", menthe: "mint", riche: "rich", solide: "solid", bille: "roll-on", naturelle: "natural", naturel: "natural", blancheur: "whitening", surgras: "superfatted", citron: "lemon", dynamisant: "energizing", exaltant: "invigorating", "vitalité": "vitality", "complète": "complete", einziehende: "fast-absorbing", sofort: "instant", liquide: "liquid", "protecteur": "protective", nutrition: "nutrition", "unifiante": "evening", "éclaircissante": "brightening", "hydroalcoolique": "hydroalcoholic", transpirants: "antiperspirant", "anti-transpirant": "antiperspirant",
     // connecting words
     "für": "for", pour: "for", voor: "for", "için": "for", ve: "and", und: "and", ile: "with", mit: "with", avec: "with",
     // shared
