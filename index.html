@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#84cdea" id="theme-color">
-  <meta name="app-version" content="20261003080322">
+  <meta name="app-version" content="20261003230446">
   <title>SkinSafe</title>
   <link rel="icon" type="image/png" sizes="32x32" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-fav-10.png">
   <link rel="icon" type="image/png" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-10.png">
@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="SkinSafe">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="styles.css?v=20261003080322">
+  <link rel="stylesheet" href="styles.css?v=20261003230446">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -172,21 +172,17 @@
     </section>
 
     <section id="result" hidden>
-      <button class="back" id="back" type="button"><svg class="ic"><use href="#i-arrow-left"/></svg>Back</button>
+      <div class="res-top">
+        <button class="back" id="back" type="button"><svg class="ic"><use href="#i-arrow-left"/></svg>Back</button>
+        <button class="heart" id="heart" type="button" aria-pressed="false" aria-label="Save to My products"><svg class="ic"><use href="#i-heart"/></svg></button>
+      </div>
       <article class="card">
         <div class="head">
-          <img id="photo" alt="" hidden>
-          <div>
+          <div class="photo-tile"><img id="photo" alt="" hidden><span class="photo-ph" id="photo-ph"><svg class="ic"><use href="#i-droplet"/></svg></span></div>
+          <div class="head-text">
             <p class="brand" id="brand"></p>
             <h1 class="name" id="name"></h1>
-          </div>
-          <button class="heart" id="heart" type="button" aria-pressed="false" aria-label="Save to My products"><svg class="ic"><use href="#i-heart"/></svg></button>
-        </div>
-
-        <div class="summary">
-          <div class="score" id="score"></div>
-          <div>
-            <p class="verdict" id="verdict"></p>
+            <p class="score-pill" id="score"></p>
             <p class="sub" id="sub"></p>
           </div>
         </div>
@@ -197,7 +193,10 @@
         <div class="alerts" id="alerts" hidden></div>
         <div class="match allergy-box" id="allergy-box" hidden></div>
         <div class="match" id="match" hidden></div>
-        <ul class="ingredients" id="ingredients"></ul>
+        <section class="ing-card">
+          <div class="ing-head"><h2 class="ing-title">Ingredients</h2><button type="button" class="ing-all" id="ing-all" hidden></button></div>
+          <ul class="ingredients" id="ingredients"></ul>
+        </section>
         <details class="unrated" id="unrated-box" hidden>
           <summary id="unrated-title"></summary>
           <p class="unrated-list" id="unrated-list"></p>
@@ -264,12 +263,12 @@
   </div>
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/ingredients.js?v=20261003080322"></script>
-  <script src="js/alerts.js?v=20261003080322"></script>
-  <script src="js/profile.js?v=20261003080322"></script>
-  <script src="js/api.js?v=20261003080322"></script>
-  <script src="js/ocr.js?v=20261003080322"></script>
-  <script src="js/app.js?v=20261003080322"></script>
-  <script src="js/update.js?v=20261003080322"></script>
+  <script src="js/ingredients.js?v=20261003230446"></script>
+  <script src="js/alerts.js?v=20261003230446"></script>
+  <script src="js/profile.js?v=20261003230446"></script>
+  <script src="js/api.js?v=20261003230446"></script>
+  <script src="js/ocr.js?v=20261003230446"></script>
+  <script src="js/app.js?v=20261003230446"></script>
+  <script src="js/update.js?v=20261003230446"></script>
 </body>
 </html>

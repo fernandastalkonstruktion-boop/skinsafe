@@ -404,13 +404,25 @@
       var jurl = "https://www.jstage.jst.go.jp/result/global/-char/en?globalSearchKey=" + encodeURIComponent(term);
       links.push('<a href="' + esc(jurl) + '" target="_blank" rel="noopener">Japanese research (J-STAGE)</a>');
     }
+    var levelWord = { bad: "Flagged", mid: "To watch", good: "Good" }[i.level] || "";
     return '<li><details class="ing"><summary>' +
-      '<span class="dot ' + i.level + '"></span>' +
-      '<span class="ing-main"><span class="ing-name">' + esc(i.name) + '</span><span class="ing-note">' + esc(i.note) + "</span></span>" +
+      '<span class="ing-main"><span class="ing-name">' + esc(i.name) + '</span>' +
+      '<span class="ing-level"><i class="dot ' + i.level + '"></i><b class="lv ' + i.level + '">' + levelWord + '</b><span class="ing-note">' + esc(i.note) + "</span></span></span>" +
       '<span class="chev" aria-hidden="true"></span></summary>' +
       '<div class="ing-body"><p class="ing-detail">' + esc(i.detail) + "</p>" +
       ((chips || allergenChips) ? '<div class="risks">' + chips + allergenChips + "</div>" : "") + hints + helps +
       '<p class="ing-src">Look it up in: ' + links.join(" · ") + "</p></div></details></li>";
+  }
+
+  // Ingredients: the most important ones first (flagged, then to watch, then good). "See all" opens the rest.
+  var ING_LIMIT = 6, ingRated = [], ingExpanded = false;
+  function renderIngredientList() {
+    var shown = ingExpanded ? ingRated : ingRated.slice(0, ING_LIMIT);
+    el("ingredients").innerHTML = shown.map(ingredientRow).join("");
+    var btn = el("ing-all");
+    btn.hidden = ingRated.length <= ING_LIMIT;
+    btn.innerHTML = (ingExpanded ? "Show less" : "See all " + ingRated.length) + '<span class="chev-r" aria-hidden="true"></span>';
+    btn.classList.toggle("open", ingExpanded);
   }
 
   function renderResult(product) {
@@ -422,20 +434,18 @@
     el("name").textContent = product.name;
     var photo = el("photo");
     photo.hidden = true;
+    el("photo-ph").hidden = false;
     if (product.image) {
       photo.referrerPolicy = "no-referrer";
-      photo.onerror = function () { photo.hidden = true; };
-      var showPhoto = function () { if (lastProduct === product) { photo.src = product.image; photo.hidden = false; } };
+      photo.onerror = function () { photo.hidden = true; el("photo-ph").hidden = false; };
+      var showPhoto = function () { if (lastProduct === product) { photo.src = product.image; photo.hidden = false; el("photo-ph").hidden = true; } };
       if (product.shop) showPhoto(); else photoOk(product.image).then(function (ok) { if (ok) showPhoto(); });
     }
 
     var n = a.counts;
     var score = el("score");
-    score.textContent = a.score === null ? "?" : a.score;
-    score.className = "score " + b.cls;
-    var verdict = el("verdict");
-    verdict.innerHTML = ic(b.icon) + esc(b.label);
-    verdict.className = "verdict " + b.cls;
+    score.className = "score-pill " + b.cls;
+    score.innerHTML = ic(b.icon) + esc(b.label) + (a.score === null ? "" : ": " + a.score + "/100");
     el("sub").textContent =
       a.score === null ? "We don't know enough of these ingredients yet" :
       n.bad > 0 ? plural(n.bad, "ingredient flagged", "ingredients flagged") :
@@ -479,7 +489,9 @@
       .map(function (i, idx) { return { i: i, idx: idx }; })
       .sort(function (x, y) { return order[x.i.level] - order[y.i.level] || x.idx - y.idx; })
       .map(function (x) { return x.i; });
-    el("ingredients").innerHTML = rated.map(ingredientRow).join("");
+    ingRated = rated;
+    ingExpanded = false;
+    renderIngredientList();
 
     var unrated = a.items.filter(function (i) { return !i.level; });
     var box = el("unrated-box");
@@ -1071,6 +1083,7 @@
     return stopScanner().then(function () { renderGreeting(false); renderProfileCard(); renderAllergyCard(); renderSavedList(); show("home"); });
   }
 
+  el("ing-all").addEventListener("click", function () { ingExpanded = !ingExpanded; renderIngredientList(); });
   el("heart").addEventListener("click", function () {
     if (!lastProduct) return;
     toggleSaved(lastProduct);

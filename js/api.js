@@ -128,14 +128,33 @@
     }
     return res.map(function (r, k) { return r.t + (k < res.length - 1 ? (r.sep || " ") : ""); }).join("");
   }
+  // Names translated once by hand (data/names.json, built by tools/names/*): checked BEFORE the dictionary.
+  // Key = lowercase name with collapsed spaces. Loaded lazily; until it loads the dictionary still works.
+  var NAMES = {}, namesPromise = null;
+  function nameKey(s) { return s.toLowerCase().replace(/\s+/g, " ").trim(); }
+  function loadNames() {
+    if (!namesPromise) {
+      var meta = document.querySelector('meta[name="app-version"]');
+      var v = meta ? meta.getAttribute("content") : "dev";
+      namesPromise = fetch("data/names.json?v=" + encodeURIComponent(v))
+        .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+        .then(function (j) { NAMES = j.names || {}; })
+        .catch(function () { namesPromise = null; });
+    }
+    return namesPromise;
+  }
   function displayName(p) {
     var lang = p.lang || "", en = (p.product_name_en || "").trim(), es = (p.product_name_es || "").trim(), raw = (p.product_name || "").trim();
     if (lang === "es") return raw || es || en;
-    var latin = function (t) { return t && !/[^\u0000-ɏḀ-ỿ]/.test(t); };
-    var base = [en, raw, es].filter(latin)[0] || "";
-    return base ? translateName(base) : "";
+    var latin = function (t) { return t && !/[^\u0000-\u024F\u1E00-\u1EFF]/.test(t); };
+    var cands = [en, raw, es].filter(Boolean);
+    var base = cands.filter(latin)[0] || cands[0] || "";
+    if (!base) return "";
+    var hit = NAMES[nameKey(base)];
+    if (hit) return hit;
+    return latin(base) ? translateName(base) : "";
   }
-  window.ProductName = { display: displayName, translate: translateName };
+  window.ProductName = { display: displayName, translate: translateName, setNames: function (o) { NAMES = o || {}; }, load: loadNames };
 
   function toProduct(p, fallbackCode) {
     return {
@@ -172,7 +191,7 @@
       if (i >= tries.length) return Promise.resolve(null);
       return fetchOne(tries[i++]).then(function (p) { return p || next(); });
     }
-    return next().then(function (p) { return p ? toProduct(p, code) : null; });
+    return next().then(function (p) { return p ? loadNames().then(function () { return toProduct(p, code); }) : null; });
   }
 
   // Search by name. Only products that have an ingredient list can be rated, so the others are counted, not listed.
@@ -185,9 +204,11 @@
         return r.json();
       })
       .then(function (j) {
-        var all = j.products || [];
-        var rated = all.map(function (p) { return toProduct(p); }).filter(function (p) { return p.ingredientsText; });
-        return { total: Number(j.count) || all.length, products: rated, withoutIngredients: all.length - rated.length };
+        return loadNames().then(function () {
+          var all = j.products || [];
+          var rated = all.map(function (p) { return toProduct(p); }).filter(function (p) { return p.ingredientsText; });
+          return { total: Number(j.count) || all.length, products: rated, withoutIngredients: all.length - rated.length };
+        });
       });
   }
 

@@ -491,3 +491,41 @@ body.cam-open { overflow: hidden; }
 .fold[open] > summary .chev { transform: rotate(-135deg); margin-top: 4px; }
 .fold[open] > summary { margin-bottom: 6px; }
 .fold .match-text { margin-top: 6px; }
+
+/* product page: photo tile on the left, name and score on the right, short ingredient list */
+.res-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.res-top .back { padding: 0; }
+.head { align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+.photo-tile { width: 132px; height: 156px; flex: none; border-radius: 22px; background: #fff; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.photo-tile #photo { width: 100%; height: 100%; padding: 8px; border: 0; border-radius: 0; object-fit: contain; background: #fff; }
+.photo-ph { color: var(--accent); display: flex; opacity: 0.7; }
+.photo-ph .ic { width: 46px; height: 46px; }
+.head-text { flex: 1; min-width: 0; padding-top: 2px; }
+.head .name { font-size: 25px; margin: 2px 0 10px; }
+.score-pill { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 6px; padding: 7px 15px; border-radius: 999px; font-size: 16px; font-weight: 700; }
+.score-pill .ic { width: 18px; height: 18px; }
+.score-pill.good { background: var(--good-bg); color: var(--good); }
+.score-pill.mid { background: var(--mid-bg); color: var(--mid); }
+.score-pill.bad { background: var(--bad-bg); color: var(--bad); }
+.score-pill.none { background: var(--accent-soft); color: var(--text-2); }
+.head .sub { margin: 0; }
+.ing-card { border: 1px solid var(--glass-line); border-radius: 22px; padding: 14px 16px 6px; background: rgba(255,255,255,0.28); margin-top: 4px; }
+@media (prefers-color-scheme: dark) { .ing-card { background: rgba(255,255,255,0.04); } }
+.ing-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 2px; }
+.ing-title { font-family: var(--font-display); font-style: italic; font-weight: 700; font-size: 26px; margin: 0; line-height: 1.1; }
+.ing-all { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; color: var(--accent); font: 600 15px/1 inherit; font-family: inherit; cursor: pointer; padding: 8px 0 8px 8px; }
+.chev-r { width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); }
+.ing-all.open .chev-r { transform: rotate(45deg); }
+.ing-card .ing:first-child { border-top: 0; }
+.ing-main > .ing-level { display: flex; align-items: center; gap: 6px; font-size: 13px; min-width: 0; }
+.ing-level .dot { margin: 0; width: 9px; height: 9px; flex: none; }
+.ing-level b { font-weight: 600; flex: none; }
+.ing-level .lv.good { color: var(--good); } .ing-level .lv.mid { color: var(--mid); } .ing-level .lv.bad { color: var(--bad); }
+.ing-level .ing-note { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ing-level .ing-note::before { content: "· "; }
+.ing summary { gap: 8px; align-items: center; }
+.ing .chev { margin: 0 4px 0 0; }
+.ing[open] .chev { margin-top: 4px; }
+.ing-body { padding-left: 4px; }
+
+.ing-level .ing-note::before { margin-left: 0; }
