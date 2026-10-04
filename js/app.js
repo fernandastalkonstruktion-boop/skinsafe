@@ -1,5 +1,5 @@
 (function () {
-  var VIEWS = ["home", "favorites", "routine", "pick", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result", "ingfull"];
+  var VIEWS = ["home", "history", "favorites", "routine", "pick", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result", "ingfull"];
   var scanner = null;
   var lastProduct = null;
   var cameFrom = "home";        // where "Back" on a result should go
@@ -20,7 +20,7 @@
   function ic(name, cls) {
     return '<svg class="ic ' + (cls || "") + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
   }
-  var TAB_OF = { home: "home", routine: "home", pick: "home", favorites: "fav", skin: "skin", quiz: "skin", allergies: "skin", about: "skin" };
+  var TAB_OF = { home: "home", routine: "home", pick: "home", history: "hist", favorites: "fav", skin: "skin", quiz: "skin", allergies: "skin", about: "skin" };
   var aboutFrom = "skin";
   // The selection pill slides to the tab with a small spring and a soft glow while it moves (like the reference app).
   var indTab = null, indTimer = 0;
@@ -317,6 +317,41 @@
   var favFilter = "all";
   function kindOf(p) { return window.Routine.classify(p) || "other"; }
   function kindLabel(k) { return k === "other" ? "Other" : window.Routine.KINDS[k].label; }
+  function cardHtml(p, i, heart) {
+    var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), prof = window.Profile.load();
+    var an = window.Ingredients.analyze(p.ingredientsText), b = band(an.score), tags = "";
+    var hit = (ids.length || words.length) && window.Profile.allergyHits(an.items, ids, words).length;
+    tags += '<span class="tag big sc ' + b.cls + '">' + (an.score === null ? "Not enough data" : "Safety: " + an.score + "/100") + "</span>";
+    if (prof && an.score !== null && !hit && window.Profile.match(an.items, prof).level === "good") tags += '<span class="tag big you">' + ic("heart") + "Good for you</span>";
+    tags += markTags(p);
+    if (window.Alerts && window.Alerts.match(p).length) tags += '<span class="tag bad">' + ic("alert") + "Official alert</span>";
+    if (hit) tags += '<span class="tag bad">' + ic("alert") + "Your allergy</span>";
+    return '<div class="fav-card" role="button" tabindex="0" data-i="' + i + '">' + photoHtml(p) +
+      '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
+      '<span class="tags">' + tags + "</span></span>" +
+      (heart ? '<button type="button" class="fav-heart" data-i="' + i + '" aria-label="Remove from favorites">' + ic("heart") + "</button>" : "") + "</div>";
+  }
+  // ----- History: the last 7 products opened (scanned or searched), stored only on this phone -----
+  var HKEY = "skinsafe.history", HMAX = 7;
+  function loadHistory() {
+    try { var h = JSON.parse(localStorage.getItem(HKEY) || "[]"); return Array.isArray(h) ? h : []; } catch (e) { return []; }
+  }
+  function addHistory(p) {
+    var id = productId(p);
+    var list = loadHistory().filter(function (x) { return x.id !== id; });
+    list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, seenAt: Date.now() });
+    try { localStorage.setItem(HKEY, JSON.stringify(list.slice(0, HMAX))); } catch (e) {}
+  }
+  function renderHistory() {
+    var list = loadHistory(), box = el("history-list");
+    if (!list.length) { box.innerHTML = '<p class="saved-empty">Nothing here yet. The last 7 products you scan or search will show up here, on this phone only.</p>'; return; }
+    box.innerHTML = list.map(function (p, i) { return cardHtml(p, i, false); }).join("");
+    Array.prototype.forEach.call(box.querySelectorAll(".fav-card"), function (card) {
+      var p = list[Number(card.getAttribute("data-i"))];
+      card.addEventListener("click", function () { cameFrom = "history"; renderResult(p); });
+    });
+  }
+
   function renderSavedList() {
     var all = loadSaved(), box = el("saved"), sel = el("fav-filter");
     var kinds = {};
@@ -332,20 +367,7 @@
       return;
     }
     var list = favFilter === "all" ? all : all.filter(function (p) { return kindOf(p) === favFilter; });
-    var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), prof = window.Profile.load();
-    box.innerHTML = list.map(function (p, i) {
-      var an = window.Ingredients.analyze(p.ingredientsText), b = band(an.score), tags = "";
-      var hit = (ids.length || words.length) && window.Profile.allergyHits(an.items, ids, words).length;
-      tags += '<span class="tag big sc ' + b.cls + '">' + (an.score === null ? "Not enough data" : "Safety: " + an.score + "/100") + "</span>";
-      if (prof && an.score !== null && !hit && window.Profile.match(an.items, prof).level === "good") tags += '<span class="tag big you">' + ic("heart") + "Good for you</span>";
-      tags += markTags(p);
-      if (window.Alerts && window.Alerts.match(p).length) tags += '<span class="tag bad">' + ic("alert") + "Official alert</span>";
-      if (hit) tags += '<span class="tag bad">' + ic("alert") + "Your allergy</span>";
-      return '<div class="fav-card" role="button" tabindex="0" data-i="' + i + '">' + photoHtml(p) +
-        '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
-        '<span class="tags">' + tags + "</span></span>" +
-        '<button type="button" class="fav-heart" data-i="' + i + '" aria-label="Remove from favorites">' + ic("heart") + "</button></div>";
-    }).join("");
+    box.innerHTML = list.map(function (p, i) { return cardHtml(p, i, true); }).join("");
     Array.prototype.forEach.call(box.querySelectorAll(".fav-card"), function (card) {
       var p = list[Number(card.getAttribute("data-i"))];
       card.addEventListener("click", function (e) {
@@ -604,6 +626,7 @@
 
   function renderResult(product) {
     lastProduct = product;
+    addHistory(product);
     var a = window.Ingredients.analyze(product.ingredientsText);
     var b = band(a.score);
 
@@ -690,6 +713,7 @@
     lastProduct = null;
     if (cameFrom === "cam") openCam("code");
     else if (cameFrom === "results" && lastResults) show("results");
+    else if (cameFrom === "history") { renderHistory(); show("history"); }
     else if (cameFrom === "favorites") { renderSavedList(); show("favorites"); }
     else if (cameFrom === "routine") openRoutine();
     else goHome();
@@ -1319,6 +1343,7 @@
   el("allergy-cancel").addEventListener("click", function () { if (lastProduct) show("result"); else { renderAllergyCard(); renderProfileCard(); show("skin"); } });
   el("tab-home").addEventListener("click", function () { goHome(); });
   el("tab-skin").addEventListener("click", function () { lastProduct = null; renderProfileCard(); renderAllergyCard(); show("skin"); });
+  el("tab-hist").addEventListener("click", function () { lastProduct = null; renderHistory(); show("history"); });
   el("tab-fav").addEventListener("click", function () { lastProduct = null; renderSavedList(); show("favorites"); });
   el("fab-cam").addEventListener("click", function () { openCam("code"); });
   el("tile-shelf").addEventListener("click", function () { openCam("shelf"); });
