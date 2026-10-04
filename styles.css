@@ -679,3 +679,10 @@ body.on-home .xtile span { font-size: 11px; line-height: 1.3; }
 body.on-home .manual { flex: none; }
 
 body.on-home .xtile span { min-height: 2.6em; }
+
+/* Explore tiles: short, 2 by 2, with free space below (not stretched to fill the screen) */
+body.on-home .explore { flex: none; grid-template-rows: none; gap: 10px; }
+body.on-home .xtile { min-height: 0; height: 104px; padding: 12px 14px; gap: 2px; justify-content: space-between; }
+body.on-home .xtile .ic { width: 24px; height: 24px; margin-bottom: 0; }
+body.on-home .xtile span { min-height: 0; }
+body.on-home .xtile b { font-size: 20px; }
