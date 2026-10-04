@@ -481,12 +481,11 @@
     var r = window.Routine.load();
     function col(label, icon, steps, period) {
       var prods = previewProducts(steps, period);
-      var dots = prods.slice(0, 4).map(function (p) { return '<span class="rc-dot">' + (p ? photoHtml(p) : ic("droplet")) + "</span>"; }).join("");
-      return "<div><p class=\"rc-label\">" + ic(icon) + "<b>" + label + ":</b> " + plural(steps.length, "step", "steps") + '</p><div class="rc-dots">' + dots + "</div></div>";
+      var dots = prods.slice(0, 3).map(function (p) { return '<span class="rc-dot">' + (p ? photoHtml(p) : ic("droplet")) + "</span>"; }).join("");
+      return '<div class="rc-col">' + ic(icon) + '<b class="rc-name">' + label + '</b><span class="rc-steps">' + plural(steps.length, "step", "steps") + '</span><div class="rc-dots">' + dots + "</div></div>";
     }
     function draw() {
-      el("routine-card").innerHTML = '<p class="rc-title">Your routine</p><div class="rc-cols">' + col("Morning", "sun", r.am, "am") + col("Night", "moon", r.pm, "pm") + "</div>" +
-        '<div class="rc-cols rc-hair">' + col("Wash day", "droplet", r.hw, "hw") + col("Styling", "flame", r.hs, "hs") + "</div>" +
+      el("routine-card").innerHTML = '<p class="rc-title">Your routine</p><div class="rc-cols">' + col("Morning", "sun", r.am, "am") + col("Night", "moon", r.pm, "pm") + col("Wash day", "droplet", r.hw, "hw") + col("Styling", "flame", r.hs, "hs") + "</div>" +
         '<p class="rc-go">Tap to see and change your steps</p>';
     }
     draw();
