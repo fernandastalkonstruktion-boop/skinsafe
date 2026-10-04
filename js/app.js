@@ -394,10 +394,10 @@
     b.classList.toggle("on", on);
   }
   var favFilter = "all";
-  function kindOf(p) { return window.Hair.classify(p) || window.Routine.classify(p) || "other"; }
+  function kindOf(p) { return window.Oral.classify(p) || window.Hair.classify(p) || window.Routine.classify(p) || "other"; }
   function kindLabel(k) { return k === "other" ? "Other" : window.Routine.KINDS[k].label; }
   function cardHtml(p, i, heart) {
-    var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), hk = window.Hair.classify(p), prof = hk ? window.Hair.load() : window.Profile.load();
+    var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), hk = window.Hair.classify(p), prof = window.Oral.classify(p) ? null : hk ? window.Hair.load() : window.Profile.load();
     var an = window.Ingredients.analyze(p.ingredientsText), b = band(an.score), tags = "";
     var hit = (ids.length || words.length) && window.Profile.allergyHits(an.items, ids, words).length;
     tags += '<span class="tag big sc ' + b.cls + '">' + (an.score === null ? "Not enough data" : "Safety: " + an.score + "/100") + "</span>";
@@ -436,7 +436,7 @@
     var kinds = {};
     all.forEach(function (p) { kinds[kindOf(p)] = true; });
     if (!kinds[favFilter]) favFilter = "all";
-    sel.innerHTML = '<option value="all">All</option>' + window.Routine.ORDER.concat(window.Hair.ORDER, ["other"]).filter(function (k) { return kinds[k]; }).map(function (k) {
+    sel.innerHTML = '<option value="all">All</option>' + window.Routine.ORDER.concat(window.Hair.ORDER, window.Oral.ORDER, ["other"]).filter(function (k) { return kinds[k]; }).map(function (k) {
       return '<option value="' + k + '">' + kindLabel(k) + "</option>";
     }).join("");
     sel.value = favFilter;
@@ -496,7 +496,7 @@
     var hair = isHairKind(kind);
     var prof = hair ? window.Hair.load() : window.Profile.load(), ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), out = [];
     catalogList.forEach(function (p) {
-      if (p.partial) return;
+      if (p.partial || window.Oral.classify(p)) return;
       if (hair ? window.Hair.classify(p) !== kind : (window.Hair.classify(p) || window.Routine.classify(p) !== kind)) return;
       var a = analysisOf(p);
       // Hair products score lower in general, so they get a lower floor, and the best-rated ones still come first.
@@ -619,6 +619,7 @@
   }
   function renderMatch(items, product) {
     var box = el("match");
+    if (product && window.Oral.classify(product)) { box.hidden = true; return; }
     var hk = product ? window.Hair.classify(product) : null;
     var p = hk ? window.Hair.load() : window.Profile.load();
     box.hidden = false;

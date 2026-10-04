@@ -69,5 +69,19 @@
   function save(r) { try { localStorage.setItem(KEY, JSON.stringify(r)); } catch (e) {} }
   function reset() { try { localStorage.removeItem(KEY); } catch (e) {} }
 
+  // Oral hygiene (toothpaste, mouthwash): its own group, apart from skin and hair. It has no routine steps and no skin or hair quiz.
+  var ORAL_KINDS = { oral: { label: "Oral hygiene", hint: "Toothpaste and mouthwash" } };
+  var ORAL_BRAND = /^(colgate|crest|sensodyne|listerine|oral-b|parodontax|meridol|elmex|therabreath|marvis|curaprox|pepsodent|close-?up|arm & hammer|hello|tom's of maine)$/i;
+  var ORAL_WORD = /(toothpaste|tooth paste|dentifrice|pasta dental|pasta de dientes|crema dental|gel dental|mouthwash|mouth rinse|oral rinse|enjuague bucal|enjuague|oral care|\bplax\b|gum (care|protection|detoxify|therapy)|enamel|whitening mint)/i;
+  var NOT_ORAL = /(deodorant|desodorante|shampoo|body|soap|jab[oó]n|lotion|cream for|hand)/i;
+  function classifyOral(p) {
+    var name = (p.name || "").toLowerCase();
+    if (NOT_ORAL.test(name) && !/(toothpaste|mouthwash|enjuague bucal|pasta dental)/.test(name)) return null;
+    if (ORAL_BRAND.test((p.brand || "").trim()) || ORAL_WORD.test(name)) return "oral";
+    return null;
+  }
+  Object.keys(ORAL_KINDS).forEach(function (k) { KINDS[k] = ORAL_KINDS[k]; });
+  window.Oral = { KINDS: ORAL_KINDS, ORDER: ["oral"], classify: classifyOral };
+
   window.Routine = { KINDS: KINDS, ORDER: ORDER, DEFAULT_STEPS: DEFAULT_STEPS, classify: classify, when: when, load: load, save: save, reset: reset };
 })();
