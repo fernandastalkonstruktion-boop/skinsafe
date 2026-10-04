@@ -20,7 +20,7 @@
   function ic(name, cls) {
     return '<svg class="ic ' + (cls || "") + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
   }
-  var TAB_OF = { skin: "skin", quiz: "skin", allergies: "allergies", about: "about" };
+  var TAB_OF = { home: "home", skin: "skin", quiz: "skin", allergies: "allergies", about: "about" };
   function show(view) {
     VIEWS.forEach(function (v) { el(v).hidden = v !== view; });
     var active = TAB_OF[view] || "";
@@ -29,6 +29,7 @@
       b.classList.toggle("on", on);
       if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
+    document.body.classList.toggle("on-result", view === "result");
     window.scrollTo(0, 0);
   }
   function showStatus(text, offerPhoto) {
@@ -478,6 +479,10 @@
       note.innerHTML = ic("camera") + '<span>Saved from your photo. When you scan this barcode again it will appear here, on this phone. ' +
         '<a href="https://world.openbeautyfacts.org/cgi/product.pl?type=search_or_add&code=' + encodeURIComponent(product.code) + '" target="_blank" rel="noopener">Add it to Open Beauty Facts</a> so everyone finds it.</span>';
     } else { note.hidden = true; note.innerHTML = ""; }
+    // the note about where the list came from stays folded; the (i) button next to the heart opens it
+    el("note-btn").hidden = note.hidden;
+    note.hidden = true;
+    el("note-btn").setAttribute("aria-expanded", "false");
     renderHeart(product);
     renderAlerts(product);
     renderAllergyBox(a.items);
@@ -1083,6 +1088,7 @@
     return stopScanner().then(function () { renderGreeting(false); renderProfileCard(); renderAllergyCard(); renderSavedList(); show("home"); });
   }
 
+  el("note-btn").addEventListener("click", function () { var n = el("catalog-note"); n.hidden = !n.hidden; el("note-btn").setAttribute("aria-expanded", n.hidden ? "false" : "true"); });
   el("ing-all").addEventListener("click", function () { ingExpanded = !ingExpanded; renderIngredientList(); });
   el("heart").addEventListener("click", function () {
     if (!lastProduct) return;
@@ -1123,6 +1129,7 @@
   el("quiz-back").addEventListener("click", quizBack);
   el("allergy-save").addEventListener("click", saveAllergies);
   el("allergy-cancel").addEventListener("click", function () { if (lastProduct) show("result"); else show("home"); });
+  el("tab-home").addEventListener("click", function () { goHome(); });
   el("tab-skin").addEventListener("click", function () { lastProduct = null; renderProfileCard(); show("skin"); });
   el("tab-allergies").addEventListener("click", function () { lastProduct = null; startAllergies(); });
   el("tab-about").addEventListener("click", function () { lastProduct = null; renderAbout(); show("about"); });
