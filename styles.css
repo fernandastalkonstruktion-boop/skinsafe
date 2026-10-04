@@ -4,11 +4,11 @@
 @font-face { font-family: "SS Cormorant"; src: url("fonts/cormorant-italic.woff2") format("woff2"); font-weight: 500 700; font-style: italic; font-display: swap; }
 /* SkinSafe: fluid background that starts aqua (top) and melts into sky blue (bottom), with a fine grain; glass cards on top. */
 :root {
-  --edge: #72cdd6;          /* the page fades to this color at BOTH the top and the bottom edge, so the phone's top and bottom bars blend */
-  --tint-top: #52c6c8;
-  --base-top: #34bfbd;      /* blue-green (teal) at the top */
+  --edge: #6fd0d8;          /* the page fades to this color at BOTH the top and the bottom edge, so the phone's top and bottom bars blend */
+  --tint-top: #52c8d2;
+  --base-top: #2fc3cf;      /* blue-green (teal) at the top */
   --base-bottom: #9bd3ee;   /* soft sky at the bottom, lighter than before so the two colors read apart */
-  --blob1: #d3faef; --blob2: #6bb8ea; --blob3: #14b3ae; --blob4: #e8f8ff; --blob5: #62e0cc;
+  --blob1: #d2f6fc; --blob2: #6bb8ea; --blob3: #10b4c9; --blob4: #e8f8ff; --blob5: #5ed6ea;
   --grain: 0.32;
   --glass: rgba(255, 255, 255, 0.68);
   --glass-line: rgba(255, 255, 255, 0.75);
@@ -692,3 +692,18 @@ body.on-home .top { margin-bottom: 14px; }
 body.on-home .greet { margin: 0 0 19px; }
 body.on-home .routine-card { margin-bottom: 19px; }
 body.on-home .section-title { margin: 19px 0 12px; }
+
+/* Sea glints: soft white streaks of light that drift slowly, like sunlight on water */
+.shine {
+  position: absolute; inset: -20%; pointer-events: none; mix-blend-mode: soft-light; opacity: 0.55;
+  background-size: 620px 620px; background-repeat: repeat;
+}
+.s1 { transform: rotate(-14deg); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='620' height='620'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035 0.02' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 7 0 0 0 -3.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"); }
+.s2 { transform: rotate(-8deg) scale(1.15); opacity: 0.4; background-size: 880px 880px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='880' height='880'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.003 0.026' numOctaves='2' seed='19' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 8 0 0 0 -4.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"); }
+@media (prefers-reduced-motion: no-preference) {
+  .s1 { animation: glint1 26s ease-in-out infinite alternate; }
+  .s2 { animation: glint2 34s ease-in-out infinite alternate; }
+}
+@keyframes glint1 { from { background-position: 0 0; } to { background-position: 180px 70px; } }
+@keyframes glint2 { from { background-position: 0 0; } to { background-position: -220px 90px; } }
+@media (prefers-color-scheme: dark) { .shine { opacity: 0.35; } .s2 { opacity: 0.25; } }

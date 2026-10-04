@@ -1369,7 +1369,7 @@
   // One theme-color tag, switched by script: iPhones in app mode pick the LAST of several theme-color tags no matter the mode.
   (function () {
     var meta = el("theme-color"), mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
-    function sync() { if (meta) meta.setAttribute("content", mq && mq.matches ? "#0b2f45" : "#72cdd6"); }
+    function sync() { if (meta) meta.setAttribute("content", mq && mq.matches ? "#0b2f45" : "#6fd0d8"); }
     sync();
     if (mq && mq.addEventListener) mq.addEventListener("change", sync);
   })();
