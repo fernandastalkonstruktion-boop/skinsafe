@@ -1262,6 +1262,16 @@
     });
   }
 
+  // Maybe a typo: offer the closest search that does have results.
+  function offerSuggestion(q) {
+    window.Shop.suggest(q).then(function (text) {
+      var box = el("did-you-mean");
+      if (!text || !box || el("results-q").value !== q) return;
+      box.innerHTML = '<button type="button" class="secondary dym">' + ic("search") + "<span>Did you mean <b>" + esc(text) + "</b>?</span></button>";
+      box.firstChild.addEventListener("click", function () { el("results-q").value = text; runSearch(text); });
+    });
+  }
+
   function runSearch(raw) {
     var q = String(raw || "").trim();
     if (q.length < 2) return;
@@ -1288,11 +1298,12 @@
         el("results-sub").textContent = r.products.length
           ? (hidden > 0 ? plural(hidden, "more product", "more products") + " found without an ingredient list, so we can't rate " + (hidden === 1 ? "it" : "them") + "." : "Tap a product to see what's in it.")
           : (hidden > 0 ? "We found " + plural(hidden, "product", "products") + " but none has an ingredient list yet." : "Try fewer words, like the brand and one product word.");
-        el("results-list").innerHTML = resultRows(r.products) + (r.products.length ? "" :
+        el("results-list").innerHTML = (local.length ? "" : '<div id="did-you-mean"></div>') + resultRows(r.products) + (r.products.length ? "" :
           '<div class="status-actions"><button type="button" class="primary small" id="results-photo">' + ic("camera") + "Photo of ingredients</button></div>");
         wireResultRows();
         var rp = el("results-photo");
         if (rp) rp.addEventListener("click", startPhoto);
+        if (!local.length) offerSuggestion(q);   // nothing in our own list: maybe a typo, even if the online database found something
       }).catch(function () {
         if (local.length) {
           lastResults = local;
@@ -1304,6 +1315,8 @@
         }
         el("results-title").textContent = "Couldn't search";
         el("results-sub").textContent = offlineNote("", "Check your connection and try again.");
+        el("results-list").innerHTML = '<div id="did-you-mean"></div>';
+        offerSuggestion(q);
       });
     });
   }

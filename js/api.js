@@ -303,6 +303,46 @@
   };
 
 
+  // "Did you mean": when a search finds nothing, fix the words that don't appear anywhere in our list by swapping each for the
+  // closest word that does (one letter off for short words, two for long ones; the more common word wins a tie).
+  function editDistance(a, b, max) {
+    if (Math.abs(a.length - b.length) > max) return max + 1;
+    var prev = [], prev2 = [], cur, i, j;
+    for (j = 0; j <= b.length; j++) prev[j] = j;
+    for (i = 1; i <= a.length; i++) {
+      cur = [i];
+      for (j = 1; j <= b.length; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) cur[j] = Math.min(cur[j], prev2[j - 2] + 1);
+      }
+      prev2 = prev; prev = cur;
+    }
+    return prev[b.length];
+  }
+  Shop.suggest = function (query) {
+    var raw = String(query).trim().split(/\s+/).filter(Boolean);
+    return loadShop().then(function (list) {
+      var freq = {};
+      list.forEach(function (p) { p.hay.split(/\s+/).forEach(function (w) { if (w.length >= 3 && !/^\d+$/.test(w)) freq[w] = (freq[w] || 0) + 1; }); });
+      var vocab = Object.keys(freq), changed = false;
+      var fixed = raw.map(function (rw) {
+        var w = flat(rw);
+        if (!w || w.length < 4 || SYN[w]) return rw;
+        if (list.some(function (p) { return p.hay.indexOf(w) > -1; })) return rw;
+        var max = w.length >= 7 ? 2 : 1, best = null, bestD = max + 1;
+        vocab.forEach(function (v) {
+          var d = editDistance(w, v, max);
+          if (d < bestD || (d === bestD && best && freq[v] > freq[best])) { best = v; bestD = d; }
+        });
+        if (best) { changed = true; return best; }
+        return rw;
+      });
+      if (!changed) return null;
+      var text = fixed.join(" ");
+      return Shop.search(text).then(function (found) { return found.length ? text : null; });
+    });
+  };
+
   // Work out which product a photo shows from the words printed on it (OCR text). Scores every product by how many of
   // its brand/name words were read, giving rare words more weight. Tolerates one-letter reading mistakes.
   function words(s) {
