@@ -401,29 +401,42 @@ button { touch-action: manipulation; }
 .tag.ok { background: var(--good-bg); color: var(--good); }
 
 /* bottom tab bar, like an app */
+/* Bottom bar, sized and animated like the reference video (iPhone 428pt wide): bar 60 tall, 16 from the sides, 8 gap to a 60 round camera button. */
 .dock {
-  position: fixed; z-index: 20; left: 12px; right: 12px; bottom: calc(2px + env(safe-area-inset-bottom) * 0.5);
-  max-width: 416px; margin: 0 auto; display: flex; align-items: center; gap: 10px;
+  position: fixed; z-index: 20; left: 16px; right: 16px; bottom: max(10px, calc(env(safe-area-inset-bottom) - 12px));
+  max-width: 420px; margin: 0 auto; display: flex; align-items: center; gap: 8px;
 }
 .tabbar {
-  flex: 1; min-width: 0; display: flex; gap: 4px; padding: 6px;
-  -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3);
-  background: var(--glass); border: 1px solid var(--glass-line); border-radius: 24px;
-  box-shadow: 0 8px 28px rgba(20, 70, 120, 0.18);
+  position: relative; flex: 1; min-width: 0; height: 60px; display: flex; padding: 4px; border-radius: 30px;
+  -webkit-backdrop-filter: blur(22px) saturate(1.4); backdrop-filter: blur(22px) saturate(1.4);
+  background: rgba(255, 255, 255, 0.88); border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 20px rgba(20, 70, 120, 0.14);
 }
-.fab {
-  flex: none; width: 62px; height: 62px; border-radius: 50%; border: 1px solid var(--glass-line); cursor: pointer;
-  background: var(--btn); color: var(--on-btn); display: flex; align-items: center; justify-content: center; padding: 0;
-  box-shadow: 0 8px 28px rgba(20, 70, 120, 0.25);
+@media (prefers-color-scheme: dark) { .tabbar { background: var(--glass); border-color: var(--glass-line); } }
+.tab-ind {
+  position: absolute; top: 4px; left: 0; height: 52px; width: 0; border-radius: 26px; pointer-events: none; opacity: 0; z-index: 0;
+  background: var(--accent-soft); will-change: transform, width;
+  transition: transform 0.42s cubic-bezier(0.3, 1.35, 0.45, 1), width 0.42s cubic-bezier(0.3, 1.35, 0.45, 1), opacity 0.2s ease;
 }
-.fab .ic { width: 28px; height: 28px; }
+.tab-ind.ready { opacity: 1; }
+.tab-ind.still { transition: none; }
+.tab-ind.glow { background: radial-gradient(closest-side, rgba(95, 190, 235, 0.75), rgba(95, 190, 235, 0.35)); filter: blur(5px); }
 .tab {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px 7px;
-  border: 0; border-radius: 18px; background: transparent; color: var(--text-2);
-  font: inherit; font-size: 11px; font-weight: 600; cursor: pointer;
+  position: relative; z-index: 1; flex: 1; min-width: 0; height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 0 2px;
+  border: 0; border-radius: 26px; background: transparent; color: var(--text);
+  font: inherit; font-size: 12px; font-weight: 500; line-height: 1; cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
-.tab .ic { width: 22px; height: 22px; }
-.tab.on { background: var(--btn); color: var(--on-btn); box-shadow: 0 1px 6px rgba(20, 70, 120, 0.15); }
+.tab .ic { width: 24px; height: 24px; transition: transform 0.3s cubic-bezier(0.3, 1.6, 0.5, 1), color 0.2s ease; }
+.tab span { transition: color 0.2s ease; }
+.tab.on { color: var(--accent); background: transparent; box-shadow: none; }
+.tab.on .ic { transform: scale(1.1); }
+.fab {
+  flex: none; width: 60px; height: 60px; border-radius: 50%; border: 0; cursor: pointer; padding: 0;
+  background: linear-gradient(150deg, #3d9de2, #1d74c0); color: #fff; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 18px rgba(20, 90, 160, 0.35); transition: transform 0.2s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.fab:active { transform: scale(0.92); }
+.fab .ic { width: 28px; height: 28px; }
 .saved-ok { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--good); margin: 10px 0 0; }
 .saved-ok .ic { width: 16px; height: 16px; }
 #skin .profile-card { margin-top: 6px; }
@@ -641,3 +654,28 @@ body.on-result .top { display: none; }
 .tag.any { background: var(--soft); color: var(--text-2); }
 .pick-head { font-size: 13px; font-weight: 700; margin: 16px 0 8px; color: var(--text); }
 #pick .search { margin-bottom: 4px; }
+
+/* ---------- Home is one fixed screen: it fits the phone, no scrolling and no scroll bar ---------- */
+html:has(body.on-home) { overflow: hidden; height: 100%; }
+body.on-home { overflow: hidden; height: 100vh; height: 100dvh; overscroll-behavior: none; }
+body.on-home .app { height: 100vh; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; padding-bottom: calc(86px + max(10px, calc(env(safe-area-inset-bottom) - 12px))); }
+body.on-home .top { margin-bottom: 10px; flex: none; }
+body.on-home #home { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+body.on-home .greet { flex: none; margin: -2px 0 10px; }
+body.on-home .greet .link { display: none; }
+body.on-home .greet-hi { font-size: 28px; }
+body.on-home .routine-card { flex: none; margin-bottom: 10px; padding: 12px 12px 10px; }
+body.on-home .rc-title { font-size: 22px; margin-bottom: 4px; }
+body.on-home .rc-label { margin-bottom: 6px; }
+body.on-home .rc-dot { width: 40px; height: 40px; }
+body.on-home .rc-go { display: none; }
+body.on-home .search { flex: none; }
+body.on-home .section-title { flex: none; font-size: 22px; margin: 12px 0 8px; }
+body.on-home .explore { flex: 1; min-height: 0; grid-template-rows: 1fr 1fr; }
+body.on-home .xtile { min-height: 0; padding: 10px 12px; overflow: hidden; }
+body.on-home .xtile .ic { width: 26px; height: 26px; }
+body.on-home .xtile b { font-size: 19px; }
+body.on-home .xtile span { font-size: 11px; line-height: 1.3; }
+body.on-home .manual { flex: none; }
+
+body.on-home .xtile span { min-height: 2.6em; }

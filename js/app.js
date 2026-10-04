@@ -22,6 +22,27 @@
   }
   var TAB_OF = { home: "home", routine: "home", pick: "home", favorites: "fav", skin: "skin", quiz: "skin", allergies: "skin", about: "skin" };
   var aboutFrom = "skin";
+  // The selection pill slides to the tab with a small spring and a soft glow while it moves (like the reference app).
+  var indTab = null, indTimer = 0;
+  function moveIndicator(id, instant) {
+    var ind = el("tab-ind"), bar = el("tabbar");
+    if (!ind || !bar) return;
+    var btn = id ? bar.querySelector('.tab[data-tab="' + id + '"]') : null;
+    if (!btn) { ind.classList.remove("ready"); indTab = null; return; }
+    var first = !ind.classList.contains("ready") || instant;
+    if (first) ind.classList.add("still");
+    ind.style.width = btn.offsetWidth + "px";
+    ind.style.transform = "translateX(" + btn.offsetLeft + "px)";
+    if (first) { void ind.offsetWidth; ind.classList.remove("still"); }
+    ind.classList.add("ready");
+    if (!first && indTab !== id) {
+      ind.classList.add("glow");
+      clearTimeout(indTimer);
+      indTimer = setTimeout(function () { ind.classList.remove("glow"); }, 300);
+    }
+    indTab = id;
+  }
+  window.addEventListener("resize", function () { if (indTab) moveIndicator(indTab, true); });
   function show(view) {
     VIEWS.forEach(function (v) { el(v).hidden = v !== view; });
     var active = TAB_OF[view] || "";
@@ -30,7 +51,9 @@
       b.classList.toggle("on", on);
       if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
+    moveIndicator(active);
     document.body.classList.toggle("on-result", view === "result" || view === "ingfull");
+    document.body.classList.toggle("on-home", view === "home");
     window.scrollTo(0, 0);
   }
   function showStatus(text, offerPhoto) {
@@ -340,14 +363,29 @@
   function whenTag(w) {
     return w.when === "am" ? '<span class="tag am">' + ic("sun") + "Morning</span>" : w.when === "pm" ? '<span class="tag pm">' + ic("moon") + "Night</span>" : '<span class="tag any">Morning or night</span>';
   }
+  // The preview shows the product the person chose for each step, or our suggestion until they choose one.
+  function previewProducts(steps, period) {
+    var used = steps.filter(function (s) { return s.product; }).map(function (s) { return productId(s.product); });
+    return steps.map(function (s) {
+      if (s.product) return s.product;
+      var sug = suggest(s.kind, period, used, 1)[0];
+      if (sug) used.push(productId(sug));
+      return sug || null;
+    });
+  }
   function renderRoutineCard() {
     var r = window.Routine.load();
-    function col(label, icon, steps) {
-      var dots = steps.slice(0, 4).map(function (s) { return '<span class="rc-dot">' + (s.product ? photoHtml(s.product) : ic("droplet")) + "</span>"; }).join("");
+    function col(label, icon, steps, period) {
+      var prods = previewProducts(steps, period);
+      var dots = prods.slice(0, 4).map(function (p) { return '<span class="rc-dot">' + (p ? photoHtml(p) : ic("droplet")) + "</span>"; }).join("");
       return "<div><p class=\"rc-label\">" + ic(icon) + "<b>" + label + ":</b> " + plural(steps.length, "step", "steps") + '</p><div class="rc-dots">' + dots + "</div></div>";
     }
-    el("routine-card").innerHTML = '<p class="rc-title">Your routine</p><div class="rc-cols">' + col("Morning", "sun", r.am) + col("Night", "moon", r.pm) + "</div>" +
-      '<p class="rc-go">Tap to see and change your steps</p>';
+    function draw() {
+      el("routine-card").innerHTML = '<p class="rc-title">Your routine</p><div class="rc-cols">' + col("Morning", "sun", r.am, "am") + col("Night", "moon", r.pm, "pm") + "</div>" +
+        '<p class="rc-go">Tap to see and change your steps</p>';
+    }
+    draw();
+    if (!catalogList.length) window.Shop.load().then(function (list) { if (list.length) { catalogList = list; draw(); } });
   }
   // Best-rated products of this kind that suit the person: no allergy hit, no official alert, a fair match for the quiz, and right for the time of day.
   function suggest(kind, period, exclude, limit) {
