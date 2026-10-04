@@ -324,24 +324,32 @@
     withSyn(words(text)).forEach(function (w) { if (w.length >= 3 && !/^\d+$/.test(w) && tokens.indexOf(w) < 0) tokens.push(w); });
     return loadShop().then(function (list) {
       var pool = list.concat(Catalog.all().map(function (p) { return { brand: p.brand, name: p.name, code: p.code, image: p.image, ingredientsText: p.ingredientsText, local: true, shop: p.shop, partial: p.partial, note: p.note, source: p.source, linked: p.linked, hay: flat(p.brand + " " + p.name) }; }));
-      var docs = pool.map(function (p) { return { p: p, w: words(p.hay) }; });
+      // Unique words only: aliases repeat the same words, which would otherwise count (and score) several times.
+      var docs = pool.map(function (p) { var uniq = function (a) { return a.filter(function (w, i) { return a.indexOf(w) === i; }); };
+        return { p: p, w: uniq(words(p.hay)), own: uniq(words((p.brand || "") + " " + (p.name || ""))) }; });
       var df = {};
       docs.forEach(function (d) { var seen = {}; d.w.forEach(function (w) { if (!seen[w]) { seen[w] = 1; df[w] = (df[w] || 0) + 1; } }); });
       var N = docs.length || 1;
       function idf(w) { return Math.log(N / ((df[w] || 0) + 1)) + 1; }
       var scored = docs.map(function (d) {
-        var score = 0, hits = 0, brandWords = words(d.p.brand || ""), brandHit = 0;
+        var score = 0, hits = 0, brandWords = words(d.p.brand || "").filter(function (w) { return w.length >= 3; }), brandHit = 0;
         d.w.forEach(function (hw) {
           for (var i = 0; i < tokens.length; i++) {
             if (close(tokens[i], hw)) { score += idf(hw); hits++; if (brandWords.indexOf(hw) > -1) brandHit++; break; }
           }
         });
         if (brandWords.length && brandHit === brandWords.length) score += 2;
-        return { p: d.p, score: score, hits: hits, brand: brandWords.length && brandHit === brandWords.length };
+        // Coverage = share of the product's own words that were read; it separates a line's variants (and lifts the full match).
+        var ownHits = 0;
+        d.own.forEach(function (hw) { for (var i = 0; i < tokens.length; i++) if (close(tokens[i], hw)) { ownHits++; break; } });
+        var cov = d.own.length ? ownHits / d.own.length : 0;
+        return { p: d.p, score: score, rank: score + 3 * cov, cov: cov, hits: hits, brand: brandWords.length && brandHit === brandWords.length };
       }).filter(function (x) { return x.score >= 4 && (x.hits >= 2 || x.brand); });
-      scored.sort(function (a, b) { return b.score - a.score; });
+      scored.sort(function (a, b) { return b.rank - a.rank; });
       var top = scored.slice(0, 6);
-      return { tokens: tokens, matches: top.map(function (x) { return x.p; }), evidence: top.map(function (x) { return { hits: x.hits, brand: x.brand, score: x.score }; }) };
+      // Exact: brand + every word of the name read, and no other product is fully read too.
+      var exact = !!(top[0] && top[0].brand && top[0].cov === 1 && top[0].hits >= 3 && !(top[1] && top[1].cov === 1));
+      return { tokens: tokens, exact: exact, matches: top.map(function (x) { return x.p; }), evidence: top.map(function (x) { return { hits: x.hits, brand: x.brand, score: x.score, cov: x.cov }; }) };
     });
   };
 

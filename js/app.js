@@ -972,6 +972,7 @@
       if (!cam.open || cam.job !== job) return;
       cam.busy = false; setBusy(false);
       if (r.code) { closeCam().then(function () { lookupCode(r.code); }); return; }
+      if (r.exact && r.matches.length) { openFromMatches(r.matches, r.matches[0], "Is it one of these?"); return; }
       showSheet(mode, r);
     }).catch(function () {
       if (!cam.open || cam.job !== job) return;
@@ -1017,6 +1018,16 @@
     }).then(function (found) { return { matches: found, shelf: true, tokens: [] }; });
   }
 
+  // Open a product from a list of matches; "Back" from it returns to that list.
+  function openFromMatches(list, p, title) {
+    lastResults = list;
+    el("results-title").textContent = title;
+    el("results-sub").textContent = "Tap a product to see what's in it.";
+    el("results-list").innerHTML = resultRows(list);
+    wireResultRows();
+    closeCam(); pending = null; linking = null; cameFrom = "results"; renderResult(p);
+  }
+
   function showSheet(mode, r) {
     var list = r.matches || [];
     cam.list = list;
@@ -1028,13 +1039,7 @@
     el("sheet-list").innerHTML = resultRows(list);
     Array.prototype.forEach.call(el("sheet-list").querySelectorAll(".result-item"), function (b) {
       b.addEventListener("click", function () {
-        var p = list[Number(b.getAttribute("data-i"))];
-        lastResults = list;
-        el("results-title").textContent = el("sheet-title").textContent;
-        el("results-sub").textContent = "Tap a product to see what's in it.";
-        el("results-list").innerHTML = resultRows(list);
-        wireResultRows();
-        closeCam(); pending = null; linking = null; cameFrom = "results"; renderResult(p);
+        openFromMatches(list, list[Number(b.getAttribute("data-i"))], el("sheet-title").textContent);
       });
     });
     el("cam-sheet").hidden = false;
