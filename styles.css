@@ -4,11 +4,11 @@
 @font-face { font-family: "SS Cormorant"; src: url("fonts/cormorant-italic.woff2") format("woff2"); font-weight: 500 700; font-style: italic; font-display: swap; }
 /* SkinSafe: fluid background that starts aqua (top) and melts into sky blue (bottom), with a fine grain; glass cards on top. */
 :root {
-  --edge: #84cdea;          /* the page fades to this color at BOTH the top and the bottom edge, so the phone's top and bottom bars blend */
-  --tint-top: #7fd0e6;
-  --base-top: #63c6df;      /* aqua */
-  --base-bottom: #86c8f4;   /* sky */
-  --blob1: #c4f3fb; --blob2: #3ba0ee; --blob3: #2fb7d9; --blob4: #d9f2ff; --blob5: #9fdcf3;
+  --edge: #72cdd6;          /* the page fades to this color at BOTH the top and the bottom edge, so the phone's top and bottom bars blend */
+  --tint-top: #52c6c8;
+  --base-top: #34bfbd;      /* blue-green (teal) at the top */
+  --base-bottom: #9bd3ee;   /* soft sky at the bottom, lighter than before so the two colors read apart */
+  --blob1: #d3faef; --blob2: #6bb8ea; --blob3: #14b3ae; --blob4: #e8f8ff; --blob5: #62e0cc;
   --grain: 0.32;
   --glass: rgba(255, 255, 255, 0.68);
   --glass-line: rgba(255, 255, 255, 0.75);
@@ -81,7 +81,7 @@ button { touch-action: manipulation; }
 .bg { position: fixed; top: 0; left: 0; right: 0; height: 100vh; height: 100lvh; z-index: 0; overflow: hidden; pointer-events: none; background: linear-gradient(180deg, var(--base-top) 0%, var(--base-bottom) 100%); }
 .blob { position: absolute; border-radius: 50%; filter: blur(48px); opacity: 0.95; will-change: transform; }
 .b1 { background: var(--blob1); width: 80vmax; height: 62vmax; left: -28vmax; top: -22vmax; }
-.b2 { background: var(--blob2); width: 70vmax; height: 56vmax; left: -34vmax; bottom: -26vmax; }
+.b2 { background: var(--blob2); width: 52vmax; height: 40vmax; left: -26vmax; bottom: -20vmax; }
 .b3 { background: var(--blob3); width: 62vmax; height: 50vmax; right: -30vmax; top: -12vmax; }
 .b4 { background: var(--blob4); width: 46vmax; height: 40vmax; right: -12vmax; bottom: 8vmax; }
 .b5 { background: var(--blob5); width: 40vmax; height: 30vmax; left: 16vmax; top: 30vmax; }
