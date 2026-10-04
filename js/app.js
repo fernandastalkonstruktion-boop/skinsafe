@@ -1090,7 +1090,7 @@
     var n = list.length;
     el("sheet-title").textContent = n ? (mode === "shelf" ? "Products found: " + n : "Is it one of these?") : (mode === "shelf" ? "No products recognized" : "We couldn't tell which product it is");
     el("sheet-sub").textContent = n
-      ? (mode === "shelf" ? "Tap a product to see the full breakdown. Shelf reading is best effort, so a label it couldn't read may be missing." : "Tap the one on your package. If it isn't here, scan its barcode or photograph the ingredient list.")
+      ? (mode === "shelf" ? "Tap a product to see the full breakdown. Shelf reading is best effort, so a label it couldn't read may be missing." : "Tap the one on your package.")
       : (mode === "shelf" ? "Try fewer products at once, closer, in good light. Or scan one product at a time with Product or Barcode." : "Try again with the front label in good light, or use the barcode or a photo of the ingredient list." + (r.tokens && r.tokens.length ? " We read: " + r.tokens.slice(0, 8).join(" ") + "." : " We couldn't read any words."));
     el("sheet-list").innerHTML = resultRows(list);
     Array.prototype.forEach.call(el("sheet-list").querySelectorAll(".result-item"), function (b) {
@@ -1408,7 +1408,7 @@
   el("sheet-code").addEventListener("click", function () { setMode("code"); });
   el("sheet-none").addEventListener("click", function () {
     if (cam.read) logMissing("none", cam.read.mode, cam.read.tokens, cam.list && cam.list[0]);
-    el("sheet-sub").textContent = "Noted, thank you. It's saved in Profile → Missing products so it can be added.";
+    el("sheet-sub").textContent = "Noted, thanks. It's saved in Profile.";
     el("sheet-none").hidden = true;
   });
   el("not-it-btn").addEventListener("click", function () {
