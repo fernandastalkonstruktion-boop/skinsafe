@@ -1,5 +1,5 @@
 (function () {
-  var VIEWS = ["home", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result", "ingfull"];
+  var VIEWS = ["home", "favorites", "routine", "pick", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result", "ingfull"];
   var scanner = null;
   var lastProduct = null;
   var cameFrom = "home";        // where "Back" on a result should go
@@ -20,7 +20,8 @@
   function ic(name, cls) {
     return '<svg class="ic ' + (cls || "") + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
   }
-  var TAB_OF = { home: "home", skin: "skin", quiz: "skin", allergies: "skin", about: "about" };
+  var TAB_OF = { home: "home", routine: "home", pick: "home", favorites: "fav", skin: "skin", quiz: "skin", allergies: "skin", about: "skin" };
+  var aboutFrom = "skin";
   function show(view) {
     VIEWS.forEach(function (v) { el(v).hidden = v !== view; });
     var active = TAB_OF[view] || "";
@@ -123,6 +124,7 @@
 
   // ----- home cards: skin and allergies -----
   function renderProfileCard() {
+    renderNameCard();
     var p = window.Profile.load();
     var box = el("profile-card");
     if (p) {
@@ -280,7 +282,7 @@
     var id = productId(p), list = loadSaved(), at = -1;
     list.forEach(function (x, i) { if (x.id === id) at = i; });
     if (at > -1) list.splice(at, 1);
-    else list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, savedAt: Date.now() });
+    else list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, savedAt: Date.now() });
     storeSaved(list);
   }
   function renderHeart(p) {
@@ -289,30 +291,166 @@
     b.setAttribute("aria-label", on ? "Remove from My products" : "Save to My products");
     b.classList.toggle("on", on);
   }
+  var favFilter = "all";
+  function kindOf(p) { return window.Routine.classify(p) || "other"; }
+  function kindLabel(k) { return k === "other" ? "Other" : window.Routine.KINDS[k].label; }
   function renderSavedList() {
-    var list = loadSaved(), box = el("saved");
-    if (!list.length) {
-      box.hidden = false;
-      box.innerHTML = '<div class="saved-head"><p class="saved-title">' + ic("heart") + 'My products</p><span class="saved-count">Nothing saved yet</span></div>' +
-        '<p class="saved-empty">Open any product and tap the heart to keep it here. Your list stays on this phone and the scores update as we learn more.</p>';
+    var all = loadSaved(), box = el("saved"), sel = el("fav-filter");
+    var kinds = {};
+    all.forEach(function (p) { kinds[kindOf(p)] = true; });
+    if (!kinds[favFilter]) favFilter = "all";
+    sel.innerHTML = '<option value="all">All</option>' + window.Routine.ORDER.concat(["other"]).filter(function (k) { return kinds[k]; }).map(function (k) {
+      return '<option value="' + k + '">' + kindLabel(k) + "</option>";
+    }).join("");
+    sel.value = favFilter;
+    sel.parentNode.hidden = all.length < 2;
+    if (!all.length) {
+      box.innerHTML = '<p class="saved-empty">Nothing here yet. Open any product and tap the heart to keep it here. Your list stays on this phone and the scores update as we learn more.</p>';
       return;
     }
-    var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords();
-    box.hidden = false;
-    box.innerHTML = '<div class="saved-head"><p class="saved-title">' + ic("heart") + 'My products</p><span class="saved-count">' + list.length + " saved on this phone</span></div>" +
-      list.map(function (p, i) {
-        var an = window.Ingredients.analyze(p.ingredientsText), b = band(an.score), tags = "";
-        tags += markTags(p);
-        if (window.Alerts && window.Alerts.match(p).length) tags += '<span class="tag bad">' + ic("alert") + "Official alert</span>";
-        if ((ids.length || words.length) && window.Profile.allergyHits(an.items, ids, words).length) tags += '<span class="tag bad">' + ic("alert") + "Your allergy</span>";
-        return '<button type="button" class="result-item saved-item" data-i="' + i + '">' +
-          '<span class="mini-score ' + b.cls + '">' + (an.score === null ? "?" : an.score) + "</span>" +
-          '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
-          (tags ? '<span class="tags">' + tags + "</span>" : "") + "</span>" + ic("chevron-right", "chev-ic") + "</button>";
-      }).join("");
-    Array.prototype.forEach.call(box.querySelectorAll(".saved-item"), function (btn) {
-      btn.addEventListener("click", function () { cameFrom = "home"; renderResult(list[Number(btn.getAttribute("data-i"))]); });
+    var list = favFilter === "all" ? all : all.filter(function (p) { return kindOf(p) === favFilter; });
+    var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), prof = window.Profile.load();
+    box.innerHTML = list.map(function (p, i) {
+      var an = window.Ingredients.analyze(p.ingredientsText), b = band(an.score), tags = "";
+      var hit = (ids.length || words.length) && window.Profile.allergyHits(an.items, ids, words).length;
+      tags += '<span class="tag big sc ' + b.cls + '">' + (an.score === null ? "Not enough data" : "Safety: " + an.score + "/100") + "</span>";
+      if (prof && an.score !== null && !hit && window.Profile.match(an.items, prof).level === "good") tags += '<span class="tag big you">' + ic("heart") + "Good for you</span>";
+      tags += markTags(p);
+      if (window.Alerts && window.Alerts.match(p).length) tags += '<span class="tag bad">' + ic("alert") + "Official alert</span>";
+      if (hit) tags += '<span class="tag bad">' + ic("alert") + "Your allergy</span>";
+      return '<div class="fav-card" role="button" tabindex="0" data-i="' + i + '">' + photoHtml(p) +
+        '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
+        '<span class="tags">' + tags + "</span></span>" +
+        '<button type="button" class="fav-heart" data-i="' + i + '" aria-label="Remove from favorites">' + ic("heart") + "</button></div>";
+    }).join("");
+    Array.prototype.forEach.call(box.querySelectorAll(".fav-card"), function (card) {
+      var p = list[Number(card.getAttribute("data-i"))];
+      card.addEventListener("click", function (e) {
+        if (e.target.closest && e.target.closest(".fav-heart")) { toggleSaved(p); renderSavedList(); renderRoutineCard(); return; }
+        cameFrom = "favorites"; renderResult(p);
+      });
     });
+  }
+
+  // ----- Your routine: one list of steps for the morning and one for the night, saved only on this phone -----
+  var catalogList = [], rtPeriod = "am", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {};
+  function analysisOf(p) { var c = anCache[p.ingredientsText]; if (!c) { c = window.Ingredients.analyze(p.ingredientsText); anCache[p.ingredientsText] = c; } return c; }
+  function routineProd(p) { return { id: productId(p), code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial }; }
+  function whenOf(p, kind) { return window.Routine.when(p, kind || kindOf(p), analysisOf(p).items); }
+  function whenTag(w) {
+    return w.when === "am" ? '<span class="tag am">' + ic("sun") + "Morning</span>" : w.when === "pm" ? '<span class="tag pm">' + ic("moon") + "Night</span>" : '<span class="tag any">Morning or night</span>';
+  }
+  function renderRoutineCard() {
+    var r = window.Routine.load();
+    function col(label, icon, steps) {
+      var dots = steps.slice(0, 4).map(function (s) { return '<span class="rc-dot">' + (s.product ? photoHtml(s.product) : ic("droplet")) + "</span>"; }).join("");
+      return "<div><p class=\"rc-label\">" + ic(icon) + "<b>" + label + ":</b> " + plural(steps.length, "step", "steps") + '</p><div class="rc-dots">' + dots + "</div></div>";
+    }
+    el("routine-card").innerHTML = '<p class="rc-title">Your routine</p><div class="rc-cols">' + col("Morning", "sun", r.am) + col("Night", "moon", r.pm) + "</div>" +
+      '<p class="rc-go">Tap to see and change your steps</p>';
+  }
+  // Best-rated products of this kind that suit the person: no allergy hit, no official alert, a fair match for the quiz, and right for the time of day.
+  function suggest(kind, period, exclude, limit) {
+    var prof = window.Profile.load(), ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), out = [];
+    catalogList.forEach(function (p) {
+      if (p.partial || window.Routine.classify(p) !== kind) return;
+      var a = analysisOf(p);
+      if (a.score === null || a.score < 51) return;
+      var w = window.Routine.when(p, kind, a.items).when;
+      if (w !== "any" && w !== period) return;
+      if (exclude.indexOf(productId(p)) > -1) return;
+      if (window.Alerts && window.Alerts.match(p).length) return;
+      if ((ids.length || words.length) && window.Profile.allergyHits(a.items, ids, words).length) return;
+      var m = prof ? window.Profile.match(a.items, prof) : { level: "good", helps: [] };
+      if (m.level === "bad") return;
+      out.push({ p: p, score: a.score, lv: m.level === "good" ? 0 : 1, helps: m.helps.length });
+    });
+    out.sort(function (x, y) { return x.lv - y.lv || y.helps - x.helps || y.score - x.score || (y.p.image ? 1 : 0) - (x.p.image ? 1 : 0); });
+    return out.slice(0, limit).map(function (x) { return x.p; });
+  }
+  function rtRow(p, kind, act, i) {
+    return '<button type="button" class="result-item" data-act="' + act + '" data-i="' + i + '">' + photoHtml(p) +
+      '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
+      '<span class="tags">' + scorePill(p) + whenTag(whenOf(p, kind)) + "</span></span>" + ic("chevron-right", "chev-ic") + "</button>";
+  }
+  function renderRoutine() {
+    var K = window.Routine.KINDS, prof = window.Profile.load();
+    el("rt-profile").innerHTML = "<b>Your skin profile</b><span>" + esc(prof ? window.Profile.summary(prof) : "Take the quiz so the suggestions fit your skin.") + "</span>";
+    ["am", "pm"].forEach(function (k) { el("rt-" + k).classList.toggle("on", rtPeriod === k); el("rt-" + k).setAttribute("aria-selected", String(rtPeriod === k)); });
+    var steps = rt[rtPeriod];
+    var used = steps.filter(function (s) { return s.product; }).map(function (s) { return productId(s.product); });
+    rtSug = [];
+    el("rt-steps").innerHTML = steps.map(function (s, i) {
+      var head = '<div class="rt-head"><span class="rt-num">' + (i + 1) + '</span><p class="rt-kind">' + esc(K[s.kind].label) + '</p><button type="button" class="rt-x" data-act="del" data-i="' + i + '" aria-label="Remove this step">' + ic("x") + "</button></div>";
+      var body;
+      if (s.product) {
+        var w = whenOf(s.product, s.kind), warn = w.when !== "any" && w.when !== rtPeriod;
+        body = '<div class="rt-card">' + rtRow(s.product, s.kind, "open", i) +
+          '<p class="rt-tip' + (warn ? " warn" : "") + '">' + esc((warn ? (w.when === "pm" ? "Usually used at night, and it is in your morning routine. " : "Usually used in the morning, and it is in your night routine. ") : "") + w.why) + "</p>" +
+          '<div class="rt-actions"><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Change</button><button type="button" class="secondary small-btn" data-act="clear" data-i="' + i + '">Remove</button></div></div>';
+      } else {
+        var sug = suggest(s.kind, rtPeriod, used, 1)[0];
+        rtSug[i] = sug || null;
+        if (sug) used.push(productId(sug));
+        body = '<div class="rt-card">' + (sug
+          ? '<p class="rt-sug">Suggested for you</p>' + rtRow(sug, s.kind, "opensug", i) + '<div class="rt-actions"><button type="button" class="primary small" data-act="use" data-i="' + i + '">Use this</button><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">See alternatives</button></div>'
+          : '<p class="rt-empty">We have no suggestion for this step yet.</p><div class="rt-actions"><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Pick my own</button></div>') + "</div>";
+      }
+      return '<div class="rt-step">' + head + body + "</div>";
+    }).join("") || '<p class="rt-empty">No steps yet. Add one below.</p>';
+  }
+  function saveRoutine() { window.Routine.save(rt); renderRoutineCard(); }
+  function openRoutine() {
+    window.Shop.load().then(function (list) {
+      catalogList = list; rt = window.Routine.load();
+      el("rt-add-kind").innerHTML = window.Routine.ORDER.map(function (k) { return '<option value="' + k + '">' + window.Routine.KINDS[k].label + "</option>"; }).join("");
+      renderRoutine(); show("routine");
+    });
+  }
+  function pickRows(list) {
+    return list.map(function (p, i) { return rtRow(p, pickCtx.kind, "choose", i); }).join("");
+  }
+  function openPick(i) {
+    var s = rt[rtPeriod][i];
+    pickCtx = { i: i, period: rtPeriod, kind: s.kind };
+    el("pick-title").textContent = "Choose your " + window.Routine.KINDS[s.kind].label.toLowerCase();
+    el("pick-sub").textContent = (rtPeriod === "am" ? "Morning" : "Night") + " routine. Pick the one you own or one of our suggestions.";
+    el("pick-q").value = "";
+    var favs = loadSaved().slice().sort(function (a, b) { return (kindOf(b) === s.kind ? 1 : 0) - (kindOf(a) === s.kind ? 1 : 0); });
+    var used = rt[rtPeriod].filter(function (x, k) { return k !== i && x.product; }).map(function (x) { return productId(x.product); });
+    var sugs = suggest(s.kind, rtPeriod, used, 8);
+    pickList = favs.concat(sugs);
+    el("pick-list").innerHTML = (favs.length ? '<p class="pick-head">Your favorites</p>' + pickRows(favs) : "") +
+      '<p class="pick-head">Suggested for you</p>' + (sugs.length ? sugs.map(function (p, k) { return rtRow(p, s.kind, "choose", favs.length + k); }).join("") : '<p class="rt-empty">No suggestions for this step yet. Search for yours above.</p>');
+    show("pick");
+  }
+  function pickSearch(q) {
+    q = String(q || "").trim();
+    if (q.length < 2) return;
+    var mine = window.Catalog.search(q);
+    window.Shop.search(q).then(function (found) {
+      pickList = mine.concat(found).slice(0, 30);
+      el("pick-list").innerHTML = '<p class="pick-head">Results for “' + esc(q) + '”</p>' + (pickList.length ? pickRows(pickList) : '<p class="rt-empty">Nothing found. Try the brand and one product word.</p>');
+    });
+  }
+  function routineAction(e) {
+    var b = e.target.closest ? e.target.closest("[data-act]") : null;
+    if (!b) return;
+    var act = b.getAttribute("data-act"), i = Number(b.getAttribute("data-i")), steps = rt[rtPeriod];
+    if (act === "del") steps.splice(i, 1);
+    else if (act === "clear") steps[i].product = null;
+    else if (act === "use" && rtSug[i]) steps[i].product = routineProd(rtSug[i]);
+    else if (act === "pick") { openPick(i); return; }
+    else if (act === "open") { cameFrom = "routine"; renderResult(steps[i].product); return; }
+    else if (act === "opensug" && rtSug[i]) { cameFrom = "routine"; renderResult(rtSug[i]); return; }
+    else return;
+    saveRoutine(); renderRoutine();
+  }
+  function renderNameCard() {
+    var n = getName();
+    el("name-card").innerHTML = '<p class="profile-label">' + ic("user") + 'Name</p><p class="profile-text">' + (n ? esc(pretty(n)) : "Not set") + '</p>' +
+      '<div class="profile-actions"><button type="button" class="link" id="name-edit">' + (n ? "Change" : "Add your name") + "</button></div>";
+    el("name-edit").addEventListener("click", function () { goHome().then(function () { renderGreeting(true); }); });
   }
 
   // ----- result -----
@@ -513,7 +651,10 @@
   function backFromResult() {
     lastProduct = null;
     if (cameFrom === "cam") openCam("code");
-    else if (cameFrom === "results" && lastResults) show("results"); else goHome();
+    else if (cameFrom === "results" && lastResults) show("results");
+    else if (cameFrom === "favorites") { renderSavedList(); show("favorites"); }
+    else if (cameFrom === "routine") openRoutine();
+    else goHome();
   }
 
   // ----- barcode lookup -----
@@ -1064,12 +1205,13 @@
   var ABOUT = [
     ["shield-check", "Who we trust", "Regulators, public health agencies, medical societies and published research from universities and hospitals. We do not use brands, industry-funded review panels or paid certification programs."],
     ["scale", "When sources disagree", "The stricter rule wins. Order: EU, then Korea, then Japan and China, then the rest. Fragrance allergens, banned preservatives and restricted ingredients come from those rules."],
-    ["check", "The score, 0 to 100", "Starts at 100. Each flagged ingredient takes off 18 points and each ingredient to watch takes off 6. A fragrance and its allergens count as one problem, up to 30 points. Any flag keeps a product from being Excellent. Excellent is 76 to 100 (green, the only green), Good 51 to 75 (yellow), Not great 26 to 50 (orange), Bad 0 to 25 (red)."],
+    ["check", "The score, 0 to 100", "Starts at 100. Each flagged ingredient takes off 18 points and each ingredient to watch takes off 6. Labels list ingredients from the largest amount to the smallest, so a flag or a watch in the first half of the list takes off 25% more (22.5 and 7.5). A fragrance and its allergens count as one problem, up to 30 points. Any flag keeps a product from being Excellent. Excellent is 76 to 100 (green, the only green), Good 51 to 75 (yellow), Not great 26 to 50 (orange), Bad 0 to 25 (red)."],
     ["flag", "Flag, watch and good", "A flag is something an EU or Korean rule bans, restricts or requires to be named as an allergen. To watch means irritation, clogged pores, sun sensitivity or a limit that is respected. Good means no known concern. Ingredients marked “rated by type” are judged as a group, not one by one."],
     ["alert", "Allergy is not irritation", "Can cause allergy: some people become allergic after repeated contact, and it usually stays. Allergen if you're allergic: only matters to people who already have that allergy, like nuts or wheat. Can irritate: depends on the amount and your skin, and goes away when you stop."],
     ["info", "Product alerts", "Official recalls are facts, with the date and a link to the notice. Lawsuits only appear when a court grouped many cases from different people and published science backs the claim. They are always labeled not proven."],
     ["ban", "What we can't know", "The list order tells us the biggest ingredients, not the exact amounts. Photos can be misread. Product data comes from a community database that can be out of date. A cosmetic scientist has not reviewed our ratings yet. This is not medical advice."],
     ["package", "Find a product", "One camera does it all. Barcode reads by itself. Product takes a photo of the front (we read its barcode first, then the words on the label). Shelf tries to recognize several products in one photo, and Ingredients reads the ingredient list. You can also search by name. Reading words from a photo can miss stylized fonts and crowded shelves, so check that each match is your product. Photos are read on your phone and are not uploaded."],
+    ["sun", "Your routine", "Suggested products are the best-rated ones in our list that fit your skin quiz and have no allergy hit or official alert. The morning or night tip comes from the product name and its ingredients: retinol and exfoliating acids at night, sunscreen and vitamin C in the morning. It is guidance, so follow the package. You can swap any suggestion for the product you really own."],
     ["leaf", "Vegan and cruelty-free marks", "These small marks appear only when they are true, and they never change the score. Vegan-friendly means we found no animal-derived ingredient in the list (honey, beeswax, collagen, lanolin, milk proteins and similar). Some common ingredients, like glycerin or stearic acid, can come from animals or plants and the list does not say which, so this is not a vegan certification. Cruelty-free means the brand is listed by Leaping Bunny or PETA, two independent nonprofits; we do not use the brand's own claim."],
     ["camera", "Product photos", "Where we have one, the product photo is the brand's own or a large beauty retailer's studio photo, shown straight from their website. The photos belong to those brands and shops. We never store or sell them, and a photo can disappear if the website changes it."],
     ["lock", "Your data", "Nothing is uploaded. Your skin answers and allergies stay on your device, and there are no accounts."]
@@ -1087,7 +1229,7 @@
     el("q").value = "";
     el("manual").hidden = true;
     hideCam();
-    return stopScanner().then(function () { renderGreeting(false); renderProfileCard(); renderAllergyCard(); renderSavedList(); show("home"); });
+    return stopScanner().then(function () { renderGreeting(false); renderProfileCard(); renderAllergyCard(); renderSavedList(); renderRoutineCard(); show("home"); });
   }
 
   el("note-btn").addEventListener("click", function () { var n = el("catalog-note"); n.hidden = !n.hidden; el("note-btn").setAttribute("aria-expanded", n.hidden ? "false" : "true"); });
@@ -1139,9 +1281,37 @@
   el("allergy-cancel").addEventListener("click", function () { if (lastProduct) show("result"); else { renderAllergyCard(); renderProfileCard(); show("skin"); } });
   el("tab-home").addEventListener("click", function () { goHome(); });
   el("tab-skin").addEventListener("click", function () { lastProduct = null; renderProfileCard(); renderAllergyCard(); show("skin"); });
-  el("tab-about").addEventListener("click", function () { lastProduct = null; renderAbout(); show("about"); });
+  el("tab-fav").addEventListener("click", function () { lastProduct = null; renderSavedList(); show("favorites"); });
+  el("fab-cam").addEventListener("click", function () { openCam("code"); });
+  el("tile-shelf").addEventListener("click", function () { openCam("shelf"); });
+  el("tile-ing").addEventListener("click", startPhoto);
+  el("open-about").addEventListener("click", function () { lastProduct = null; renderAbout(); show("about"); });
   el("disclaimer-about").addEventListener("click", function () { renderAbout(); show("about"); });
-  el("about-back").addEventListener("click", function () { if (lastProduct) show("result"); else show("home"); });
+  el("about-back").addEventListener("click", function () { if (lastProduct) show("result"); else { renderProfileCard(); show("skin"); } });
+  el("routine-card").addEventListener("click", openRoutine);
+  el("fav-filter").addEventListener("change", function () { favFilter = el("fav-filter").value; renderSavedList(); });
+  el("rt-profile").addEventListener("click", function () { renderProfileCard(); renderAllergyCard(); show("skin"); });
+  el("rt-am").addEventListener("click", function () { rtPeriod = "am"; renderRoutine(); });
+  el("rt-pm").addEventListener("click", function () { rtPeriod = "pm"; renderRoutine(); });
+  el("rt-steps").addEventListener("click", routineAction);
+  el("rt-add").addEventListener("click", function () {
+    var k = el("rt-add-kind").value, order = window.Routine.ORDER;
+    rt[rtPeriod].push({ kind: k, product: null });
+    rt[rtPeriod].sort(function (a, b) { return order.indexOf(a.kind) - order.indexOf(b.kind); });
+    saveRoutine(); renderRoutine();
+  });
+  el("rt-reset").addEventListener("click", function () { window.Routine.reset(); rt = window.Routine.load(); renderRoutineCard(); renderRoutine(); });
+  el("pick-back").addEventListener("click", function () { show("routine"); });
+  el("pick-form").addEventListener("submit", function (e) { e.preventDefault(); pickSearch(el("pick-q").value); });
+  el("pick-list").addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest('[data-act="choose"]') : null;
+    if (!b || !pickCtx) return;
+    var p = pickList[Number(b.getAttribute("data-i"))];
+    if (!p) return;
+    rtPeriod = pickCtx.period;
+    rt[pickCtx.period][pickCtx.i].product = routineProd(p);
+    saveRoutine(); renderRoutine(); show("routine");
+  });
   el("manual").addEventListener("submit", function (e) {
     e.preventDefault();
     lookupCode(el("code").value);
@@ -1155,6 +1325,7 @@
     renderProfileCard();
     renderAllergyCard();
     renderSavedList();
+    renderRoutineCard();
     show("home");
   });
   // One theme-color tag, switched by script: iPhones in app mode pick the LAST of several theme-color tags no matter the mode.
@@ -1171,6 +1342,7 @@
   renderProfileCard();
   renderAllergyCard();
   renderSavedList();
+  renderRoutineCard();
   show("home");
   // Brand facts load after the first screen; redraw the saved list once they are in.
   window.Brands.load().then(function () { renderSavedList(); });

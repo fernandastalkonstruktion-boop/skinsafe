@@ -289,9 +289,12 @@
   }
 
   // Score: start at 100, -18 per flag, -6 per watch. Needs at least 3 rated ingredients.
+  // Position matters: labels list ingredients from the largest amount to the smallest, so a problem in the FIRST HALF of
+  // the list counts 25% more (22.5 / 7.5) than one in the second half (18 / 6). OnSkin does the same.
   // A fragrance and the allergens declared inside it are ONE problem, so together they cost at most 30 points
   // (18 for the first, 3 for each extra allergen). Any flagged ingredient caps the score at 75,
   // so a product with a flag can never be "Excellent".
+  var FIRST_HALF = 1.25;
   function analyze(text) {
     var items = split(text || "").map(function (raw) {
       var hit = lookup(raw);
@@ -301,15 +304,20 @@
         : { name: name, level: null, family: null, note: "", detail: "", risks: [], helps: [], src: [] };
     });
     var n = { good: 0, mid: 0, bad: 0, none: 0 };
-    var fragrance = 0, otherBad = 0;
-    items.forEach(function (i) {
+    var fragrance = 0, fragFirst = false, penalty = 0;
+    var half = Math.ceil(items.length / 2);
+    items.forEach(function (i, idx) {
       n[i.level || "none"]++;
-      if (i.level === "bad") { if (i.family === "fragrance") fragrance++; else otherBad++; }
+      var w = idx < half ? FIRST_HALF : 1;
+      if (i.level === "bad") {
+        if (i.family === "fragrance") { fragrance++; if (idx < half) fragFirst = true; }
+        else penalty += 18 * w;
+      } else if (i.level === "mid") penalty += 6 * w;
     });
-    var penalty = 18 * otherBad + 6 * n.mid + (fragrance ? Math.min(30, 18 + 3 * (fragrance - 1)) : 0);
+    if (fragrance) penalty += Math.min(30, (18 + 3 * (fragrance - 1)) * (fragFirst ? FIRST_HALF : 1));
     var rated = n.good + n.mid + n.bad;
     var cap = n.bad > 0 ? 75 : 100;
-    var score = rated >= 3 ? Math.max(0, Math.min(cap, 100 - penalty)) : null;
+    var score = rated >= 3 ? Math.max(0, Math.min(cap, Math.round(100 - penalty))) : null;
     return { items: items, counts: n, score: score };
   }
 
