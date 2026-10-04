@@ -28,6 +28,8 @@
   --good-bg: #dcf2e8;   --good: #1b6a44;
   --mid-bg: #fbefd5;    --mid: #7f5209;
   --bad-bg: #fbe3e1;    --bad: #a02a24;
+  --yel-bg: #fbf1b8;    --yel: #6b5700;
+  --org-bg: #fddcc0;    --org: #9a4505;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -52,6 +54,8 @@
     --good-bg: #173a2c;  --good: #8fd6b0;
     --mid-bg: #3d2f12;   --mid: #efc77a;
     --bad-bg: #40201e;   --bad: #f2a5a0;
+    --yel-bg: #3a3510;   --yel: #ecdc7a;
+    --org-bg: #45270e;   --org: #f6b17a;
   }
 }
 
@@ -414,7 +418,6 @@ button { touch-action: manipulation; }
 .saved-ok { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--good); margin: 10px 0 0; }
 .saved-ok .ic { width: 16px; height: 16px; }
 #skin .profile-card { margin-top: 6px; }
-#skin .profile-label { display: none; }
 .tile-row .tile span { font-size: 12px; line-height: 1.25; }
 
 /* ---------- one camera for barcode, product, shelf and ingredients ---------- */
@@ -534,3 +537,7 @@ body.on-result .top { display: none; }
 .res-actions { display: flex; gap: 8px; }
 .catalog-note { font-size: 11.5px; line-height: 1.4; padding: 7px 10px; gap: 6px; margin-bottom: 10px; }
 .catalog-note .ic { width: 13px; height: 13px; margin-top: 1px; }
+
+/* score colors: red = Bad, orange = Not great, yellow = Good, green only for Excellent */
+.score-pill.yel, .tag.sc.yel, .mini-score.yel, .score.yel { background: var(--yel-bg); color: var(--yel); }
+.score-pill.org, .tag.sc.org, .mini-score.org, .score.org { background: var(--org-bg); color: var(--org); }

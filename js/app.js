@@ -20,7 +20,7 @@
   function ic(name, cls) {
     return '<svg class="ic ' + (cls || "") + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
   }
-  var TAB_OF = { home: "home", skin: "skin", quiz: "skin", allergies: "allergies", about: "about" };
+  var TAB_OF = { home: "home", skin: "skin", quiz: "skin", allergies: "skin", about: "about" };
   function show(view) {
     VIEWS.forEach(function (v) { el(v).hidden = v !== view; });
     var active = TAB_OF[view] || "";
@@ -61,8 +61,8 @@
   function band(score) {
     if (score === null) return { cls: "none", label: "Not enough data", icon: "info" };
     if (score >= 76) return { cls: "good", label: "Excellent", icon: "shield-check" };
-    if (score >= 51) return { cls: "good", label: "Good", icon: "shield-check" };
-    if (score >= 26) return { cls: "mid", label: "Not great", icon: "alert" };
+    if (score >= 51) return { cls: "yel", label: "Good", icon: "shield-check" };
+    if (score >= 26) return { cls: "org", label: "Not great", icon: "alert" };
     return { cls: "bad", label: "Bad", icon: "alert" };
   }
 
@@ -1062,7 +1062,7 @@
   var ABOUT = [
     ["shield-check", "Who we trust", "Regulators, public health agencies, medical societies and published research from universities and hospitals. We do not use brands, industry-funded review panels or paid certification programs."],
     ["scale", "When sources disagree", "The stricter rule wins. Order: EU, then Korea, then Japan and China, then the rest. Fragrance allergens, banned preservatives and restricted ingredients come from those rules."],
-    ["check", "The score, 0 to 100", "Starts at 100. Each flagged ingredient takes off 18 points and each ingredient to watch takes off 6. A fragrance and its allergens count as one problem, up to 30 points. Any flag keeps a product from being Excellent. Excellent is 76 to 100, Good 51 to 75, Not great 26 to 50, Bad 0 to 25."],
+    ["check", "The score, 0 to 100", "Starts at 100. Each flagged ingredient takes off 18 points and each ingredient to watch takes off 6. A fragrance and its allergens count as one problem, up to 30 points. Any flag keeps a product from being Excellent. Excellent is 76 to 100 (green, the only green), Good 51 to 75 (yellow), Not great 26 to 50 (orange), Bad 0 to 25 (red)."],
     ["flag", "Flag, watch and good", "A flag is something an EU or Korean rule bans, restricts or requires to be named as an allergen. To watch means irritation, clogged pores, sun sensitivity or a limit that is respected. Good means no known concern. Ingredients marked “rated by type” are judged as a group, not one by one."],
     ["alert", "Allergy is not irritation", "Can cause allergy: some people become allergic after repeated contact, and it usually stays. Allergen if you're allergic: only matters to people who already have that allergy, like nuts or wheat. Can irritate: depends on the amount and your skin, and goes away when you stop."],
     ["info", "Product alerts", "Official recalls are facts, with the date and a link to the notice. Lawsuits only appear when a court grouped many cases from different people and published science backs the claim. They are always labeled not proven."],
@@ -1128,10 +1128,9 @@
   el("quiz-next").addEventListener("click", quizNext);
   el("quiz-back").addEventListener("click", quizBack);
   el("allergy-save").addEventListener("click", saveAllergies);
-  el("allergy-cancel").addEventListener("click", function () { if (lastProduct) show("result"); else show("home"); });
+  el("allergy-cancel").addEventListener("click", function () { if (lastProduct) show("result"); else { renderAllergyCard(); renderProfileCard(); show("skin"); } });
   el("tab-home").addEventListener("click", function () { goHome(); });
-  el("tab-skin").addEventListener("click", function () { lastProduct = null; renderProfileCard(); show("skin"); });
-  el("tab-allergies").addEventListener("click", function () { lastProduct = null; startAllergies(); });
+  el("tab-skin").addEventListener("click", function () { lastProduct = null; renderProfileCard(); renderAllergyCard(); show("skin"); });
   el("tab-about").addEventListener("click", function () { lastProduct = null; renderAbout(); show("about"); });
   el("disclaimer-about").addEventListener("click", function () { renderAbout(); show("about"); });
   el("about-back").addEventListener("click", function () { if (lastProduct) show("result"); else show("home"); });
