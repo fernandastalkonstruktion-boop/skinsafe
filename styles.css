@@ -720,3 +720,14 @@ body.on-home .section-title { margin: 19px 0 12px; }
 .sheet-none .ic { width: 15px; height: 15px; }
 .sheet-none[hidden] { display: none; }
 .rc-hair { margin-top: 10px; }
+
+.rt-bar { display: flex; gap: 6px; margin: 0 0 8px; }
+.rt-bar .seg { margin: 0; padding: 3px; border-radius: 16px; flex: 0 0 auto; }
+.rt-bar .seg + .seg { flex: 1 1 0; min-width: 0; }
+.rt-bar .seg button { padding: 7px 6px; font-size: 13.5px; border-radius: 13px; gap: 4px; white-space: nowrap; }
+.rt-bar .seg button .ic { width: 18px; height: 18px; }
+@media (max-width: 340px) { .rt-bar { flex-wrap: wrap; } }
+.linkcard.slim { display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin: 0 0 12px; border-radius: 14px; }
+.linkcard.slim b { display: inline; flex: none; font-size: 13px; }
+.linkcard.slim span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.linkcard.slim .chev-ic { flex: none; width: 16px; height: 16px; color: var(--text-2); }

@@ -151,12 +151,12 @@
     if (!box) return;
     var h = window.Hair.load();
     if (h) {
-      box.innerHTML = '<p class="profile-label">' + ic("leaf") + 'My hair</p><p class="profile-text">' + esc(window.Hair.summary(h)) + "</p>" +
+      box.innerHTML = '<p class="profile-label">' + ic("hair") + 'My hair</p><p class="profile-text">' + esc(window.Hair.summary(h)) + "</p>" +
         '<div class="profile-actions"><button type="button" class="link" id="hair-edit">Edit</button><button type="button" class="link" id="hair-clear">Remove</button></div>';
       el("hair-edit").addEventListener("click", function () { startQuiz(h, "hair"); });
       el("hair-clear").addEventListener("click", function () { window.Hair.clear(); renderHairCard(); });
     } else {
-      box.innerHTML = '<p class="profile-label">' + ic("leaf") + 'My hair</p><p class="profile-text">5 quick questions, with tips to find out your hair type.</p>' +
+      box.innerHTML = '<p class="profile-label">' + ic("hair") + 'My hair</p><p class="profile-text">5 quick questions, with tips to find out your hair type.</p>' +
         '<div class="profile-actions"><button type="button" class="secondary small-btn" id="hair-start">Start</button></div>';
       el("hair-start").addEventListener("click", function () { startQuiz(null, "hair"); });
     }
@@ -524,8 +524,8 @@
     var K = window.Routine.KINDS, hairArea = isHairPeriod(rtPeriod);
     var prof = hairArea ? window.Hair.load() : window.Profile.load();
     el("rt-profile").innerHTML = hairArea
-      ? "<b>Your hair profile</b><span>" + esc(prof ? window.Hair.summary(prof) : "Take the hair quiz so the suggestions fit your hair.") + "</span>"
-      : "<b>Your skin profile</b><span>" + esc(prof ? window.Profile.summary(prof) : "Take the quiz so the suggestions fit your skin.") + "</span>";
+      ? "<b>Hair</b><span>" + esc(prof ? window.Hair.summary(prof) : "Take the hair quiz for better suggestions") + "</span>" + ic("chevron-right", "chev-ic")
+      : "<b>Skin</b><span>" + esc(prof ? window.Profile.summary(prof) : "Take the skin quiz for better suggestions") + "</span>" + ic("chevron-right", "chev-ic");
     el("rt-face").classList.toggle("on", !hairArea); el("rt-hair").classList.toggle("on", hairArea);
     el("rt-face").setAttribute("aria-selected", String(!hairArea)); el("rt-hair").setAttribute("aria-selected", String(hairArea));
     var tabs = hairArea ? [["hw", "droplet", "Wash day"], ["hs", "flame", "Styling"]] : [["am", "sun", "Morning"], ["pm", "moon", "Night"]];
@@ -624,7 +624,7 @@
     box.hidden = false;
     if (!p) {
       box.className = "match prompt";
-      box.innerHTML = '<p class="match-title">' + ic(hk ? "leaf" : "droplet") + (hk ? "Does this suit your hair?" : "Does this suit your skin?") + "</p>" +
+      box.innerHTML = '<p class="match-title">' + ic(hk ? "hair" : "droplet") + (hk ? "Does this suit your hair?" : "Does this suit your skin?") + "</p>" +
         '<button type="button" class="secondary small-btn" id="match-quiz">' + (hk ? "Take the 5-question hair quiz" : "Take the 4-question quiz") + "</button>";
       el("match-quiz").addEventListener("click", function () { startQuiz(null, hk ? "hair" : "skin"); });
       return;
