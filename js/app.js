@@ -54,6 +54,7 @@
     moveIndicator(active);
     document.body.classList.toggle("on-result", view === "result" || view === "ingfull");
     document.body.classList.toggle("on-home", view === "home");
+    document.body.classList.toggle("on-profile", view === "skin");
     window.scrollTo(0, 0);
   }
   function showStatus(text, offerPhoto) {
@@ -234,8 +235,8 @@
     if (!box) return;
     var n = loadMissing().length;
     box.innerHTML = '<p class="profile-label">' + ic("search") + 'Missing products</p>' +
-      '<p class="profile-text">' + (n ? plural(n, "product the camera couldn't match", "products the camera couldn't match") + ". Copy the list and send it so they get added."
-        : "Nothing yet. When the camera can't find your product, it shows up here, on this phone only.") + "</p>" +
+      '<p class="profile-text">' + (n ? plural(n, "product the camera couldn't match", "products the camera couldn't match") + "."
+        : "Nothing yet. Products the camera can't find show up here.") + "</p>" +
       (n ? '<div class="profile-actions"><button type="button" class="secondary small-btn" id="missing-copy">Copy list</button>' +
         (navigator.share ? '<button type="button" class="link" id="missing-share">Share</button>' : "") +
         '<button type="button" class="link" id="missing-clear">Clear</button></div>' : "");

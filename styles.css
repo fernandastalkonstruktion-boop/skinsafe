@@ -731,3 +731,21 @@ body.on-home .section-title { margin: 19px 0 12px; }
 .linkcard.slim b { display: inline; flex: none; font-size: 13px; }
 .linkcard.slim span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .linkcard.slim .chev-ic { flex: none; width: 16px; height: 16px; color: var(--text-2); }
+
+/* ---------- Profile is one fixed screen too: every card is a compact row, no scrolling (phones shorter than 700px may scroll) ---------- */
+@media (min-height: 700px) {
+  html:has(body.on-profile) { overflow: hidden; height: 100%; }
+  body.on-profile { overflow: hidden; height: 100vh; height: 100dvh; overscroll-behavior: none; }
+  body.on-profile .app { height: 100vh; height: 100dvh; overflow: hidden; padding-bottom: calc(86px + max(10px, calc(env(safe-area-inset-bottom) - 12px))); }
+}
+body.on-profile .top { margin-bottom: 8px; }
+body.on-profile #skin .page-title { margin-bottom: 4px; }
+body.on-profile #skin .profile-sub { display: none; }
+body.on-profile #skin .profile-card { margin-top: 8px; padding: 10px 14px; display: grid; grid-template-columns: 1fr auto; grid-template-areas: "label actions" "text actions"; column-gap: 12px; align-items: center; }
+body.on-profile #skin .profile-label { grid-area: label; margin: 0; }
+body.on-profile #skin .profile-text { grid-area: text; margin: 0; font-size: 13px; color: var(--text-2); }
+body.on-profile #skin .profile-actions { grid-area: actions; gap: 12px; }
+body.on-profile #skin .profile-card.wide { grid-template-areas: "label label" "text text" "actions actions"; row-gap: 2px; }
+body.on-profile #skin .profile-card.wide .profile-actions { margin-top: 6px; }
+body.on-profile #skin .linkrow { margin-top: 8px; padding: 12px 16px; }
+body.on-profile #skin .privacy-note { margin-top: 10px; }
