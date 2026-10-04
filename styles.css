@@ -707,3 +707,6 @@ body.on-home .section-title { margin: 19px 0 12px; }
 @keyframes glint1 { from { background-position: 0 0; } to { background-position: 180px 70px; } }
 @keyframes glint2 { from { background-position: 0 0; } to { background-position: -220px 90px; } }
 @media (prefers-color-scheme: dark) { .shine { opacity: 0.35; } .s2 { opacity: 0.25; } }
+
+.offline-status { margin: 10px 4px 0; font-size: 13px; font-weight: 600; color: var(--text); opacity: 0.8; text-align: center; }
+.offline-status.warn { color: var(--bad); opacity: 1; }
