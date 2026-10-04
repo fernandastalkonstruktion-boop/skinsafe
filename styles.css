@@ -564,8 +564,7 @@ body.on-result .top { display: none; }
 .score-pill.yel, .tag.sc.yel, .mini-score.yel, .score.yel { background: var(--yel-bg); color: var(--yel); }
 .score-pill.org, .tag.sc.org, .mini-score.org, .score.org { background: var(--org-bg); color: var(--org); }
 
-/* full ingredient list page */
-#ingfull.slide { animation: slidein 0.28s ease-out; }
+/* full ingredient list, shown inside the ingredients card */
 @keyframes slidein { from { transform: translateX(40%); opacity: 0; } to { transform: none; opacity: 1; } }
 .ingfull-text { font-size: 16px; line-height: 1.6; margin: 4px 0 16px; overflow-wrap: anywhere; }
 .ingfull-text .il { font-weight: 600; }
@@ -574,6 +573,9 @@ body.on-result .top { display: none; }
 .ingfull-key span { display: inline-flex; align-items: center; gap: 6px; }
 .ingfull-key .dot { margin: 0; }
 .ingfull-note { font-size: 14px; background: var(--accent-soft); border-radius: 16px; padding: 14px 16px; margin: 0 0 24px; }
+.ing-fullbox { padding-top: 6px; }
+.ing-fullbox .ingfull-text { margin-top: 0; }
+.ing-fullbox .ingfull-note { margin-bottom: 12px; }
 
 /* ---------- home: routine card and Explore ---------- */
 .page-title { font-family: var(--font-display); font-style: italic; font-weight: 700; font-size: 32px; line-height: 1.1; margin: 0 0 10px; }

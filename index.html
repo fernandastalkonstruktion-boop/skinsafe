@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#6fd0d8" id="theme-color">
-  <meta name="app-version" content="20261004172549">
+  <meta name="app-version" content="20261004173303">
   <title>SkinSafe</title>
   <link rel="icon" type="image/png" sizes="32x32" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-fav-10.png">
   <link rel="icon" type="image/png" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-10.png">
@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="SkinSafe">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="styles.css?v=20261004172549">
+  <link rel="stylesheet" href="styles.css?v=20261004173303">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -237,14 +237,6 @@
       </div>
     </section>
 
-    <section id="ingfull" hidden>
-      <div class="res-top"><button class="back" id="ingfull-back" type="button"><svg class="ic"><use href="#i-arrow-left"/></svg>Back</button></div>
-      <h2 class="quiz-title">What's inside</h2>
-      <p class="quiz-sub" id="ingfull-name"></p>
-      <p class="ingfull-text" id="ingfull-text"></p>
-      <div class="ingfull-key"><span><i class="dot bad"></i>Flagged</span><span><i class="dot mid"></i>To watch</span><span><i class="dot good"></i>Good</span></div>
-      <p class="ingfull-note">As a rule, the higher an ingredient is on the label, the more of it is in the product.</p>
-    </section>
 
     <section id="result" hidden>
       <div class="res-top">
@@ -275,6 +267,11 @@
         <section class="ing-card">
           <div class="ing-head"><h2 class="ing-title">Ingredients</h2><button type="button" class="ing-all" id="ing-all" hidden></button></div>
           <ul class="ingredients" id="ingredients"></ul>
+          <div class="ing-fullbox" id="ing-fullbox" hidden>
+            <p class="ingfull-text" id="ing-fulltext"></p>
+            <div class="ingfull-key"><span><i class="dot bad"></i>Flagged</span><span><i class="dot mid"></i>To watch</span><span><i class="dot good"></i>Good</span></div>
+            <p class="ingfull-note">As a rule, the higher an ingredient is on the label, the more of it is in the product.</p>
+          </div>
         </section>
         <details class="unrated" id="unrated-box" hidden>
           <summary id="unrated-title"></summary>
@@ -351,15 +348,15 @@
   </div>
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/ingredients.js?v=20261004172549"></script>
-  <script src="js/alerts.js?v=20261004172549"></script>
-  <script src="js/profile.js?v=20261004172549"></script>
-  <script src="js/api.js?v=20261004172549"></script>
-  <script src="js/routine.js?v=20261004172549"></script>
-  <script src="js/hair.js?v=20261004172549"></script>
-  <script src="js/ocr.js?v=20261004172549"></script>
-  <script src="js/app.js?v=20261004172549"></script>
-  <script src="js/update.js?v=20261004172549"></script>
-  <script src="js/offline.js?v=20261004172549"></script>
+  <script src="js/ingredients.js?v=20261004173303"></script>
+  <script src="js/alerts.js?v=20261004173303"></script>
+  <script src="js/profile.js?v=20261004173303"></script>
+  <script src="js/api.js?v=20261004173303"></script>
+  <script src="js/routine.js?v=20261004173303"></script>
+  <script src="js/hair.js?v=20261004173303"></script>
+  <script src="js/ocr.js?v=20261004173303"></script>
+  <script src="js/app.js?v=20261004173303"></script>
+  <script src="js/update.js?v=20261004173303"></script>
+  <script src="js/offline.js?v=20261004173303"></script>
 </body>
 </html>

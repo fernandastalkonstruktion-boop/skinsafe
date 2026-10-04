@@ -177,7 +177,7 @@
     ["good", ["arbutin"], "Brightening active", "Used to fade dark spots. The EU allows up to 7% in face creams and asks that hydroquinone stays at unavoidable trace levels.", ["restricted"], ["pigmentation"], ["SCCS", "COSING"]],
     ["bad", ["bht", "butylated hydroxytoluene"], "Antioxidant, hormone concern, EU-limited", "A preservative-antioxidant. The EU safety committee (SCCS, 2021) judged it safe at up to 0.8% in leave-on and rinse-off products (0.1% in toothpaste, 0.001% in mouthwash) while noting concerns about possible hormone-like activity. A few people are sensitive.", ["hormone", "restricted"], [], ["SCCS", "EUREG"]],
     ["bad", ["octocrylene"], "UV filter, EU-limited, hormone concern", "A chemical UV filter. The EU allows up to 10% and its safety committee (SCCS, 2021) judged that safe while noting concerns about possible hormone-like activity. It can also break down into benzophenone over time.", ["hormone", "restricted"], [], ["SCCS", "EUREG", "ECHA"]],
-    ["bad", ["carbon black", "ci 77266", "ci 77266 [nano]", "ci 77266 nano", "black 2", "carbon black (ci 77266)"], "Black pigment, possible carcinogen if inhaled", "Used in eyeliner, mascara and brow products. IARC rates carbon black as possibly carcinogenic to humans (group 2B), based on inhaled dust. The EU allows it in cosmetics (the nano form up to 10%) but not where it could be inhaled, such as sprays or loose powders.", ["cancer", "restricted"], [], ["IARC", "SCCS", "EUREG"]],
+    ["bad", ["carbon black", "ci 77266", "ci 77266 [nano]", "ci 77266 nano", "black 2", "carbon black (ci 77266)"], "Black pigment, possible carcinogen if inhaled", "Used in eyeliner, mascara and brow products. IARC rates carbon black as possibly carcinogenic to humans (group 2B), based on inhaled dust. The EU allows it in cosmetics (the nano form up to 10%) but not where it could be inhaled, such as sprays or loose powders.", ["cancer", "restricted"], [], ["IARC", "SCCS", "EUREG"], null, true],
     ["bad", ["mercury", "mercurous chloride", "ammoniated mercury", "ammonium mercuric chloride", "mercuric chloride"], "Mercury, banned in cosmetics", "Mercury compounds are banned in skin products in the EU and the US. They are toxic and can damage the kidneys and nerves.", ["restricted"], [], ["SCCS", "EUREG", "MHLW", "NMPA"]],
     // Added 1 Oct 2026 after measuring Korean-market catalog lists. Written from general cosmetic-chemistry knowledge, not verified one by one.
     ["good", ["ethyl hexanediol", "2,3-butanediol", "polyglycerin-3", "diglycerin", "fructan", "glutathione", "cyanocobalamin"], "Hydrating helper", "A humectant, solvent or skin-conditioning ingredient. Well tolerated at cosmetic levels.", [], ["dryness"], ["COSING"]],
@@ -234,8 +234,9 @@
   RAW.forEach(function (r) {
     var entry = {
       level: r[0], family: r[7] || null, note: r[2], detail: r[3], risks: r[4], helps: r[5],
-      // "danger" = the entry says the EU bans it in cosmetics. Only used by the score (see analyze).
-      danger: r[0] === "bad" && /^(banned|not allowed|mercury, banned)/i.test(r[2]),
+      // "danger" = the entry says the EU bans it in cosmetics, or it is marked as one (9th field, e.g. carbon black).
+      // Only used by the score (see analyze).
+      danger: r[0] === "bad" && (r[8] === true || /^(banned|not allowed|mercury, banned)/i.test(r[2])),
       src: r[6].map(function (k) { return SOURCES[k]; }).sort(function (a, b) { return a.rank - b.rank; })
     };
     r[1].forEach(function (name) { INDEX[name] = entry; });
@@ -309,7 +310,7 @@
   }
 
   // Score (new model, 4 Oct 2026). Each ingredient has a tier for the score:
-  //   P = banned in EU cosmetics (the entry says so), M = flagged ("bad": EU-restricted, declared allergen, SCCS concern),
+  //   P = banned in EU cosmetics (the entry says so) or marked as dangerous (carbon black), M = flagged ("bad": EU-restricted, declared allergen, SCCS concern),
   //   L = "mid" (to watch), nothing = ok. The WORST ingredient sets the band; the other ingredients only nudge it:
   //   any P -> 24. Else any M in the first EARLY positions of the list -> 52. Else M further down -> 64, minus 2 for each extra M.
   //   No M and no P -> 100. Then minus 15 x (share of the list that is L). Needs at least 3 rated ingredients.

@@ -1,5 +1,5 @@
 (function () {
-  var VIEWS = ["home", "history", "favorites", "routine", "pick", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result", "ingfull"];
+  var VIEWS = ["home", "history", "favorites", "routine", "pick", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result"];
   var scanner = null;
   var lastProduct = null;
   var cameFrom = "home";        // where "Back" on a result should go
@@ -52,7 +52,7 @@
       if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
     moveIndicator(active);
-    document.body.classList.toggle("on-result", view === "result" || view === "ingfull");
+    document.body.classList.toggle("on-result", view === "result");
     document.body.classList.toggle("on-home", view === "home");
     document.body.classList.toggle("on-profile", view === "skin");
     window.scrollTo(0, 0);
@@ -714,15 +714,22 @@
       '<p class="ing-src">Look it up in: ' + links.join(" · ") + "</p></div></details></li>";
   }
 
-  // Ingredients: the most important ones first (flagged, then to watch, then good). "See all" opens the rest.
-  var ING_LIMIT = 6, ingRated = [], ingExpanded = false, ingAll = [], ingName = "";
+  // Ingredients: the most important ones first (flagged, then to watch, then good). "See all" swaps them, in the same card,
+  // for the whole label as one coloured list (and "Show less" brings the short list back).
+  var ING_LIMIT = 6, ingRated = [], ingFull = false, ingAll = [];
   function renderIngredientList() {
-    var shown = ingExpanded ? ingRated : ingRated.slice(0, ING_LIMIT);
-    el("ingredients").innerHTML = shown.map(ingredientRow).join("");
-    var btn = el("ing-all");
+    var ul = el("ingredients"), box = el("ing-fullbox"), btn = el("ing-all");
+    ul.hidden = ingFull;
+    box.hidden = !ingFull;
+    if (ingFull) {
+      el("ing-fulltext").innerHTML = ingAll.map(function (i) { return i.level ? '<span class="il ' + i.level + '">' + esc(i.name) + "</span>" : esc(i.name); }).join(", ");
+    } else {
+      ul.innerHTML = ingRated.slice(0, ING_LIMIT).map(ingredientRow).join("");
+    }
     btn.hidden = !ingAll.length;
-    btn.innerHTML = "See all " + ingAll.length + '<span class="chev-r" aria-hidden="true"></span>';
-    btn.classList.toggle("open", ingExpanded);
+    btn.innerHTML = (ingFull ? "Show less" : "See all " + ingAll.length) + '<span class="chev-r" aria-hidden="true"></span>';
+    btn.classList.toggle("open", ingFull);
+    btn.setAttribute("aria-expanded", ingFull ? "true" : "false");
   }
 
   function renderResult(product) {
@@ -797,9 +804,8 @@
       .sort(function (x, y) { return order[x.i.level] - order[y.i.level] || x.idx - y.idx; })
       .map(function (x) { return x.i; });
     ingRated = rated;
-    ingExpanded = false;
+    ingFull = false;
     ingAll = a.items;
-    ingName = (product.brand ? product.brand + " " : "") + product.name;
     renderIngredientList();
 
     var unrated = a.items.filter(function (i) { return !i.level; });
@@ -1399,7 +1405,7 @@
   var ABOUT = [
     ["shield-check", "Who we trust", "Regulators, public health agencies, medical societies and published research from universities and hospitals. We do not use brands, industry-funded review panels or paid certification programs."],
     ["scale", "When sources disagree", "The stricter rule wins. Order: EU, then Korea, then Japan and China, then the rest. Fragrance allergens, banned preservatives and restricted ingredients come from those rules."],
-    ["check", "The score, 0 to 100", "The worst ingredient decides the band. A product with an ingredient the EU bans in cosmetics scores 24. A product with a flag near the top of the list (the first 14 ingredients) scores around 52, because labels list ingredients from the largest amount to the smallest. A flag further down scores around 64, and each extra flag takes off 2 more. A product with no flags starts at 100. Everyday additives such as preservatives, colorants and ethoxylated emulsifiers, and the ingredients to watch, take off a little each, depending on how much of the list they make up. Excellent is 76 to 100 (green, the only green), Good 51 to 75 (yellow), Not great 26 to 50 (orange), Bad 0 to 25 (red)."],
+    ["check", "The score, 0 to 100", "The worst ingredient decides the band. A product with an ingredient the EU bans in cosmetics, or carbon black, scores 24. A product with a flag near the top of the list (the first 14 ingredients) scores around 52, because labels list ingredients from the largest amount to the smallest. A flag further down scores around 64, and each extra flag takes off 2 more. A product with no flags starts at 100. Everyday additives such as preservatives, colorants and ethoxylated emulsifiers, and the ingredients to watch, take off a little each, depending on how much of the list they make up. Excellent is 76 to 100 (green, the only green), Good 51 to 75 (yellow), Not great 26 to 50 (orange), Bad 0 to 25 (red)."],
     ["flag", "Flag, watch and good", "A flag is something an EU or Korean rule bans, restricts or requires to be named as an allergen, or that the EU safety committee has raised a concern about. To watch means irritation, clogged pores, sun sensitivity or a limit that is respected. Good means no known concern. Ingredients marked “rated by type” are judged as a group, not one by one."],
     ["alert", "Allergy is not irritation", "Can cause allergy: some people become allergic after repeated contact, and it usually stays. Allergen if you're allergic: only matters to people who already have that allergy, like nuts or wheat. Can irritate: depends on the amount and your skin, and goes away when you stop."],
     ["info", "Product alerts", "Official recalls are facts, with the date and a link to the notice. Lawsuits only appear when a court grouped many cases from different people and published science backs the claim. They are always labeled not proven."],
@@ -1427,13 +1433,7 @@
   }
 
   el("note-btn").addEventListener("click", function () { var n = el("catalog-note"); n.hidden = !n.hidden; el("note-btn").setAttribute("aria-expanded", n.hidden ? "false" : "true"); });
-  el("ing-all").addEventListener("click", function () {
-    el("ingfull-name").textContent = ingName;
-    el("ingfull-text").innerHTML = ingAll.map(function (i) { return i.level ? '<span class="il ' + i.level + '">' + esc(i.name) + "</span>" : esc(i.name); }).join(", ");
-    show("ingfull");
-    el("ingfull").classList.remove("slide"); void el("ingfull").offsetWidth; el("ingfull").classList.add("slide");
-  });
-  el("ingfull-back").addEventListener("click", function () { show("result"); });
+  el("ing-all").addEventListener("click", function () { ingFull = !ingFull; renderIngredientList(); });
   el("heart").addEventListener("click", function () {
     if (!lastProduct) return;
     toggleSaved(lastProduct);
