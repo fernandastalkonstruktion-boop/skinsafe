@@ -736,9 +736,14 @@
       return { state: "found", product: p };
     }).catch(function () { return { state: "error" }; });
   }
+  // When there's no internet, say so plainly: the saved list still works, only the online lookup doesn't.
+  function offlineNote(what, generic) {
+    if (navigator.onLine === false) return "You're offline. " + (what ? what + " " : "") + "The saved list, your products and the rating still work. Try again when you're back online.";
+    return generic;
+  }
   function applyResolved(r, code) {
     if (r.state === "bad") { showStatus("That doesn't look like a barcode. Barcodes have 8 to 13 digits."); return; }
-    if (r.state === "error") { showStatus("Couldn't reach the product database. Check your connection and try again."); return; }
+    if (r.state === "error") { showStatus(offlineNote("This product isn't on the list saved in this app.", "Couldn't reach the product database. Check your connection and try again.")); return; }
     if (r.state === "found") { pending = null; cameFrom = "home"; renderResult(r.product); return; }
     if (r.state === "missing") {
       pending = { code: code, brand: "", name: "", image: "" };
@@ -896,7 +901,7 @@
           closeCam(); pending = null; linking = null; cameFrom = "cam"; renderResult(p);
         });
       } else if (r.state === "error") {
-        showCard('<p class="cam-card-note">Couldn\'t reach the product database. Check your connection and scan again.</p>');
+        showCard('<p class="cam-card-note">' + esc(offlineNote("This product isn't on the list saved in this app.", "Couldn't reach the product database. Check your connection and scan again.")) + "</p>");
         cam.shown = "";
       } else {
         showCard('<p class="cam-card-note"><strong>' + esc(code) + "</strong> " +
@@ -1179,13 +1184,13 @@
         if (local.length) {
           lastResults = local;
           el("results-title").textContent = "Results for “" + q + "”";
-          el("results-sub").textContent = "The online search didn't work, so this shows only our list and what you saved from photos.";
+          el("results-sub").textContent = "The online search isn't available right now, so this shows only the list saved in the app and what you saved from photos.";
           el("results-list").innerHTML = resultRows(local);
           wireResultRows();
           return;
         }
         el("results-title").textContent = "Couldn't search";
-        el("results-sub").textContent = "Check your connection and try again.";
+        el("results-sub").textContent = offlineNote("", "Check your connection and try again.");
       });
     });
   }
