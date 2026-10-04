@@ -710,3 +710,6 @@ body.on-home .section-title { margin: 19px 0 12px; }
 
 .offline-status { margin: 10px 4px 0; font-size: 13px; font-weight: 600; color: var(--text); opacity: 0.8; text-align: center; }
 .offline-status.warn { color: var(--bad); opacity: 1; }
+
+.not-it { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 12px; line-height: 1.5; color: var(--text-2); margin: 0 0 12px; }
+.not-it[hidden] { display: none; }

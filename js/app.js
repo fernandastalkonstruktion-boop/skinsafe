@@ -178,6 +178,57 @@
       '<p class="profile-text">' + (labels.length ? esc(labels.join(", ")) : "None set yet.") + "</p>" +
       '<div class="profile-actions"><button type="button" class="' + (labels.length ? "link" : "secondary small-btn") + '" id="allergy-edit">' + (labels.length ? "Edit" : "Set up") + "</button></div>";
     el("allergy-edit").addEventListener("click", startAllergies);
+    renderMissingCard();
+  }
+
+  // ----- Missing products: what the camera couldn't match, kept only on this phone so it can be copied and sent to be added -----
+  var MKEY = "skinsafe.missing", MMAX = 100;
+  var notItCtx = null, nextNotIt = null;
+  function loadMissing() {
+    try { var m = JSON.parse(localStorage.getItem(MKEY) || "[]"); return Array.isArray(m) ? m : []; } catch (e) { return []; }
+  }
+  function logMissing(why, mode, tokens, guess) {
+    var read = (tokens || []).slice(0, 14).join(" ");
+    if (!read) return;
+    var g = guess ? (guess.brand ? guess.brand + " | " : "") + guess.name : "";
+    var list = loadMissing().filter(function (x) { return !(x.read === read && x.why === why); });
+    list.unshift({ at: new Date().toISOString().slice(0, 10), why: why, mode: mode, read: read, guess: g });
+    try { localStorage.setItem(MKEY, JSON.stringify(list.slice(0, MMAX))); } catch (e) {}
+  }
+  function missingText() {
+    var list = loadMissing();
+    var why = { "not-it": "opened by exact match, wrong", none: "none of the list was right", unknown: "couldn't tell" };
+    return "SkinSafe missing products (" + list.length + ")\n" + list.map(function (x, i) {
+      return (i + 1) + ". " + x.at + " · " + (why[x.why] || x.why) + " · camera read: " + x.read + (x.guess ? " · we guessed: " + x.guess : "");
+    }).join("\n");
+  }
+  function copyText(t) {
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t);
+    return new Promise(function (ok, no) {
+      var ta = document.createElement("textarea");
+      ta.value = t; ta.style.cssText = "position:fixed;opacity:0;font-size:16px"; document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy") ? ok() : no(); } catch (e) { no(e); }
+      document.body.removeChild(ta);
+    });
+  }
+  function renderMissingCard() {
+    var box = el("missing-card");
+    if (!box) return;
+    var n = loadMissing().length;
+    box.innerHTML = '<p class="profile-label">' + ic("search") + 'Missing products</p>' +
+      '<p class="profile-text">' + (n ? plural(n, "product the camera couldn't match", "products the camera couldn't match") + ". Copy the list and send it so they get added."
+        : "Nothing yet. When the camera can't find your product, it shows up here, on this phone only.") + "</p>" +
+      (n ? '<div class="profile-actions"><button type="button" class="secondary small-btn" id="missing-copy">Copy list</button>' +
+        (navigator.share ? '<button type="button" class="link" id="missing-share">Share</button>' : "") +
+        '<button type="button" class="link" id="missing-clear">Clear</button></div>' : "");
+    if (!n) return;
+    el("missing-copy").addEventListener("click", function () {
+      var b = el("missing-copy");
+      copyText(missingText()).then(function () { b.textContent = "Copied"; }, function () { b.textContent = "Couldn't copy"; });
+    });
+    if (el("missing-share")) el("missing-share").addEventListener("click", function () { navigator.share({ text: missingText() }).catch(function () {}); });
+    el("missing-clear").addEventListener("click", function () { try { localStorage.removeItem(MKEY); } catch (e) {} renderMissingCard(); });
   }
 
   // ----- allergies editor -----
@@ -627,6 +678,8 @@
   function renderResult(product) {
     lastProduct = product;
     addHistory(product);
+    notItCtx = nextNotIt; nextNotIt = null;
+    el("not-it").hidden = !notItCtx;
     var a = window.Ingredients.analyze(product.ingredientsText);
     var b = band(a.score);
 
@@ -972,7 +1025,9 @@
       if (!cam.open || cam.job !== job) return;
       cam.busy = false; setBusy(false);
       if (r.code) { closeCam().then(function () { lookupCode(r.code); }); return; }
-      if (r.exact && r.matches.length) { openFromMatches(r.matches, r.matches[0], "Is it one of these?"); return; }
+      cam.read = { mode: mode, tokens: r.tokens || [] };
+      if (r.exact && r.matches.length) { openFromMatches(r.matches, r.matches[0], "Is it one of these?", { mode: mode, tokens: r.tokens || [] }); return; }
+      if (mode === "product" && !(r.matches || []).length) logMissing("unknown", mode, r.tokens, null);
       showSheet(mode, r);
     }).catch(function () {
       if (!cam.open || cam.job !== job) return;
@@ -1019,13 +1074,13 @@
   }
 
   // Open a product from a list of matches; "Back" from it returns to that list.
-  function openFromMatches(list, p, title) {
+  function openFromMatches(list, p, title, exactCtx) {
     lastResults = list;
     el("results-title").textContent = title;
     el("results-sub").textContent = "Tap a product to see what's in it.";
     el("results-list").innerHTML = resultRows(list);
     wireResultRows();
-    closeCam(); pending = null; linking = null; cameFrom = "results"; renderResult(p);
+    closeCam(); pending = null; linking = null; cameFrom = "results"; nextNotIt = exactCtx ? { mode: exactCtx.mode, tokens: exactCtx.tokens, guess: p } : null; renderResult(p);
   }
 
   function showSheet(mode, r) {
@@ -1042,6 +1097,7 @@
         openFromMatches(list, list[Number(b.getAttribute("data-i"))], el("sheet-title").textContent);
       });
     });
+    el("sheet-none").hidden = !(n && mode === "product");
     el("cam-sheet").hidden = false;
     el("cam-sheet").scrollTop = 0;
     el("cam-hint").hidden = true;
@@ -1340,6 +1396,16 @@
   });
   el("sheet-close").addEventListener("click", closeSheet);
   el("sheet-code").addEventListener("click", function () { setMode("code"); });
+  el("sheet-none").addEventListener("click", function () {
+    if (cam.read) logMissing("none", cam.read.mode, cam.read.tokens, cam.list && cam.list[0]);
+    el("sheet-sub").textContent = "Noted, thank you. It's saved in Profile → Missing products so it can be added.";
+    el("sheet-none").hidden = true;
+  });
+  el("not-it-btn").addEventListener("click", function () {
+    if (notItCtx) logMissing("not-it", notItCtx.mode, notItCtx.tokens, notItCtx.guess);
+    notItCtx = null;
+    backFromResult();
+  });
   el("sheet-search").addEventListener("click", function () { goHome().then(function () { el("q").focus(); }); });
   el("ocr-go").addEventListener("click", analyzePhoto);
   el("ocr-cancel").addEventListener("click", goHome);
