@@ -310,6 +310,8 @@
   }
   function close(a, b) {
     if (a === b) return true;
+    // "clarify" read for "clarifying": the shorter word starts the longer one
+    if (a.length >= 5 && b.length >= 5 && Math.abs(a.length - b.length) <= 4 && (a.indexOf(b) === 0 || b.indexOf(a) === 0)) return true;
     if (a.length < 5 || b.length < 5 || Math.abs(a.length - b.length) > 1) return false;
     var i = 0, j = 0, miss = 0;
     while (i < a.length && j < b.length) {
@@ -321,7 +323,11 @@
   }
   Shop.identify = function (text) {
     var tokens = [];
-    withSyn(words(text)).forEach(function (w) { if (w.length >= 3 && !/^\d+$/.test(w) && tokens.indexOf(w) < 0) tokens.push(w); });
+    var raw = words(text);
+    // Neighbouring words also joined ("ever" + "pure" -> "everpure"), because packages split brand words the catalog writes as one.
+    var joined = [];
+    for (var j = 0; j + 1 < raw.length; j++) if (raw[j].length >= 3 && raw[j + 1].length >= 3 && raw[j].length + raw[j + 1].length >= 6) joined.push(raw[j] + raw[j + 1]);
+    withSyn(raw).concat(joined).forEach(function (w) { if (w.length >= 3 && !/^\d+$/.test(w) && tokens.indexOf(w) < 0) tokens.push(w); });
     return loadShop().then(function (list) {
       var pool = list.concat(Catalog.all().map(function (p) { return { brand: p.brand, name: p.name, code: p.code, image: p.image, ingredientsText: p.ingredientsText, local: true, shop: p.shop, partial: p.partial, note: p.note, source: p.source, linked: p.linked, hay: flat(p.brand + " " + p.name) }; }));
       // Unique words only: aliases repeat the same words, which would otherwise count (and score) several times.
@@ -343,7 +349,7 @@
         var ownHits = 0;
         d.own.forEach(function (hw) { for (var i = 0; i < tokens.length; i++) if (close(tokens[i], hw)) { ownHits++; break; } });
         var cov = d.own.length ? ownHits / d.own.length : 0;
-        return { p: d.p, score: score, rank: score + 3 * cov, cov: cov, hits: hits, brand: brandWords.length && brandHit === brandWords.length };
+        return { p: d.p, score: score, rank: score * (0.35 + 0.65 * cov), cov: cov, hits: hits, brand: brandWords.length && brandHit === brandWords.length };
       }).filter(function (x) { return x.score >= 4 && (x.hits >= 2 || x.brand); });
       scored.sort(function (a, b) { return b.rank - a.rank; });
       var top = scored.slice(0, 6);

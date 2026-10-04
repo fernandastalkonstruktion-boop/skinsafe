@@ -1076,6 +1076,7 @@
   // Open a product from a list of matches; "Back" from it returns to that list.
   function openFromMatches(list, p, title, exactCtx) {
     lastResults = list;
+    el("results-q").value = "";
     el("results-title").textContent = title;
     el("results-sub").textContent = "Tap a product to see what's in it.";
     el("results-list").innerHTML = resultRows(list);
@@ -1217,6 +1218,7 @@
     linking = null;
     lastResults = null;
     cameFrom = "results";
+    el("results-q").value = q;
     el("results-title").textContent = "Searching…";
     el("results-sub").textContent = "";
     el("results-list").innerHTML = "";
@@ -1263,6 +1265,7 @@
     linking = { code: pending.code };
     lastResults = null;
     cameFrom = "results";
+    el("results-q").value = q;
     el("results-title").textContent = "Pick your product";
     el("results-sub").textContent = "Searching…";
     el("results-list").innerHTML = "";
@@ -1375,6 +1378,13 @@
     renderSavedList();
   });
   el("scan-btn").addEventListener("click", function () { openCam("code"); });
+  // The results page keeps its own search box so a typo can be fixed without going back. While picking a product for a barcode, it searches that same pick.
+  el("results-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var v = el("results-q").value;
+    if (linking && pending) findForBarcode(v); else runSearch(v);
+    el("results-q").blur();
+  });
   el("search-form").addEventListener("submit", function (e) { e.preventDefault(); runSearch(el("q").value); });
   el("status-photo").addEventListener("click", startPhoto);
   el("status-find").addEventListener("submit", function (e) { e.preventDefault(); findForBarcode(el("status-find-q").value); });

@@ -713,3 +713,4 @@ body.on-home .section-title { margin: 19px 0 12px; }
 
 .not-it { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 12px; line-height: 1.5; color: var(--text-2); margin: 0 0 12px; }
 .not-it[hidden] { display: none; }
+#results .search { margin: 4px 0 16px; }
