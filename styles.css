@@ -686,3 +686,9 @@ body.on-home .xtile { min-height: 0; height: 104px; padding: 12px 14px; gap: 2px
 body.on-home .xtile .ic { width: 24px; height: 24px; margin-bottom: 0; }
 body.on-home .xtile span { min-height: 0; }
 body.on-home .xtile b { font-size: 20px; }
+
+/* Home spacing: about half a centimeter (19px) between objects */
+body.on-home .top { margin-bottom: 14px; }
+body.on-home .greet { margin: 0 0 19px; }
+body.on-home .routine-card { margin-bottom: 19px; }
+body.on-home .section-title { margin: 19px 0 12px; }
