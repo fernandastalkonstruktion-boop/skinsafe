@@ -1,5 +1,5 @@
 (function () {
-  var VIEWS = ["home", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result"];
+  var VIEWS = ["home", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result", "ingfull"];
   var scanner = null;
   var lastProduct = null;
   var cameFrom = "home";        // where "Back" on a result should go
@@ -29,7 +29,7 @@
       b.classList.toggle("on", on);
       if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
-    document.body.classList.toggle("on-result", view === "result");
+    document.body.classList.toggle("on-result", view === "result" || view === "ingfull");
     window.scrollTo(0, 0);
   }
   function showStatus(text, offerPhoto) {
@@ -416,13 +416,13 @@
   }
 
   // Ingredients: the most important ones first (flagged, then to watch, then good). "See all" opens the rest.
-  var ING_LIMIT = 6, ingRated = [], ingExpanded = false;
+  var ING_LIMIT = 6, ingRated = [], ingExpanded = false, ingAll = [], ingName = "";
   function renderIngredientList() {
     var shown = ingExpanded ? ingRated : ingRated.slice(0, ING_LIMIT);
     el("ingredients").innerHTML = shown.map(ingredientRow).join("");
     var btn = el("ing-all");
-    btn.hidden = ingRated.length <= ING_LIMIT;
-    btn.innerHTML = (ingExpanded ? "Show less" : "See all " + ingRated.length) + '<span class="chev-r" aria-hidden="true"></span>';
+    btn.hidden = !ingAll.length;
+    btn.innerHTML = "See all " + ingAll.length + '<span class="chev-r" aria-hidden="true"></span>';
     btn.classList.toggle("open", ingExpanded);
   }
 
@@ -496,6 +496,8 @@
       .map(function (x) { return x.i; });
     ingRated = rated;
     ingExpanded = false;
+    ingAll = a.items;
+    ingName = (product.brand ? product.brand + " " : "") + product.name;
     renderIngredientList();
 
     var unrated = a.items.filter(function (i) { return !i.level; });
@@ -1089,7 +1091,13 @@
   }
 
   el("note-btn").addEventListener("click", function () { var n = el("catalog-note"); n.hidden = !n.hidden; el("note-btn").setAttribute("aria-expanded", n.hidden ? "false" : "true"); });
-  el("ing-all").addEventListener("click", function () { ingExpanded = !ingExpanded; renderIngredientList(); });
+  el("ing-all").addEventListener("click", function () {
+    el("ingfull-name").textContent = ingName;
+    el("ingfull-text").innerHTML = ingAll.map(function (i) { return i.level ? '<span class="il ' + i.level + '">' + esc(i.name) + "</span>" : esc(i.name); }).join(", ");
+    show("ingfull");
+    el("ingfull").classList.remove("slide"); void el("ingfull").offsetWidth; el("ingfull").classList.add("slide");
+  });
+  el("ingfull-back").addEventListener("click", function () { show("result"); });
   el("heart").addEventListener("click", function () {
     if (!lastProduct) return;
     toggleSaved(lastProduct);
