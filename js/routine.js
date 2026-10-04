@@ -58,11 +58,13 @@
   }
 
   function load() {
+    var HD = (window.Hair && window.Hair.DEFAULT_STEPS) || { hw: ["shampoo", "conditioner", "hmask"], hs: ["leavein", "heat", "hoil"] };
+    function mk(list) { return list.map(function (k) { return { kind: k, product: null }; }); }
     try {
       var r = JSON.parse(localStorage.getItem(KEY) || "null");
-      if (r && r.am && r.pm) return r;
+      if (r && r.am && r.pm) { r.hw = r.hw || mk(HD.hw); r.hs = r.hs || mk(HD.hs); return r; }
     } catch (e) {}
-    return { am: DEFAULT_STEPS.am.map(function (k) { return { kind: k, product: null }; }), pm: DEFAULT_STEPS.pm.map(function (k) { return { kind: k, product: null }; }) };
+    return { hw: mk(HD.hw), hs: mk(HD.hs), am: DEFAULT_STEPS.am.map(function (k) { return { kind: k, product: null }; }), pm: DEFAULT_STEPS.pm.map(function (k) { return { kind: k, product: null }; }) };
   }
   function save(r) { try { localStorage.setItem(KEY, JSON.stringify(r)); } catch (e) {} }
   function reset() { try { localStorage.removeItem(KEY); } catch (e) {} }

@@ -714,5 +714,9 @@ body.on-home .section-title { margin: 19px 0 12px; }
 .not-it { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 12px; line-height: 1.5; color: var(--text-2); margin: 0 0 12px; }
 .not-it[hidden] { display: none; }
 #results .search { margin: 4px 0 16px; }
-.sheet-none { margin: 0 4px 12px; font-size: 13px; padding: 6px 14px; border-radius: 999px; }
+.sheet-subrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 4px 14px; }
+.cam-sheet .sheet-subrow .quiz-sub { margin: 0; flex: 1; min-width: 0; }
+.sheet-none { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
+.sheet-none .ic { width: 15px; height: 15px; }
 .sheet-none[hidden] { display: none; }
+.rc-hair { margin-top: 10px; }

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#6fd0d8" id="theme-color">
-  <meta name="app-version" content="20261004140148">
+  <meta name="app-version" content="20261004141232">
   <title>SkinSafe</title>
   <link rel="icon" type="image/png" sizes="32x32" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-fav-10.png">
   <link rel="icon" type="image/png" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-10.png">
@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="SkinSafe">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="styles.css?v=20261004140148">
+  <link rel="stylesheet" href="styles.css?v=20261004141232">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -112,14 +112,18 @@
     <section id="routine" hidden>
       <h2 class="page-title">Your routine</h2>
       <button class="linkcard" id="rt-profile" type="button"></button>
-      <div class="seg" role="tablist" aria-label="Morning or night">
-        <button type="button" id="rt-am" role="tab"><svg class="ic"><use href="#i-sun"/></svg>Morning</button>
-        <button type="button" id="rt-pm" role="tab"><svg class="ic"><use href="#i-moon"/></svg>Night</button>
+      <div class="seg" role="tablist" aria-label="Face or hair">
+        <button type="button" id="rt-face" role="tab"><svg class="ic"><use href="#i-user"/></svg>Face</button>
+        <button type="button" id="rt-hair" role="tab"><svg class="ic"><use href="#i-leaf"/></svg>Hair</button>
+      </div>
+      <div class="seg" role="tablist" aria-label="Time of day or hair care">
+        <button type="button" id="rt-am" role="tab"></button>
+        <button type="button" id="rt-pm" role="tab"></button>
       </div>
       <div class="rt-steps" id="rt-steps"></div>
       <div class="rt-add"><select id="rt-add-kind" aria-label="Add a step"></select>
         <button type="button" class="secondary small-btn" id="rt-add"><svg class="ic"><use href="#i-plus"/></svg>Add step</button></div>
-      <p class="privacy-note">Suggestions are the best-rated products in our list that fit your skin and have no allergy or alert. The morning or night tip comes from the name and ingredients, so check the package too. Your routine stays on this phone.</p>
+      <p class="privacy-note">Suggestions are the best-rated products in our list that fit your skin or your hair and have no allergy or alert. The morning or night tip comes from the name and ingredients, so check the package too. Your routine stays on this phone.</p>
       <button class="link" id="rt-reset" type="button">Start the routine over</button>
     </section>
 
@@ -140,6 +144,7 @@
       <p class="quiz-sub">Tell us about your skin and your allergies once and every product shows if it suits you.</p>
       <div class="profile-card" id="name-card"></div>
       <div class="profile-card" id="profile-card"></div>
+      <div class="profile-card" id="hair-card"></div>
       <div class="profile-card" id="allergy-card"></div>
       <div class="profile-card" id="missing-card"></div>
       <button class="linkrow" id="open-about" type="button"><svg class="ic"><use href="#i-shield-check"/></svg>How we rate<svg class="ic chev-ic"><use href="#i-chevron-right"/></svg></button>
@@ -317,8 +322,10 @@
     <div class="cam-sheet" id="cam-sheet" hidden>
       <button type="button" class="cam-round light" id="sheet-close" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
       <h2 class="quiz-title" id="sheet-title"></h2>
-      <p class="quiz-sub" id="sheet-sub"></p>
-      <button type="button" class="secondary small-btn sheet-none" id="sheet-none" hidden>None of these</button>
+      <div class="sheet-subrow">
+        <p class="quiz-sub" id="sheet-sub"></p>
+        <button type="button" class="secondary small-btn sheet-none" id="sheet-none" hidden><svg class="ic"><use href="#i-ban"/></svg>None of these</button>
+      </div>
       <div class="result-list" id="sheet-list"></div>
       <div class="sheet-actions">
         <button type="button" class="secondary" id="sheet-code"><svg class="ic"><use href="#i-scan"/></svg>Scan code</button>
@@ -339,14 +346,15 @@
   </div>
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/ingredients.js?v=20261004140148"></script>
-  <script src="js/alerts.js?v=20261004140148"></script>
-  <script src="js/profile.js?v=20261004140148"></script>
-  <script src="js/api.js?v=20261004140148"></script>
-  <script src="js/routine.js?v=20261004140148"></script>
-  <script src="js/ocr.js?v=20261004140148"></script>
-  <script src="js/app.js?v=20261004140148"></script>
-  <script src="js/update.js?v=20261004140148"></script>
-  <script src="js/offline.js?v=20261004140148"></script>
+  <script src="js/ingredients.js?v=20261004141232"></script>
+  <script src="js/alerts.js?v=20261004141232"></script>
+  <script src="js/profile.js?v=20261004141232"></script>
+  <script src="js/api.js?v=20261004141232"></script>
+  <script src="js/routine.js?v=20261004141232"></script>
+  <script src="js/hair.js?v=20261004141232"></script>
+  <script src="js/ocr.js?v=20261004141232"></script>
+  <script src="js/app.js?v=20261004141232"></script>
+  <script src="js/update.js?v=20261004141232"></script>
+  <script src="js/offline.js?v=20261004141232"></script>
 </body>
 </html>
