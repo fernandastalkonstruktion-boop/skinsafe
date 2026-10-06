@@ -227,7 +227,15 @@
     ["good", ["oenocarpus bataua fruit oil", "olus oil", "hydrogenated farnesene", "myristyl theobroma grandiflorum seedate", "propylene glycol diheptanoate", "glyceryl dibehenate", "tristearin"], "Emollient or oil", "Plant-based or synthetic oil or wax that softens and conditions. Usually well tolerated.", [], ["dryness"], ["COSING"]],
     ["good", ["polyurethane-14", "polyacrylic acid", "methacrylic acid", "disodium phenyl dibenzimidazole tetrasulfonate"], "Film former or UV filter", "A polymer that forms a light film on skin or hair, or a UV filter. Well tolerated in the amounts used.", [], [], ["COSING"]],
     ["mid", ["sodium chlorite", "papain", "natural mint flavor", "natural mint flavour"], "Oral-care active or flavor, can irritate", "Sodium chlorite is an oxidizing agent used in mouthwash to neutralize odor-causing compounds. Papain is an enzyme that can cause allergy in sensitive people. Natural flavors do not list what is inside. All can irritate the mouth in some people.", ["irritation", "allergy"], [], ["COSING"]],
-    ["good", ["lysozyme", "amylase", "amyloglucosidase", "serralysin", "lactoferrin", "glucose oxidase", "tetrapotassium pyrophosphate", "polyvinylpyrrolidone", "pvp"], "Enzyme or tartar-control ingredient", "Enzymes and proteins found naturally in saliva or milk, and mineral salts that slow tartar. Well tolerated in the amounts used.", [], [], ["COSING"]]
+    ["good", ["lysozyme", "amylase", "amyloglucosidase", "serralysin", "lactoferrin", "glucose oxidase", "tetrapotassium pyrophosphate", "polyvinylpyrrolidone", "pvp"], "Enzyme or tartar-control ingredient", "Enzymes and proteins found naturally in saliva or milk, and mineral salts that slow tartar. Well tolerated in the amounts used.", [], [], ["COSING"]],
+    // Seventh pass (Kundal and anillO lists from the OnSkin recordings, 6 Oct 2026). General knowledge, not checked one by one.
+    ["good", ["peat water", "onsen-sui", "carob", "camellia", "soymilk", "illite", "sand", "acorus calamus", "calendula officinalis flower oil", "euterpe oleracea fruit oil", "oryza sativa (rice) powder", "oryza sativa powder", "cucurbita pepo (pumpkin) powder", "citrus limon peel powder", "amber powder", "carthamus tinctorius flower", "prunus persica fruit", "simmondsia", "macadamia ternifolia", "macadamia ternifolia fruit oil", "pelargonium graveolens water", "helianthus annuus seed oil unsaponifiables", "moringa oil/hydrogenated moringa oil esters", "almond oil/polyglyceryl-10 esters", "hydrogenated olive oil lauryl esters", "lactobacillus extracellular vesicles", "lactobacillus ferment lysate filtrate", "glaucine", "oleanolic acid"], "Plant-derived ingredient", "A plant extract, water, powder or oil used to soften, soothe or add texture. Mostly low-risk, but plant ingredients can cause rare allergies. Rated as a group, not individually.", [], [], ["COSING"]],
+    ["good", ["hexapeptide 9", "hexapeptide-9", "nonapeptide 1", "dipeptide 4", "acetyl tripeptide 1", "copper tripeptide 1", "acetyl octapeptide 3", "acetyl tetrapeptide 2", "palmitoyl tripeptide 5", "dipeptide diaminobutyroyl benzylamide diacetate", "pisum sativum peptide", "pisum sativum (pea) peptide", "hydrolyzed extensin", "hydrolyzed hazelnut protein", "hydrolyzed sodium", "coco-glucoside sodium lauroyl oat amino acids"], "Peptide or protein", "Short chains of amino acids or plant proteins used to condition hair or support skin. Generally well tolerated.", [], [], ["COSING"]],
+    ["good", ["hydrogenated poly (c6-14 olefin)", "tetradecane", "caprylic/capric glyceride", "hydroxypropyl methylcellulose stearoxy ether", "ceramide eos", "ceramides", "sodium sulfite", "sodium naphthalenesulfonate", "denatonium benzoate", "raspberry ketone", "ci 77220", "ci 45380", "edta"], "Texture, colorant or support ingredient", "Used for texture, color or to keep the formula stable. Permitted in cosmetics and well tolerated in the amounts used.", [], [], ["COSING"]],
+    ["good", ["c12-14 sec-pareth-7", "trideceth 8", "trideceth 12", "c12-14 alketh-12", "c12-13 alketh-9"], "Emulsifier or solubilizer (rated by type)", "Helps oil and water mix. Rated by type, not individually. Considered safe when manufacturers keep impurities such as 1,4-dioxane low.", [], [], ["COSING"]],
+    ["mid", ["dipalmitoylethyl dimonium chloride", "quaternium-52"], "Hair conditioning agent", "A conditioning agent for hair. Quaternary ammonium types can irritate the scalp or eyes in strong formulas; fine in normal use.", ["irritation"], [], ["COSING"]],
+    ["mid", ["lauramide dea"], "Foam booster, can carry nitrosamine impurities", "A foam booster related to cocamide DEA. DEA compounds can form nitrosamines, which is why some regulators ask makers to limit them.", ["irritation"], [], ["COSING"]],
+    ["mid", ["cymbopogon nardus oil", "cymbopogon nardus (citronellal) oil", "piper nigrum (black pepper) fruit oil", "myristica fragrans aril oil", "pogostemon cablin leaf oil", "citrus nobilis (mandarin orange) oil", "citrus aurantium amara (bitter orange)", "acorus calamus root oil", "rose flower oil"], "Essential oil, can irritate or sensitize", "A plant essential oil used for scent. Essential oils contain fragrance compounds that can irritate or cause allergy in sensitive skin and scalp. Not individually checked.", ["irritation", "allergy"], [], ["COSING"]]
   ];
 
   var INDEX = {};
@@ -241,6 +249,15 @@
     };
     r[1].forEach(function (name) { INDEX[name] = entry; });
   });
+
+  // Spelling variants copied from source lists (typos or spacing): rated like the proper name.
+  [
+    [["ethylhexyglycerin", "ethyl hexyl glycerin", "ethylhexyl-glycerin", "ethylhexyl glycerin"], "ethylhexylglycerin"],
+    [["polyquarternium-10"], "polyquaternium-10"],
+    [["caprylic capric triglyceride", "caprylic capric/triglyceride", "caprylic/capric triglycerides"], "caprylic/capric triglyceride"],
+    [["1,2 hexanediol", "1 2 hexanediol", "1.2-hexanediol", "2-hexanediol"], "1,2-hexanediol"],
+    [["eucalyptus globulous leaf oil"], "eucalyptus globulus leaf oil"]
+  ].forEach(function (a) { a[0].forEach(function (n) { if (!INDEX[n] && INDEX[a[1]]) INDEX[n] = INDEX[a[1]]; }); });
 
   function clean(s) {
     return s.toLowerCase().replace(/[*†‡]/g, "").replace(/\s+/g, " ").trim();

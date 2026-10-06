@@ -19,6 +19,35 @@
     return loading;
   }
 
+  // How sharp a picture is: variance of the Laplacian (edges). A hand-held, blurry frame scores low, a still one high.
+  // Pure function on a grayscale array so it can be tested without a browser.
+  function sharpness(g, w, h) {
+    var n = 0, sum = 0, sum2 = 0, x, y, i, v;
+    for (y = 1; y < h - 1; y++) {
+      for (x = 1; x < w - 1; x++) {
+        i = y * w + x;
+        v = 4 * g[i] - g[i - 1] - g[i + 1] - g[i - w] - g[i + w];
+        sum += v; sum2 += v * v; n++;
+      }
+    }
+    if (!n) return 0;
+    var mean = sum / n;
+    return sum2 / n - mean * mean;
+  }
+
+  // Score a canvas (a camera frame): shrink to ~480 px wide, grayscale, then sharpness().
+  function frameScore(canvas) {
+    var k = Math.min(1, 480 / canvas.width);
+    var w = Math.max(8, Math.round(canvas.width * k)), h = Math.max(8, Math.round(canvas.height * k));
+    var c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    var x = c.getContext("2d", { willReadFrequently: true });
+    x.drawImage(canvas, 0, 0, w, h);
+    var p = x.getImageData(0, 0, w, h).data, g = new Float32Array(w * h), i;
+    for (i = 0; i < g.length; i++) g[i] = 0.299 * p[i * 4] + 0.587 * p[i * 4 + 1] + 0.114 * p[i * 4 + 2];
+    return sharpness(g, w, h);
+  }
+
   // Scale the photo to a good size for reading, make it grayscale and stretch the contrast.
   function prepare(file) {
     return new Promise(function (resolve, reject) {
@@ -155,5 +184,6 @@
       .map(function (g) { return { text: g.map(function (w) { return w.text; }).join(" "), words: g.length }; });
   }
 
-  window.OCR = { read: read, readRaw: readRaw, readWords: readWords, groups: groups, clean: clean };
+  window.OCR = { read: read, readRaw: readRaw, readWords: readWords, groups: groups, clean: clean, sharpness: sharpness, frameScore: frameScore };
+  if (typeof module !== "undefined" && module.exports) module.exports = { sharpness: sharpness };
 })();

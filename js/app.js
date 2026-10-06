@@ -879,11 +879,11 @@
   // ----- one camera for everything: barcode (live), product, shelf and ingredient list (photo) -----
   var MODE_HINT = {
     code: "Point the camera at a barcode",
-    product: "Fit the front of the product in the frame, then tap the button",
-    shelf: "Fit the shelf in the frame, then tap the button",
+    product: "Fit the front of the product in the frame, tap the button, then hold still for a second",
+    shelf: "Fit the shelf in the frame, tap the button, then hold still for a second",
     ingredients: "Fill the frame with the list, then tap the button. Round bottle? Use Camera app and zoom in (5×)"
   };
-  var cam = { open: false, mode: "code", busy: false, cand: "", candAt: 0, shown: "", job: 0, list: null };
+  var cam = { open: false, mode: "code", busy: false, cand: "", candAt: 0, shown: "", job: 0, list: null, alts: [] };
   var GUIDE = [
     ["scan", "One camera, four ways", "Barcode reads by itself. Product, Shelf and Ingredients take a photo when you tap the round button."],
     ["package", "Fit it all in the frame", "Step back a little so the whole label is inside the frame. Good light helps a lot."],
@@ -965,11 +965,12 @@
       scanner = s;
       s.start(
         { facingMode: "environment" },
-        { fps: 10, videoConstraints: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } },
+        { fps: 10, videoConstraints: { facingMode: "environment", width: { ideal: 2560 }, height: { ideal: 1440 } } },
         onDecoded,
         function () {}
       ).then(function () {
-        if (!cam.open || scanner !== s) { if (scanner === s) scanner = null; s.stop().then(function () { s.clear(); }).catch(function () {}); }
+        if (!cam.open || scanner !== s) { if (scanner === s) scanner = null; s.stop().then(function () { s.clear(); }).catch(function () {}); return; }
+        keepFocus();
       }).catch(function () {
         if (scanner === s) scanner = null;
         if (cam.open) camUnavailable("The camera isn't available. Allow camera access in your browser, or tap the picture button to use a photo from your gallery.");
@@ -1021,10 +1022,23 @@
     });
   }
 
+  // Ask the phone to keep auto-focusing on whatever is in front (only works where the browser lets us; harmless if not).
+  function keepFocus() {
+    try {
+      var v = document.querySelector("#cam-reader video");
+      var t = v && v.srcObject && v.srcObject.getVideoTracks && v.srcObject.getVideoTracks()[0];
+      if (!t || !t.getCapabilities) return;
+      var cap = t.getCapabilities(), adv = {};
+      if (cap.focusMode && cap.focusMode.indexOf("continuous") >= 0) adv.focusMode = "continuous";
+      if (cap.exposureMode && cap.exposureMode.indexOf("continuous") >= 0) adv.exposureMode = "continuous";
+      if (Object.keys(adv).length) t.applyConstraints({ advanced: [adv] }).catch(function () {});
+    } catch (e) {}
+  }
+
   // Crop the live picture to what is inside the white frame (the video is shown "cover", so map screen to video pixels).
-  function grabFrame() {
+  function cropFrame() {
     var v = document.querySelector("#cam-reader video");
-    if (!v || !v.videoWidth) return Promise.reject(new Error("no-video"));
+    if (!v || !v.videoWidth) return null;
     var vr = v.getBoundingClientRect(), fr = el("cam-frame").getBoundingClientRect();
     var k = Math.max(vr.width / v.videoWidth, vr.height / v.videoHeight);
     var offX = (vr.width - v.videoWidth * k) / 2, offY = (vr.height - v.videoHeight * k) / 2;
@@ -1033,8 +1047,34 @@
     var c = document.createElement("canvas");
     c.width = Math.round(sw); c.height = Math.round(sh);
     c.getContext("2d").drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    return c;
+  }
+  function canvasFile(c) {
     return new Promise(function (resolve, reject) {
       c.toBlob(function (b) { if (b) resolve(new File([b], "snap.jpg", { type: "image/jpeg" })); else reject(new Error("no-blob")); }, "image/jpeg", 0.92);
+    });
+  }
+  function grabFrame() {
+    var c = cropFrame();
+    return c ? canvasFile(c) : Promise.reject(new Error("no-video"));
+  }
+
+  // Hand-held products shake: take a quick burst of frames (about a second) and keep the sharpest ones. Returns files, best first.
+  var BURST = 9, BURST_GAP = 120;
+  function grabBurst() {
+    return new Promise(function (resolve, reject) {
+      var frames = [], n = 0;
+      (function next() {
+        var c = cropFrame();
+        if (c) frames.push({ c: c, s: window.OCR.frameScore(c) });
+        if (++n >= BURST) {
+          if (!frames.length) { reject(new Error("no-video")); return; }
+          frames.sort(function (a, b) { return b.s - a.s; });
+          // Keep the best frame plus up to two more that are not much blurrier than it.
+          var keep = frames.filter(function (f, i) { return i === 0 || (i < 3 && f.s >= frames[0].s * 0.6); });
+          Promise.all(keep.map(function (f) { return canvasFile(f.c); })).then(resolve, reject);
+        } else setTimeout(next, BURST_GAP);
+      })();
     });
   }
 
@@ -1059,12 +1099,25 @@
 
   function onShutter() {
     if (cam.busy || cam.mode === "code") return;
-    grabFrame().then(function (file) { handleFile(file, cam.mode); }).catch(function () {
+    var mode = cam.mode;
+    cam.busy = true;
+    camMsg("Hold still…");
+    clearTimeout(camMsg.t);   // stay up for the whole burst
+    grabBurst().then(function (files) {
+      el("cam-msg").hidden = true;
+      cam.busy = false;
+      if (!cam.open || cam.mode !== mode) return;
+      cam.alts = files.slice(1);
+      handleFile(files[0], mode);
+    }).catch(function () {
+      el("cam-msg").hidden = true;
+      cam.busy = false;
       camMsg("The camera isn't ready yet. Wait a second and try again.");
     });
   }
 
   function handleFile(file, mode) {
+    var alts = cam.alts || []; cam.alts = [];
     if (mode === "code") {
       tryBarcodeFile(file).then(function (code) {
         if (code.length >= 8) camLookup(code);
@@ -1076,7 +1129,7 @@
     cam.busy = true;
     var job = ++cam.job;
     setBusy(true, file);
-    var work = mode === "product" ? identifyProduct(file) : findShelf(file);
+    var work = mode === "product" ? identifyProduct(file, alts) : findShelf(file);
     work.then(function (r) {
       if (!cam.open || cam.job !== job) return;
       cam.busy = false; setBusy(false);
@@ -1094,11 +1147,24 @@
   }
 
   // Product: try a barcode in the photo first, then read the words printed on the package.
-  function identifyProduct(file) {
+  // If the first (sharpest) frame doesn't give a sure match, read the next-sharpest one too and match on the words of both.
+  function identifyProduct(file, alts) {
     stage("Looking for a barcode");
     return tryBarcodeFile(file).then(function (code) {
       if (code.length >= 8) return { code: code };
-      return window.OCR.readRaw(file, progress).then(function (text) { stage("Matching products"); return window.Shop.identify(text); });
+      return window.OCR.readRaw(file, progress).then(function (text) {
+        stage("Matching products");
+        return window.Shop.identify(text).then(function (r) {
+          if (r.exact || !alts || !alts.length) return r;
+          stage("Reading again");
+          return window.OCR.readRaw(alts[0], progress).then(function (text2) {
+            stage("Matching products");
+            return window.Shop.identify(text + "\n" + text2).then(function (r2) {
+              return (r2.matches && r2.matches.length) || !(r.matches && r.matches.length) ? r2 : r;
+            });
+          }, function () { return r; });
+        });
+      });
     });
   }
 
