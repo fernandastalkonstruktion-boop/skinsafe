@@ -614,7 +614,7 @@
           : '<button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Pick my own</button>') + "</div>" +
         '<button type="button" class="link shelf-del" data-act="del" data-i="' + i + '">Delete this step</button></div>';
     }
-    el("rt-steps").innerHTML = steps.length ? shelves + panel : '<p class="rt-empty">No steps yet. Add one below.</p>';
+    el("rt-steps").innerHTML = steps.length ? panel + shelves : '<p class="rt-empty">No steps yet. Add one below.</p>';
   }
   // Day, night or both, as sun and moon icons on top of each product.
   function shelfBadge(when) {
@@ -672,7 +672,7 @@
     var b = e.target.closest ? e.target.closest("[data-act]") : null;
     if (!b) return;
     var act = b.getAttribute("data-act"), i = Number(b.getAttribute("data-i")), steps = rt[rtPeriod];
-    if (act === "sel") { rtSel = i; renderRoutine(); var pn = document.querySelector(".shelf-panel"); if (pn && pn.scrollIntoView) pn.scrollIntoView({ block: "nearest", behavior: "smooth" }); return; }
+    if (act === "sel") { rtSel = i; renderRoutine(); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
     if (act === "del") steps.splice(i, 1);
     else if (act === "clear") steps[i].product = null;
     else if (act === "use" && rtSug[i]) steps[i].product = routineProd(rtSug[i]);

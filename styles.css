@@ -787,7 +787,7 @@ body.on-profile #skin .privacy-note { margin-top: 10px; }
 .shelf-kind { font-size: 14px; color: var(--text-2); margin: 0; }
 .shelf-name { font-size: 16px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
 .shelf-brand { font-size: 14px; color: var(--text-2); margin: 0; }
-.shelf-panel { padding: 14px 16px; border-radius: 20px; border: 1px solid var(--glass-line); background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.shelf-panel { margin: 0 0 16px; padding: 14px 16px; border-radius: 20px; border: 1px solid var(--glass-line); background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .shelf-pname { font-size: 19px; font-weight: 700; line-height: 1.25; margin: 2px 0 0; }
 .shelf-panel .tags { margin: 8px 0 0; gap: 6px; }
 .shelf-panel .tag { font-size: 13px; padding: 4px 10px; }
