@@ -587,7 +587,7 @@
     if (rtSel > steps.length - 1) rtSel = Math.max(0, steps.length - 1);
     var used = steps.filter(function (s) { return s.product; }).map(function (s) { return productId(s.product); });
     rtSug = [];
-    // The routine is a shelf: two products per shelf, a bottle outline where nothing is chosen yet, and the details of the tapped one below.
+    // The routine is a shelf: three products per shelf, a bottle outline where nothing is chosen yet, and the details of the tapped one below.
     var slots = steps.map(function (s, i) {
       var sug = null, p = s.product;
       if (!p) { sug = suggest(s.kind, rtPeriod, used, 1)[0] || null; if (sug) used.push(productId(sug)); }
@@ -600,7 +600,7 @@
         '<span class="shelf-brand">' + (p ? esc(p.brand) : shown ? "Suggested for you" : "Nothing suggested yet") + "</span></button>";
     });
     var shelves = "";
-    for (var r0 = 0; r0 < slots.length; r0 += 2) shelves += '<div class="shelf-row">' + slots.slice(r0, r0 + 2).join("") + '</div><div class="shelf-plank"></div>';
+    for (var r0 = 0; r0 < slots.length; r0 += 3) shelves += '<div class="shelf-row">' + slots.slice(r0, r0 + 3).join("") + '</div><div class="shelf-plank"></div>';
     var panel = "";
     if (steps.length) {
       var i = rtSel, st = steps[i], pr = st.product, sg = rtSug[i], sh = pr || sg;
