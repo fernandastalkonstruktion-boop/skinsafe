@@ -13,9 +13,10 @@
     hand:     { label: "Hand cream",           hint: "Hands",                                    tip: "Whenever your hands feel dry, and after washing them." },
     foot:     { label: "Foot care",            hint: "Feet",                                     tip: "On clean, dry feet, especially heels." },
     lip:      { label: "Lip care",             hint: "Lips",                                     tip: "Whenever your lips feel dry, and before bed." },
+    btreat:   { label: "Body treatment spray", hint: "Acne or irritated skin on the body",  tip: "Spray on clean, dry skin on the area you are treating, as the package says. Not a perfume." },
     bmist:    { label: "Body mist",            hint: "A light scent or refresh",                 tip: "Spray on the body or the air, away from the eyes." }
   };
-  var ORDER = ["intimate", "bodywash", "bscrub", "blotion", "boil", "bsun", "deo", "hand", "foot", "lip", "bmist"];
+  var ORDER = ["intimate", "bodywash", "bscrub", "blotion", "boil", "bsun", "deo", "hand", "foot", "lip", "btreat", "bmist"];
   // bs = Shower, bc = Body care
   var DEFAULT_STEPS = { bs: ["intimate", "bodywash", "bscrub"], bc: ["blotion", "deo", "hand"] };
 
@@ -46,6 +47,7 @@
     if (/hand (and|&)? ?body/.test(n) && /(lotion|cream|crema|butter)/.test(n)) return "blotion";
     if (/(\bhand\b|\bhands\b|manos)/.test(n) && !/(wash|soap|jab[oó]n)/.test(n)) return "hand";
     if (/(\bfoot\b|\bfeet\b|\bpies\b)/.test(n)) return "foot";
+    if (/body spray/.test(n) && /(acne|acniben|acniover|healing|ointment)/.test(n)) return "btreat";
     if (bodyBrand && /\bmist\b/.test(n) && !/\bhair\b/.test(n)) return "bmist";
     if (/(body mist|body spray|body fragrance|hair and body mist|hair and body fragrance|perfume mist)/.test(n)) return "bmist";
     if (/(scrub|polish|exfoliat)/.test(n) && !/(soap|jab[oó]n|\bbar\b|\bwash\b)/.test(n)) return "bscrub";
