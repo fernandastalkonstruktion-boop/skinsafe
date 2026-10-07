@@ -605,14 +605,17 @@
     if (steps.length) {
       var i = rtSel, st = steps[i], pr = st.product, sg = rtSug[i], sh = pr || sg;
       var w2 = noTimeKind(st.kind) ? { when: "any", why: K[st.kind].tip } : sh ? whenOf(sh, st.kind) : { when: window.Routine.stepWhen(st.kind), why: K[st.kind].hint };
+      var acts = pr
+        ? '<button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Change</button><button type="button" class="secondary small-btn" data-act="clear" data-i="' + i + '">Remove</button>'
+        : sg ? '<button type="button" class="primary small" data-act="use" data-i="' + i + '">Use this</button><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Alternatives</button>'
+        : '<button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Pick my own</button>';
+      var timeTag = !sh || noTimeKind(st.kind) ? "" : whenTag(w2);
       panel = '<div class="shelf-panel"><p class="shelf-kind">' + esc(K[st.kind].label) + (pr ? "" : sg ? " · suggested for you" : "") + "</p>" +
-        (sh ? '<p class="shelf-pname">' + esc(sh.name) + '</p><p class="shelf-brand">' + esc(sh.brand) + '</p><div class="tags">' + scorePill(sh) + (noTimeKind(st.kind) ? "" : whenTag(w2)) + "</div>" : '<p class="shelf-pname">Nothing here yet</p>') +
-        '<p class="rt-tip">' + esc(w2.why) + "</p>" +
-        '<div class="rt-actions">' + (pr
-          ? '<button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Change</button><button type="button" class="secondary small-btn" data-act="clear" data-i="' + i + '">Remove</button><button type="button" class="secondary small-btn" data-act="open" data-i="' + i + '">Details</button>'
-          : sg ? '<button type="button" class="primary small" data-act="use" data-i="' + i + '">Use this</button><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">See alternatives</button><button type="button" class="secondary small-btn" data-act="opensug" data-i="' + i + '">Details</button>'
-          : '<button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Pick my own</button>') + "</div>" +
-        '<button type="button" class="link shelf-del" data-act="del" data-i="' + i + '">Delete this step</button></div>';
+        (sh ? '<p class="shelf-pname">' + esc(sh.name) + '</p><p class="shelf-brand">' + esc(sh.brand) + "</p>" : '<p class="shelf-pname">Nothing here yet</p>') +
+        '<div class="shelf-actrow">' + (sh ? scorePill(sh) : "") + acts + "</div>" +
+        '<p class="rt-tip">' + timeTag + " " + esc(w2.why) + "</p>" +
+        '<div class="shelf-footrow">' + (sh ? '<button type="button" class="secondary small-btn" data-act="' + (pr ? "open" : "opensug") + '" data-i="' + i + '">Details</button>' : "<span></span>") +
+        '<button type="button" class="link shelf-del" data-act="del" data-i="' + i + '">Delete this step</button></div></div>';
     }
     el("rt-steps").innerHTML = steps.length ? panel + shelves : '<p class="rt-empty">No steps yet. Add one below.</p>';
   }

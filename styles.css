@@ -796,3 +796,12 @@ body.on-profile #skin .privacy-note { margin-top: 10px; }
 
 .shelf-panel .shelf-kind { font-size: 14px; }
 .shelf-panel .shelf-brand { font-size: 14px; }
+.shelf-actrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 0; }
+.shelf-actrow .tag { font-size: 13px; padding: 5px 10px; }
+.shelf-actrow button, .shelf-actrow button.primary.small, .shelf-actrow button.small-btn { font-size: 14px; padding: 8px 10px; min-height: 0; min-width: 0; width: auto; flex: none; }
+.shelf-actrow .tag { white-space: nowrap; }
+.shelf-panel .rt-tip { display: flex; align-items: center; gap: 8px; }
+.shelf-panel .rt-tip .tag { flex: none; }
+.shelf-footrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0 0; }
+.shelf-footrow button.small-btn { font-size: 14px; padding: 8px 14px; }
+.shelf-footrow .shelf-del { margin: 0; }
