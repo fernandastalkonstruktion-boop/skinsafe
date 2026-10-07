@@ -315,7 +315,7 @@
   // this table only lets the app recognise and rate it. Keys have no accents. Added 7 Oct 2026 (OH! GANICS); extend it when a new Spanish label needs it.
   var ES_ALIAS = {
     "agua": "aqua", "agua desionizada": "aqua", "agua purificada": "aqua", "glicerina": "glycerin", "fragancia": "fragrance (parfum)", "perfume": "fragrance (parfum)", "aroma": "fragrance (parfum)",
-    "laurel sulfosuccinato disodico": "disodium laureth sulfosuccinate", "cocamidopropil betaina": "cocamidopropyl betaine", "monoetanolamida de acidos grasos de coco": "cocamide mea",
+    "laurel sulfosuccinato disodico": "disodium laureth sulfosuccinate", "lauret sulfosuccinato disodico": "disodium laureth sulfosuccinate", "proteina de trigo": "hydrolyzed wheat protein", "proteina de trigo hidrolizada": "hydrolyzed wheat protein", "cocamidopropil betaina": "cocamidopropyl betaine", "monoetanolamida de acidos grasos de coco": "cocamide mea",
     "decil glucosido": "decyl glucoside", "coco glucosido": "coco-glucoside", "cocoanfoacetato de sodio": "sodium cocoamphoacetate", "policuaternio-7": "polyquaternium-7", "policuaternio-10": "polyquaternium-10",
     "peg-12 dimeticona": "peg-12 dimethicone", "dimeticona": "dimethicone", "jugo de hoja de aloe": "aloe barbadensis leaf juice", "extracto de alga": "fucus vesiculosus extract",
     "magnesio pca": "magnesium pca", "zinc pca": "zinc pca", "manganeso pca": "manganese pca", "calcio pca": "calcium pca", "queratina hidrolizada": "hydrolyzed keratin", "succinimida de chitosan": "chitosan succinamide",
