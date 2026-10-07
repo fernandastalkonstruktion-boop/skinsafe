@@ -86,17 +86,17 @@
     if (/(dry shampoo|champ[uú] seco)/.test(n)) return null;
     if (/(heat protect|thermal|t[eé]rmic|blow ?dry|protector de calor)/.test(n)) return "heat";
     if (/(pre-shampoo|pre shampoo|mask|masque|mascarilla|\bpack\b|deep (treatment|conditioner)|hair treatment|treatment mask|perfector|bond (repair )?(treatment|perfector))/.test(n)) return "hmask";
-    if (/(leave-in|leave in|sin enjuague|no[- ]rinse|curl (cream|defining|milk)|detangl|cream for hair|hair cream|hair milk|hair mist|\bbalm\b)/.test(n)) return "leavein";
+    if (/(leave-in|leave in|sin enjuague|no[- ]rinse|curl (cream|defining|milk)|detangl|cream for hair|hair cream|hair milk|hair mist|keratin mist|\bbalm\b)/.test(n)) return "leavein";
     if (/(shampoo|champ[uú]|shampooing|cleansing|wash)/.test(n) && !/(conditioning cream)/.test(n)) return "shampoo";
     if (/(conditioner|acondicionador|co-wash|cowash|conditioning)/.test(n)) return "conditioner";
     if (/(scalp|tonic|t[oó]nico|hair ?loss|hair growth|growth|ca[ií]da|root|density|densif)/.test(n)) return "scalp";
-    if (/(\boil\b|\baceite|serum|elixir|ampoule|ampolla|essence)/.test(n)) return "hoil";
+    if (/(\boil\b|\baceite|serum|elixir|ampoule|ampolla|essence|silk infusion)/.test(n)) return "hoil";
     if (/(treatment|repair|smoothing|perfecting)/.test(n)) return "hmask";
     return null;
   }
 
   // ----- does a product suit this hair? -----
-  function has(items, re) { var out = []; items.forEach(function (i) { if (re.test(i.name.toLowerCase()) && out.indexOf(i.name) < 0) out.push(i.name); }); return out; }
+  function has(items, re) { var out = []; items.forEach(function (i) { if (re.test((i.inci || i.name).toLowerCase()) && out.indexOf(i.name) < 0) out.push(i.name); }); return out; }
   var SULFATE = /((sodium|ammonium|magnesium|tea|mea) (laureth|lauryl|myreth) sulfate|c14-16 olefin sulfonate|sodium (lauroyl|cocoyl) sarcosinate)/;
   var SILICONE = /(dimethicone|cyclopentasiloxane|cyclomethicone|amodimethicone|phenyl trimethicone|trimethylsiloxysilicate)/;
   var HEAVY = /(mineral oil|petrolatum|paraffin|butyrospermum|shea butter|cocos nucifera|coconut oil|cera alba|beeswax|lanolin)/;

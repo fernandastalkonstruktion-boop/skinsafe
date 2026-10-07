@@ -32,7 +32,7 @@
     name = name.replace(/hyaluronic acid/g, "hyaluronic");
     if (/(\bspf\b|\bfps\b|sun ?stick|sunscreen|sun ?block|sun (cream|stick|serum|gel|milk|fluid|essence|lotion|screen)|relief sun|uv (shield|defense|protect|aqua|milk|essence|gel|filter)|\bsun\b)/.test(name)) return "sunscreen";
     if (/\beye\b|eyes\b/.test(name) && !/(makeup|remover)/.test(name)) return "eye";
-    if (/(cleans|face ?wash|facial wash|micelar|agua micelar|\bwash\b|foam\b|micellar|makeup remover|make-up remover|\bremover\b|\bsoap\b|exfoliating gel|peeling gel)/.test(name) && !/(mask|serum)/.test(name)) return "cleanser";
+    if (/(cleans|face ?wash|facial wash|micelar|agua micelar|\bwash\b|foam\b|micellar|makeup remover|make-up remover|\bremover\b|\bsoap\b|exfoliating gel|peeling gel|foaming (gel|cleans)|gel moussant)/.test(name) && !/(mask|serum)/.test(name)) return "cleanser";
     if (/(sleeping mask|mask|\bpack\b|clay|wash-off)/.test(name)) return "mask";
     if (/(retinol|retinal|retinoid|adapalene|\bpeel|exfoliat|\bacid\b|\baha\b|\bbha\b|\bpha\b|pimple|acne|blemish|spot (treatment|care|gel)|patch|\bpore\b.*(treatment|serum)|brightening shot)/.test(name)) return "treatment";
     if (/(toner|toning|astringent|\bmist\b|\bpad\b|\bpads\b|softener|facial water|skin lotion|prep|essence toner)/.test(name)) return "toner";
@@ -46,7 +46,7 @@
   // Returns {when: "am" | "pm" | "any", why: "..."}.
   function when(p, kind, items) {
     var name = (p.name || "").toLowerCase();
-    var top = (items || []).slice(0, 12).map(function (i) { return i.name.toLowerCase(); }).join(" | ");
+    var top = (items || []).slice(0, 12).map(function (i) { return (i.inci || i.name).toLowerCase(); }).join(" | ");
     if (kind === "sunscreen") return { when: "am", why: "Sunscreen is for the day. You don't need it at night." };
     if (/(retinol|retinal|retinoid|adapalene|tretinoin|retinyl)/.test(name + " " + top)) return { when: "pm", why: "Retinoids make skin more sensitive to sun, so they go at night." };
     if (/(\bpeel|exfoliat|\baha\b|\bbha\b|\bpha\b|glycolic|lactic acid|mandelic|salicylic)/.test(name + " " + top)) return { when: "pm", why: "Exfoliating acids are usually used at night, with sunscreen the next morning." };

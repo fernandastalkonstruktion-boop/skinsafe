@@ -97,7 +97,7 @@
 
   // ----- allergies (what the person already knows bothers them) -----
   var AKEY = "skinsafe.allergies";
-  function re(r) { return function (item) { return r.test(item.name.toLowerCase()); }; }
+  function re(r) { return function (item) { return r.test((item.inci || item.name).toLowerCase()); }; }
   var ALLERGENS = [
     { id: "fragrance", label: "Fragrance", sub: "Parfum and fragrance allergens", test: function (i) { return i.family === "fragrance"; } },
     { id: "nuts", label: "Tree nuts", sub: "Almond, argan, macadamia, shea", test: re(/(prunus amygdalus|argania spinosa|macadamia|corylus|juglans|pistacia|anacardium|bertholletia|butyrospermum|shea|apricot kernel|prunus armeniaca)/) },

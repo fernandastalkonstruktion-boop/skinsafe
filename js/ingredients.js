@@ -311,6 +311,27 @@
     [/(ethylhexanoate|isostearate|laurate|myristate|palmitate|stearate|oleate|dilinoleate|caprate|caprylate|adipate|sebacate|succinate|malate|trimellitate|glutamate)$/, ESTER, /^(sodium|potassium|calcium|magnesium|zinc|ammonium|aluminum)/]
   ];
 
+  // Spanish names printed on Mexican labels -> the INCI name the ratings use. The product keeps the Spanish text exactly as on the package;
+  // this table only lets the app recognise and rate it. Keys have no accents. Added 7 Oct 2026 (OH! GANICS); extend it when a new Spanish label needs it.
+  var ES_ALIAS = {
+    "agua": "aqua", "agua desionizada": "aqua", "agua purificada": "aqua", "glicerina": "glycerin", "fragancia": "fragrance (parfum)", "perfume": "fragrance (parfum)", "aroma": "fragrance (parfum)",
+    "laurel sulfosuccinato disodico": "disodium laureth sulfosuccinate", "cocamidopropil betaina": "cocamidopropyl betaine", "monoetanolamida de acidos grasos de coco": "cocamide mea",
+    "decil glucosido": "decyl glucoside", "coco glucosido": "coco-glucoside", "cocoanfoacetato de sodio": "sodium cocoamphoacetate", "policuaternio-7": "polyquaternium-7", "policuaternio-10": "polyquaternium-10",
+    "peg-12 dimeticona": "peg-12 dimethicone", "dimeticona": "dimethicone", "jugo de hoja de aloe": "aloe barbadensis leaf juice", "extracto de alga": "fucus vesiculosus extract",
+    "magnesio pca": "magnesium pca", "zinc pca": "zinc pca", "manganeso pca": "manganese pca", "calcio pca": "calcium pca", "queratina hidrolizada": "hydrolyzed keratin", "succinimida de chitosan": "chitosan succinamide",
+    "extracto de flor de manzanilla": "chamomilla recutita (matricaria) flower extract", "extracto de flor de calendula": "calendula officinalis flower extract",
+    "alcohol bencilico": "benzyl alcohol", "caprilato de glicerilo": "glyceryl caprylate", "undecilenato de glicerilo": "glyceryl undecylenate", "acido citrico": "citric acid", "edta disodico": "disodium edta",
+    "fenoxietanol": "phenoxyethanol", "propilenglicol": "propylene glycol", "butilenglicol": "butylene glycol", "sorbato de potasio": "potassium sorbate", "benzoato de sodio": "sodium benzoate", "acido benzoico": "benzoic acid", "acido sorbico": "sorbic acid",
+    "acido salicilico": "salicylic acid", "acido hialuronico": "hyaluronic acid", "acido lactico": "lactic acid", "acido glicolico": "glycolic acid", "acido estearico": "stearic acid", "pantenol": "panthenol", "niacinamida": "niacinamide",
+    "alcohol cetilico": "cetyl alcohol", "alcohol cetearilico": "cetearyl alcohol", "alcohol estearilico": "stearyl alcohol", "cloruro de sodio": "sodium chloride", "hidroxido de sodio": "sodium hydroxide",
+    "laurilsulfato de sodio": "sodium lauryl sulfate", "lauril sulfato de sodio": "sodium lauryl sulfate", "lauret sulfato de sodio": "sodium laureth sulfate", "laureth sulfato de sodio": "sodium laureth sulfate",
+    "aceite mineral": "paraffinum liquidum", "vaselina": "petrolatum", "petrolato": "petrolatum", "lanolina": "lanolin", "cera de abejas": "cera alba", "trietanolamina": "triethanolamine", "urea": "urea",
+    "tocoferol": "tocopherol", "acetato de tocoferol": "tocopheryl acetate", "oxido de zinc": "zinc oxide", "dioxido de titanio": "titanium dioxide", "carbomero": "carbomer", "metilparabeno": "methylparaben", "propilparabeno": "propylparaben",
+    "metilisotiazolinona": "methylisothiazolinone", "metilcloroisotiazolinona": "methylchloroisothiazolinone", "formaldehido": "formaldehyde", "limoneno": "limonene", "linalool": "linalool", "geraniol": "geraniol", "citronelol": "citronellol"
+  };
+  function esName(raw) { var full = clean(raw), noParen = clean(raw.replace(/\([^)]*\)/g, " ")); return ES_ALIAS[deacc(full)] || ES_ALIAS[deacc(noParen)] || null; }
+  function deacc(s) { return s.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+
   // Try the full name, then the name without parentheses, then each parenthetical, then tidied-up spellings
   // (OCR often leaves "peg - 100" or splits a word), then each part of "a / b", then the type rules.
   function lookup(raw) {
@@ -318,6 +339,8 @@
     if (INDEX[full]) return INDEX[full];
     var noParen = clean(raw.replace(/\([^)]*\)/g, " "));
     if (INDEX[noParen]) return INDEX[noParen];
+    var es = esName(raw);
+    if (es) return lookup(es);
     var inside = raw.match(/\(([^)]*)\)/g) || [];
     for (var i = 0; i < inside.length; i++) {
       var p = clean(inside[i].slice(1, -1));
@@ -352,10 +375,10 @@
   function analyze(text) {
     var items = split(text || "").map(function (raw) {
       var hit = lookup(raw);
-      var name = raw.replace(/\*/g, "").trim();
+      var name = raw.replace(/\*/g, "").trim(), inci = esName(raw) || name;
       return hit
-        ? { name: name, level: hit.level, family: hit.family || null, danger: !!hit.danger, note: hit.note, detail: hit.detail, risks: hit.risks, helps: hit.helps, src: hit.src }
-        : { name: name, level: null, family: null, danger: false, note: "", detail: "", risks: [], helps: [], src: [] };
+        ? { name: name, inci: inci, level: hit.level, family: hit.family || null, danger: !!hit.danger, note: hit.note, detail: hit.detail, risks: hit.risks, helps: hit.helps, src: hit.src }
+        : { name: name, inci: inci, level: null, family: null, danger: false, note: "", detail: "", risks: [], helps: [], src: [] };
     });
     var n = { good: 0, mid: 0, bad: 0, none: 0 };
     var danger = 0, flagged = [], low = 0;
@@ -363,7 +386,7 @@
       n[i.level || "none"]++;
       if (i.danger) danger++;
       else if (i.level === "bad") flagged.push(idx);
-      else if (i.level === "mid" || (i.level !== "bad" && LOW_RX.test(i.name.toLowerCase().replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim()))) low++;
+      else if (i.level === "mid" || (i.level !== "bad" && LOW_RX.test((esName(i.name) || i.name).toLowerCase().replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim()))) low++;
     });
     var rated = n.good + n.mid + n.bad;
     var score = null;
@@ -385,7 +408,7 @@
   function veganCheck(items) {
     var animal = [];
     (items || []).forEach(function (i) {
-      var n = String(i.name || "").toLowerCase();
+      var n = String(i.inci || i.name || "").toLowerCase();
       if (ANIMAL.test(n) && !NOT_ANIMAL.test(n)) animal.push(i.name);
     });
     return { ok: animal.length === 0 && (items || []).length >= 5, animal: animal };
