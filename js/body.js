@@ -19,13 +19,15 @@
   // bs = Shower, bc = Body care
   var DEFAULT_STEPS = { bs: ["intimate", "bodywash", "bscrub"], bc: ["blotion", "deo", "hand"] };
 
-  var INTIMATE = /(feminine|intimate|intima\b|[ií]ntima|femenin|vagin|yoni|vulva)/;
+  var INTIMATE = /(feminine|intimate|intima\b|[ií]ntim[ao]|femenin|vagin|yoni|vulva|\bgyn-|\blady (cleanser|wash)|panty spray)/;
+  // Brands that only make intimate care (their names do not always say it: "Daily Wash", "Cream Wash")
+  var INTIMATE_BRAND = /^(femfresh|vagisil|summer's eve|lactacyd|saforelle|carefree|the honey pot company|cora)$/i;
   var BODY_WORD = /(\bbody\b|corporal|\bhand\b|\bhands\b|manos|\bfoot\b|\bfeet\b|\bpies\b|deodorant|desodorante|antiperspirant|antitranspirante|\bbath\b|shower|\bsoap\b|jab[oó]n|cleansing bar|acne bar|lip (balm|care|treatment|mask|sleeping|butter)|lipsoftie|balmy tint|sugar scrub|crush scrub|body mist)/;
   var FACE_ONLY = /(\bface\b|\bfacial\b|\bfaces\b|\beye\b|\beyes\b|\bscalp\b|\bhair\b|shampoo|conditioner|champ[uú]|mascara|foundation|cushion|primer|concealer|\bmask fit\b)/;
 
   function classify(p) {
     var n = (p.name || "").toLowerCase().replace(/&/g, " and ").replace(/\s+/g, " ");
-    if (INTIMATE.test(n)) return "intimate";
+    if (INTIMATE.test(n) || INTIMATE_BRAND.test(p.brand || "")) return "intimate";
     if (/(lip (balm|care|treatment|mask|sleeping|butter)|lipsoftie|lip sleeping|balmy tint)/.test(n)) return "lip";
     if (!BODY_WORD.test(n)) return null;
     if (FACE_ONLY.test(n) && !/\bbody\b/.test(n)) return null;
