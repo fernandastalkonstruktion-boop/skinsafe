@@ -25,22 +25,27 @@
   var BODY_WORD = /(\bbody\b|corporal|\bhand\b|\bhands\b|manos|\bfoot\b|\bfeet\b|\bpies\b|deodorant|desodorante|antiperspirant|antitranspirante|\bbath\b|shower|\bsoap\b|jab[oó]n|cleansing bar|acne bar|lip (balm|care|treatment|mask|sleeping|butter)|lipsoftie|balmy tint|sugar scrub|crush scrub|body mist)/;
   var FACE_ONLY = /(\bface\b|\bfacial\b|\bfaces\b|\beye\b|\beyes\b|\bscalp\b|\bhair\b|shampoo|conditioner|champ[uú]|mascara|foundation|cushion|primer|concealer|\bmask fit\b)/;
 
+  // Brands that only make body care (names like "Calming Wash" or "Stay Glow Body Serum Mist" do not always say body)
+  var BODY_BRAND = /^login forest$/i;
+
   function classify(p) {
     var n = (p.name || "").toLowerCase().replace(/&/g, " and ").replace(/\s+/g, " ");
     if (INTIMATE.test(n) || INTIMATE_BRAND.test(p.brand || "")) return "intimate";
     if (/(lip (balm|care|treatment|mask|sleeping|butter)|lipsoftie|lip sleeping|balmy tint)/.test(n)) return "lip";
-    if (!BODY_WORD.test(n)) return null;
+    var bodyBrand = BODY_BRAND.test(p.brand || "");
+    if (!BODY_WORD.test(n) && !bodyBrand) return null;
     if (FACE_ONLY.test(n) && !/\bbody\b/.test(n)) return null;
     if (/(deodorant|desodorante|antiperspirant|antitranspirante)/.test(n)) return "deo";
     if (/(sun ?screen|\bspf\b|\bsun\b)/.test(n)) return "bsun";
     if (/hand (and|&)? ?body/.test(n) && /(lotion|cream|crema|butter)/.test(n)) return "blotion";
     if (/(\bhand\b|\bhands\b|manos)/.test(n) && !/(wash|soap|jab[oó]n)/.test(n)) return "hand";
     if (/(\bfoot\b|\bfeet\b|\bpies\b)/.test(n)) return "foot";
+    if (bodyBrand && /\bmist\b/.test(n) && !/\bhair\b/.test(n)) return "bmist";
     if (/(body mist|body spray|body fragrance|hair and body mist|hair and body fragrance|perfume mist)/.test(n)) return "bmist";
     if (/(scrub|polish|exfoliat)/.test(n) && !/(soap|jab[oó]n|\bbar\b|\bwash\b)/.test(n)) return "bscrub";
     if (/(body oil|aceite corporal|dry (body )?oil)/.test(n) && !/(cleansing|wash|shampoo)/.test(n)) return "boil";
     if (/(body wash|shower|\bbath\b|bubble bath|body cleanser|body soap|\bsoap\b|jab[oó]n|\bwash\b|cleansing bar|acne bar|cleansing)/.test(n)) return "bodywash";
-    if (/(lotion|cream|crema|butter|mantequilla|milk|moistur|balm|\bgel\b|emulsion|hidratante)/.test(n)) return "blotion";
+    if (/(lotion|cream|crema|butter|mantequilla|milk|moistur|balm|\bgel\b|emulsion|hidratante)/.test(n) || (bodyBrand && /(ampoule|essence|serum)/.test(n))) return "blotion";
     return null;
   }
 
