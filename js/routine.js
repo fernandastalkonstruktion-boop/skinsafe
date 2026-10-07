@@ -17,8 +17,7 @@
   };
   var ORDER = ["cleanser", "toner", "serum", "treatment", "eye", "moisturizer", "sunscreen", "mask"];
   var DEFAULT_STEPS = {
-    am: ["cleanser", "toner", "moisturizer", "sunscreen"],
-    pm: ["cleanser", "toner", "serum", "moisturizer"]
+    face: ["cleanser", "toner", "serum", "moisturizer", "sunscreen"]
   };
 
   var NOT_FACE = /(hair|shampoo|conditioner|scalp|body|hand cream|hand |foot|lip |lips|nail|deodorant|bath|shower|soap bar|mascara|lash|brow|foundation|concealer|blush|lipstick|eyeliner|powder pact|cushion|perfume|toothpaste|razor|shav|wax)/i;
@@ -57,30 +56,39 @@
     return { when: "any", why: "Fine in the morning or at night." };
   }
 
+  // The face routine is ONE list. Most products are used day and night; sunscreen is for the day, treatments and masks for the night.
+  function stepWhen(kind) { return kind === "sunscreen" ? "am" : (kind === "treatment" || kind === "mask") ? "pm" : "any"; }
+  function sameProd(a, b) { return (a.code && b.code ? a.code === b.code : (a.brand + "|" + a.name) === (b.brand + "|" + b.name)); }
+  // Older saved routines had a morning list and a night list: join them into one (same product in both = one step).
+  function mergeFace(am, pm) {
+    var out = am.map(function (s) { return { kind: s.kind, product: s.product }; }), used = {};
+    pm.forEach(function (s) {
+      if (s.kind === "sunscreen" && !s.product) return;
+      for (var i = 0; i < out.length; i++) {
+        if (used[i] || out[i].kind !== s.kind) continue;
+        used[i] = true;
+        if (!out[i].product) { out[i].product = s.product; return; }
+        if (!s.product || sameProd(out[i].product, s.product)) return;
+        break;
+      }
+      out.push({ kind: s.kind, product: s.product });
+    });
+    return out.map(function (s, i) { return { s: s, i: i }; }).sort(function (x, y) { return ORDER.indexOf(x.s.kind) - ORDER.indexOf(y.s.kind) || x.i - y.i; }).map(function (x) { return x.s; });
+  }
   function load() {
     var HD = (window.Hair && window.Hair.DEFAULT_STEPS) || { hw: ["shampoo", "conditioner", "hmask"], hs: ["leavein", "heat", "hoil"] };
     var BD = (window.Body && window.Body.DEFAULT_STEPS) || { bs: ["intimate", "bodywash", "bscrub"], bc: ["blotion", "deo", "hand"] };
     function mk(list) { return list.map(function (k) { return { kind: k, product: null }; }); }
     try {
       var r = JSON.parse(localStorage.getItem(KEY) || "null");
-      if (r && r.am && r.pm) {
+      if (r && (r.face || (r.am && r.pm))) {
         r.hw = r.hw || mk(HD.hw); r.hs = r.hs || mk(HD.hs); r.bs = r.bs || mk(BD.bs); r.bc = r.bc || mk(BD.bc);
-        // The night routine follows the morning one until the person changes the night one.
-        if (r.pmLinked === undefined) r.pmLinked = !r.pm.some(function (s) { return s.product; });
+        if (!r.face) r.face = mergeFace(r.am, r.pm);
+        delete r.am; delete r.pm; delete r.pmLinked;
         return r;
       }
     } catch (e) {}
-    return { hw: mk(HD.hw), hs: mk(HD.hs), bs: mk(BD.bs), bc: mk(BD.bc), am: DEFAULT_STEPS.am.map(function (k) { return { kind: k, product: null }; }), pm: DEFAULT_STEPS.pm.map(function (k) { return { kind: k, product: null }; }), pmLinked: true };
-  }
-  // Copies what was chosen in the morning into the matching night steps (not sunscreen: it is only for the day).
-  function syncNight(r) {
-    var used = {};
-    r.pm.forEach(function (s) {
-      if (s.kind === "sunscreen") return;
-      for (var i = 0; i < r.am.length; i++) {
-        if (!used[i] && r.am[i].kind === s.kind) { used[i] = true; s.product = r.am[i].product ? JSON.parse(JSON.stringify(r.am[i].product)) : null; break; }
-      }
-    });
+    return { hw: mk(HD.hw), hs: mk(HD.hs), bs: mk(BD.bs), bc: mk(BD.bc), face: mk(DEFAULT_STEPS.face) };
   }
   function save(r) { try { localStorage.setItem(KEY, JSON.stringify(r)); } catch (e) {} }
   function reset() { try { localStorage.removeItem(KEY); } catch (e) {} }
@@ -99,5 +107,5 @@
   Object.keys(ORAL_KINDS).forEach(function (k) { KINDS[k] = ORAL_KINDS[k]; });
   window.Oral = { KINDS: ORAL_KINDS, ORDER: ["oral"], classify: classifyOral };
 
-  window.Routine = { KINDS: KINDS, ORDER: ORDER, DEFAULT_STEPS: DEFAULT_STEPS, classify: classify, when: when, load: load, save: save, reset: reset, syncNight: syncNight };
+  window.Routine = { KINDS: KINDS, ORDER: ORDER, DEFAULT_STEPS: DEFAULT_STEPS, classify: classify, when: when, load: load, save: save, reset: reset, stepWhen: stepWhen };
 })();

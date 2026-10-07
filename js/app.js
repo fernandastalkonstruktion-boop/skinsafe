@@ -459,7 +459,7 @@
   }
 
   // ----- Your routine: one list of steps for the morning and one for the night, saved only on this phone -----
-  var catalogList = [], rtPeriod = "am", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {};
+  var catalogList = [], rtPeriod = "face", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {};
   function analysisOf(p) { var c = anCache[p.ingredientsText]; if (!c) { c = window.Ingredients.analyze(p.ingredientsText); anCache[p.ingredientsText] = c; } return c; }
   function routineProd(p) { return { id: productId(p), code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial }; }
   function whenOf(p, kind) { return window.Routine.when(p, kind || kindOf(p), analysisOf(p).items); }
@@ -469,9 +469,9 @@
   function isBodyPeriod(pd) { return pd === "bs" || pd === "bc"; }
   // Hair and body steps have no morning or night.
   function noTimeKind(k) { return isHairKind(k) || isBodyKind(k); }
-  var PERIOD_NAME = { am: "Morning routine", pm: "Night routine", hw: "Wash day", hs: "Styling and care", bs: "Shower", bc: "Body care" };
+  var PERIOD_NAME = { face: "Face routine", hw: "Wash day", hs: "Styling and care", bs: "Shower", bc: "Body care" };
   function whenTag(w) {
-    return w.when === "am" ? '<span class="tag am">' + ic("sun") + "Morning</span>" : w.when === "pm" ? '<span class="tag pm">' + ic("moon") + "Night</span>" : '<span class="tag any">Morning or night</span>';
+    return w.when === "am" ? '<span class="tag am">' + ic("sun") + "Morning</span>" : w.when === "pm" ? '<span class="tag pm">' + ic("moon") + "Night</span>" : '<span class="tag any">' + ic("sun") + ic("moon") + "Day and night</span>";
   }
   // The preview shows the product the person chose for each step, or our suggestion until they choose one.
   function previewProducts(steps, period) {
@@ -489,7 +489,7 @@
   function refreshRoutine(r) {
     var map = {}, changed = false;
     catalogList.forEach(function (c) { map[sameKey(c)] = c; });
-    ["am", "pm", "hw", "hs", "bs", "bc"].forEach(function (pd) {
+    ["face", "hw", "hs", "bs", "bc"].forEach(function (pd) {
       (r[pd] || []).forEach(function (s) {
         if (!s.product || !s.product.shop) return;
         var c = map[sameKey(s.product)];
@@ -501,7 +501,7 @@
     return changed;
   }
   // Home card: three areas (Face, Hair, Body), each with the first three products of its steps (chosen, or our suggestion).
-  var RC_AREAS = [["Face", "face", ["am", "pm"], "am"], ["Hair", "hair", ["hw", "hs"], "hw"], ["Body", "droplet", ["bs", "bc"], "bs"]];
+  var RC_AREAS = [["Face", "face", ["face"], "face"], ["Hair", "hair", ["hw", "hs"], "hw"], ["Body", "droplet", ["bs", "bc"], "bs"]];
   function renderRoutineCard() {
     function draw(r) {
       var cols = RC_AREAS.map(function (a) {
@@ -544,8 +544,9 @@
       // Hair products score lower in general, so they get a lower floor, and the best-rated ones still come first.
       if (a.score === null || a.score < (hair ? 35 : 51)) return;
       if (!hair && !body) {
-        var w = window.Routine.when(p, kind, a.items).when;
-        if (w !== "any" && w !== period) return;
+        // One face list: a step used day and night only gets products that go both times; sunscreen and treatments follow their own time.
+        var w = window.Routine.when(p, kind, a.items).when, need = window.Routine.stepWhen(kind);
+        if (need === "any" ? w !== "any" : (w !== "any" && w !== need)) return;
       }
       if (exclude.indexOf(productId(p)) > -1) return;
       if (window.Alerts && window.Alerts.match(p).length) return;
@@ -571,9 +572,9 @@
     var faceArea = !hairArea && !bodyArea;
     el("rt-face").classList.toggle("on", faceArea); el("rt-hair").classList.toggle("on", hairArea); el("rt-body").classList.toggle("on", bodyArea);
     el("rt-face").setAttribute("aria-selected", String(faceArea)); el("rt-hair").setAttribute("aria-selected", String(hairArea)); el("rt-body").setAttribute("aria-selected", String(bodyArea));
-    var tabs = hairArea ? [["hw", "droplet", "Wash day"], ["hs", "flame", "Styling"]] : bodyArea ? [["bs", "droplet", "Shower"], ["bc", "leaf", "Body care"]] : [["am", "sun", "Morning"], ["pm", "moon", "Night"]];
-    el("rt-linknote").hidden = !(rtPeriod === "pm" && rt.pmLinked !== false);
-    ["rt-am", "rt-pm"].forEach(function (id, n) {
+    var tabs = hairArea ? [["hw", "droplet", "Wash day"], ["hs", "flame", "Styling"]] : bodyArea ? [["bs", "droplet", "Shower"], ["bc", "leaf", "Body care"]] : null;
+    el("rt-sub").hidden = !tabs;   // the face routine is one list: no morning/night tabs
+    if (tabs) ["rt-am", "rt-pm"].forEach(function (id, n) {
       var t = tabs[n];
       el(id).innerHTML = ic(t[1]) + t[2];
       el(id).setAttribute("data-period", t[0]);
@@ -588,9 +589,9 @@
       var head = '<div class="rt-head"><span class="rt-num">' + (i + 1) + '</span><p class="rt-kind">' + esc(K[s.kind].label) + '</p><button type="button" class="rt-x" data-act="del" data-i="' + i + '" aria-label="Remove this step">' + ic("x") + "</button></div>";
       var body;
       if (s.product) {
-        var w = noTimeKind(s.kind) ? { when: "any", why: K[s.kind].tip } : whenOf(s.product, s.kind), warn = w.when !== "any" && w.when !== rtPeriod;
+        var w = noTimeKind(s.kind) ? { when: "any", why: K[s.kind].tip } : whenOf(s.product, s.kind);
         body = '<div class="rt-card">' + rtRow(s.product, s.kind, "open", i) +
-          '<p class="rt-tip' + (warn ? " warn" : "") + '">' + esc((warn ? (w.when === "pm" ? "Usually used at night, and it is in your morning routine. " : "Usually used in the morning, and it is in your night routine. ") : "") + w.why) + "</p>" +
+          '<p class="rt-tip">' + esc(w.why) + "</p>" +
           '<div class="rt-actions"><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Change</button><button type="button" class="secondary small-btn" data-act="clear" data-i="' + i + '">Remove</button></div></div>';
       } else {
         var sug = suggest(s.kind, rtPeriod, used, 1)[0];
@@ -603,12 +604,7 @@
       return '<div class="rt-step">' + head + body + "</div>";
     }).join("") || '<p class="rt-empty">No steps yet. Add one below.</p>';
   }
-  // The night routine follows what was chosen in the morning, until the night one is changed by hand (then it stays as it is).
-  function saveRoutine() {
-    if (rtPeriod === "pm") rt.pmLinked = false;
-    else if (rtPeriod === "am" && rt.pmLinked !== false) window.Routine.syncNight(rt);
-    window.Routine.save(rt); renderRoutineCard();
-  }
+  function saveRoutine() { window.Routine.save(rt); renderRoutineCard(); }
   function openRoutine() {
     window.Shop.load().then(function (list) {
       catalogList = list; rt = window.Routine.load();
@@ -1536,7 +1532,7 @@
     ["info", "Product alerts", "Official recalls are facts, with the date and a link to the notice. Lawsuits only appear when a court grouped many cases from different people and published science backs the claim. They are always labeled not proven."],
     ["ban", "What we can't know", "The list order tells us the biggest ingredients, not the exact amounts. Photos can be misread. Product data comes from a community database that can be out of date. A cosmetic scientist has not reviewed our ratings yet. This is not medical advice."],
     ["package", "Find a product", "One camera does it all. Barcode reads by itself. Product takes a photo of the front (we read its barcode first, then the words on the label). Shelf tries to recognize several products in one photo, and Ingredients reads the ingredient list. You can also search by name. For a round bottle, tap Camera app to use your phone's own camera: you can zoom in (for example 5×) so the list looks flatter, and tap to focus. Reading words from a photo can miss stylized fonts and crowded shelves, so check that each match is your product. Photos are read on your phone and are not uploaded."],
-    ["sun", "Your routine", "There is a face routine (morning and night), a hair routine (wash day and styling) and a body routine (shower, from the intimate wash to the body wash and scrub, and body care, from lotion and deodorant to hand cream). What you choose for the morning is copied to the night routine until you change the night one yourself; after that it stays as you left it (sunscreen is not copied). Suggested products are the best-rated ones in our list that fit your skin or hair quiz and have no allergy hit or official alert. The hair quiz asks about pattern, strand thickness, scalp, past treatments and goals, with a tip in each question to find out your answer; it is guidance, not a diagnosis. Hair products tend to score lower, so for hair we also suggest a few fair ones (35 or more) after the best ones. The morning or night tip comes from the product name and its ingredients: retinol and exfoliating acids at night, sunscreen and vitamin C in the morning. It is guidance, so follow the package. You can swap any suggestion for the product you really own."],
+    ["sun", "Your routine", "There is a face routine (one list; each product shows a sun, a moon or both, so you know if it is for the day, the night or both), a hair routine (wash day and styling) and a body routine (shower, from the intimate wash to the body wash and scrub, and body care, from lotion and deodorant to hand cream). The best routine uses mostly the same products day and night; only a few are for one time (sunscreen in the morning, retinol and exfoliating acids at night), and suggestions follow that. Suggested products are the best-rated ones in our list that fit your skin or hair quiz and have no allergy hit or official alert. The hair quiz asks about pattern, strand thickness, scalp, past treatments and goals, with a tip in each question to find out your answer; it is guidance, not a diagnosis. Hair products tend to score lower, so for hair we also suggest a few fair ones (35 or more) after the best ones. The morning or night tip comes from the product name and its ingredients: retinol and exfoliating acids at night, sunscreen and vitamin C in the morning. It is guidance, so follow the package. You can swap any suggestion for the product you really own."],
     ["leaf", "Vegan and cruelty-free marks", "These small marks appear only when they are true, and they never change the score. Vegan-friendly means we found no animal-derived ingredient in the list (honey, beeswax, collagen, lanolin, milk proteins and similar). Some common ingredients, like glycerin or stearic acid, can come from animals or plants and the list does not say which, so this is not a vegan certification. Cruelty-free means the brand is listed by Leaping Bunny or PETA, two independent nonprofits; we do not use the brand's own claim."],
     ["camera", "Product photos", "Where we have one, the product photo is the brand's own or a large beauty retailer's studio photo, shown straight from their website. The photos belong to those brands and shops. We never store or sell them, and a photo can disappear if the website changes it."],
     ["lock", "Your data", "Nothing is uploaded. Your skin answers and allergies stay on your device, and there are no accounts."]
@@ -1652,7 +1648,7 @@
     if (isHairPeriod(rtPeriod)) { startQuiz(window.Hair.load(), "hair", "routine"); return; }
     renderProfileCard(); renderAllergyCard(); show("skin");
   });
-  el("rt-face").addEventListener("click", function () { if (isHairPeriod(rtPeriod) || isBodyPeriod(rtPeriod)) { rtPeriod = "am"; renderRoutine(); } });
+  el("rt-face").addEventListener("click", function () { if (isHairPeriod(rtPeriod) || isBodyPeriod(rtPeriod)) { rtPeriod = "face"; renderRoutine(); } });
   el("rt-hair").addEventListener("click", function () { if (!isHairPeriod(rtPeriod)) { rtPeriod = "hw"; renderRoutine(); } });
   el("rt-body").addEventListener("click", function () { if (!isBodyPeriod(rtPeriod)) { rtPeriod = "bs"; renderRoutine(); } });
   el("rt-am").addEventListener("click", function () { rtPeriod = el("rt-am").getAttribute("data-period"); renderRoutine(); });
