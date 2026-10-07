@@ -2,31 +2,47 @@
 (function () {
   var KEY = "skinsafe.profile";
 
+  // Skin quiz (7 Oct 2026): two short questions about how the skin FEELS work out the type, so nobody has to know it. The last step shows the guess and lets the person change it.
   var QUESTIONS = [
-    { id: "type", title: "What's your skin type?", multi: false, options: [
-      ["normal", "Normal", "Barely visible pores, looks hydrated"],
-      ["dry", "Dry", "Feels tight, may flake"],
-      ["oily", "Oily", "Shiny, with larger pores"],
-      ["combination", "Combination", "Oily T-zone, dry or normal cheeks"]
+    { id: "after", title: "After washing, with nothing on, your skin feels\u2026", multi: false, options: [
+      ["tight", "Tight or itchy", ""], ["comfortable", "Comfortable", ""], ["tzone", "Oily in the T-zone only", ""], ["oily", "Oily everywhere", ""]
     ] },
-    { id: "concerns", title: "What do you want to improve?", sub: "Pick all that apply.", multi: true, options: [
-      ["acne", "Acne and breakouts", ""],
-      ["redness", "Redness and sensitivity", ""],
-      ["dryness", "Dryness", ""],
-      ["pigmentation", "Dark spots and uneven tone", ""],
-      ["lines", "Fine lines", ""]
+    { id: "midday", title: "By midday it looks\u2026", multi: false, options: [
+      ["flaky", "Flaky or rough", ""], ["matte", "Matte, normal", ""], ["tzone", "Shiny in the T-zone only", ""], ["shiny", "Shiny everywhere", ""]
     ] },
-    { id: "reacts", title: "Does your skin react to fragrance or sting easily?", multi: false, options: [
-      ["yes", "Yes", ""], ["no", "No", ""], ["unsure", "Not sure", ""]
+    { id: "concerns", title: "What bothers you most?", sub: "Pick up to 2. You can skip.", multi: true, max: 2, options: [
+      ["acne", "Breakouts and blackheads", ""],
+      ["pores", "Visible pores", ""],
+      ["dryness", "Dull or dehydrated skin", ""],
+      ["lines", "Fine lines", ""],
+      ["pigmentation", "Dark spots", ""],
+      ["redness", "Redness", ""]
     ] },
-    { id: "pregnant", title: "Are you pregnant or breastfeeding?", sub: "Optional. Some ingredients need a doctor's OK.", multi: false, options: [
-      ["yes", "Yes", ""], ["no", "No", ""], ["skip", "Prefer not to say", ""]
+    { id: "reacts", title: "Does your skin sting or turn red easily?", multi: false, options: [
+      ["yes", "Yes", ""], ["unsure", "Sometimes", ""], ["no", "No", ""]
+    ] },
+    { id: "pregnant", title: "Pregnant or breastfeeding?", sub: "Optional. Some ingredients need a doctor's OK.", multi: false, options: [
+      ["yes", "Yes", ""], ["no", "No", ""], ["skip", "Skip", ""]
+    ] },
+    { id: "type", result: true, title: "Your skin type", sub: "Our best guess from your answers. Change it if it's wrong.", multi: false, options: [
+      ["dry", "Dry", "Tight, may flake"], ["normal", "Normal", "Balanced"], ["combination", "Combination", "Oily T-zone, normal or dry cheeks"], ["oily", "Oily", "Shiny, larger pores"]
     ] }
   ];
 
+  // Two answers -> a type. Same answer = that type; dry + oily = combination; any other mismatch follows midday (how the skin really behaves all day).
+  var AFTER = { tight: "dry", comfortable: "normal", tzone: "combination", oily: "oily" };
+  var MIDDAY = { flaky: "dry", matte: "normal", tzone: "combination", shiny: "oily" };
+  function inferType(a) {
+    var x = AFTER[a.after], y = MIDDAY[a.midday];
+    if (!x || !y) return null;
+    if (x === y) return x;
+    if ((x === "dry" && y === "oily") || (x === "oily" && y === "dry")) return "combination";
+    return y;
+  }
+
   var LABEL = {
     type: { normal: "Normal skin", dry: "Dry skin", oily: "Oily skin", combination: "Combination skin" },
-    concerns: { acne: "acne", redness: "redness", dryness: "dryness", pigmentation: "dark spots", lines: "fine lines" }
+    concerns: { acne: "breakouts", pores: "visible pores", redness: "redness", dryness: "dull or dry skin", pigmentation: "dark spots", lines: "fine lines" }
   };
 
   function load() {
@@ -52,7 +68,7 @@
       a.irritation = "your skin is sensitive or reacts easily";
       a.allergy = "your skin is sensitive or reacts easily";
     }
-    if (p.type === "oily" || concerns.indexOf("acne") > -1) a.comedogenic = "your skin is oily or acne-prone";
+    if (p.type === "oily" || concerns.indexOf("acne") > -1 || concerns.indexOf("pores") > -1) a.comedogenic = "your skin is oily, acne-prone or has visible pores";
     if (p.type === "dry" || concerns.indexOf("dryness") > -1) a.drying = "your skin is dry";
     if (p.pregnant === "yes") a.pregnancy = "you're pregnant or breastfeeding, so ask your doctor first";
     return a;
@@ -76,14 +92,16 @@
     });
 
     var helps = {};
-    var wanted = (p.concerns || []).slice();
+    // "Visible pores" is helped by the same ingredients that help breakouts.
+    var wanted = (p.concerns || []).map(function (c) { return { id: c, tag: c === "pores" ? "acne" : c }; });
     items.forEach(function (i) {
       if (i.level === "bad") return;
       i.helps.forEach(function (h) {
-        if (wanted.indexOf(h) > -1) {
-          helps[h] = helps[h] || [];
-          if (helps[h].indexOf(i.name) < 0) helps[h].push(i.name);
-        }
+        wanted.forEach(function (w) {
+          if (w.tag !== h) return;
+          helps[w.id] = helps[w.id] || [];
+          if (helps[w.id].indexOf(i.name) < 0) helps[w.id].push(i.name);
+        });
       });
     });
     var helpLines = Object.keys(helps).map(function (h) {
@@ -156,5 +174,5 @@
     return hits;
   }
 
-  window.Profile = { loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, match: match };
+  window.Profile = { inferType: inferType, loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, match: match };
 })();

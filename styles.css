@@ -804,3 +804,11 @@ body.on-profile #skin .privacy-note { margin-top: 10px; }
 .shelf-footrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0 0; }
 .shelf-footrow button.small-btn { font-size: 14px; padding: 8px 14px; }
 .shelf-footrow .shelf-del { margin: 0; }
+
+.rt-rater { margin: 0 0 12px; padding: 14px 16px; border-radius: 20px; border: 1px solid var(--glass-line); background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.rt-rater-row { display: flex; align-items: center; gap: 10px; margin: 2px 0 0; }
+.rt-rater-score { font-family: var(--font-display); font-size: 40px; font-weight: 700; line-height: 1; }
+.rt-rater-score small { font-size: 16px; font-weight: 600; color: var(--text-2); margin-left: 2px; }
+.rt-rater-meta { margin: 6px 0 0; font-size: 14px; color: var(--text-2); }
+.rt-rater-notes { margin: 8px 0 0; padding-left: 18px; font-size: 14.5px; line-height: 1.5; }
+.rt-rater-empty { margin: 4px 0 0; font-size: 15px; color: var(--text-2); }

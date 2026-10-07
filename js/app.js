@@ -307,7 +307,7 @@
   function renderQuiz() {
     var qs = quizQs();
     var q = qs[quiz.step];
-    el("quiz-step").textContent = "Question " + (quiz.step + 1) + " of " + qs.length;
+    el("quiz-step").textContent = q.result ? "Your result" : "Question " + (quiz.step + 1) + " of " + (qs.length - (qs[qs.length - 1].result ? 1 : 0));
     el("quiz-title").textContent = q.title;
     el("quiz-sub").textContent = q.sub || "";
     el("quiz-next").innerHTML = (quiz.step === qs.length - 1 ? ic("check") + "Finish" : "Next" + ic("arrow-right"));
@@ -331,7 +331,7 @@
     if (q.multi) {
       var list = quiz.answers[q.id] || [];
       var i = list.indexOf(v);
-      if (i > -1) list.splice(i, 1); else list.push(v);
+      if (i > -1) list.splice(i, 1); else { list.push(v); if (q.max && list.length > q.max) list.shift(); }
       quiz.answers[q.id] = list;
     } else {
       quiz.answers[q.id] = v;
@@ -345,7 +345,12 @@
     var a = quiz.answers[q.id];
     var answered = q.multi ? true : !!a;   // the concerns question may stay empty
     if (!answered) { el("quiz-sub").textContent = "Choose one answer to continue."; return; }
-    if (quiz.step < qs.length - 1) { quiz.step++; renderQuiz(); return; }
+    if (quiz.step < qs.length - 1) {
+      quiz.step++;
+      // The last skin step shows the type worked out from the first two answers.
+      if (qs[quiz.step].result && quiz.kind !== "hair") { var guess = window.Profile.inferType(quiz.answers); if (guess) quiz.answers.type = guess; }
+      renderQuiz(); return;
+    }
     if (quiz.kind === "hair") {
       quiz.answers.state = quiz.answers.state || [];
       quiz.answers.goals = quiz.answers.goals || [];
@@ -617,7 +622,43 @@
         '<div class="shelf-footrow">' + (sh ? '<button type="button" class="secondary small-btn" data-act="' + (pr ? "open" : "opensug") + '" data-i="' + i + '">Details</button>' : "<span></span>") +
         '<button type="button" class="link shelf-del" data-act="del" data-i="' + i + '">Delete this step</button></div></div>';
     }
-    el("rt-steps").innerHTML = steps.length ? panel + shelves : '<p class="rt-empty">No steps yet. Add one below.</p>';
+    el("rt-steps").innerHTML = steps.length ? routineRater(routineAreaOf(rtPeriod)) + panel + shelves : '<p class="rt-empty">No steps yet. Add one below.</p>';
+  }
+  // ----- Routine score for the whole area (Face, Hair or Body), shown above the product card -----
+  // Average safety score of the chosen products, minus points for each product that does not match your quiz (8), triggers an allergy (12)
+  // or an official alert (12), minus 5 if a retinoid and an exfoliating acid are in the same face routine. Products without a score are left out.
+  var RT_AREA = { face: ["face"], hair: ["hw", "hs"], body: ["bs", "bc"] };
+  function routineAreaOf(pd) { return isHairPeriod(pd) ? "hair" : isBodyPeriod(pd) ? "body" : "face"; }
+  function routineRater(area) {
+    var steps = [], chosen = [];
+    RT_AREA[area].forEach(function (pd) { (rt[pd] || []).forEach(function (st) { steps.push(st); if (st.product) chosen.push(st); }); });
+    var name = area === "hair" ? "Hair routine" : area === "body" ? "Body routine" : "Face routine";
+    var head = '<p class="shelf-kind">' + name + "</p>";
+    if (!chosen.length) return '<div class="rt-rater">' + head + '<p class="rt-rater-empty">Choose your products to see the score of your ' + area + " routine.</p></div>";
+    var prof = area === "hair" ? window.Hair.load() : window.Profile.load(), ids = window.Profile.loadAllergies(), words = window.Profile.loadWords();
+    var scores = [], notes = [], noMatch = 0, allergy = 0, alerts = 0, retinoid = 0, acid = 0, unrated = 0;
+    chosen.forEach(function (st) {
+      var p = st.product, a = analysisOf(p);
+      if (a.score === null) unrated++; else scores.push(a.score);
+      if (prof) { var m = area === "hair" ? window.Hair.match(a.items, prof, st.kind) : window.Profile.match(a.items, prof); if (m.level === "bad") noMatch++; }
+      if ((ids.length || words.length) && window.Profile.allergyHits(a.items, ids, words).length) allergy++;
+      if (window.Alerts && window.Alerts.match(p).length) alerts++;
+      if (area === "face") { var why = window.Routine.when(p, st.kind, a.items).why; if (/^Retinoids/.test(why)) retinoid++; else if (/^Exfoliating acids/.test(why)) acid++; }
+    });
+    var clash = area === "face" && retinoid > 0 && acid > 0;
+    if (!scores.length) return '<div class="rt-rater">' + head + '<p class="rt-rater-empty">Not enough data to score these products yet.</p></div>';
+    var avg = scores.reduce(function (x, y) { return x + y; }, 0) / scores.length;
+    var total = Math.max(0, Math.min(100, Math.round(avg - 8 * noMatch - 12 * allergy - 12 * alerts - (clash ? 5 : 0)))), b = band(total);
+    if (allergy) notes.push(plural(allergy, "product", "products") + " with something from your allergy list");
+    if (alerts) notes.push(plural(alerts, "product", "products") + " with an official alert");
+    if (noMatch) notes.push(plural(noMatch, "product", "products") + " that " + (noMatch === 1 ? "isn't" : "aren't") + " a match for your " + (area === "hair" ? "hair" : "skin"));
+    if (clash) notes.push("A retinoid and an exfoliating acid together can irritate: use them on different nights");
+    if (!prof) notes.push("Take the " + (area === "hair" ? "hair" : "skin") + " quiz to check the fit");
+    if (unrated) notes.push(plural(unrated, "product", "products") + " not scored");
+    if (!notes.length) notes.push("No problems found");
+    return '<div class="rt-rater">' + head + '<div class="rt-rater-row"><span class="rt-rater-score">' + total + '<small>/100</small></span><span class="tag sc ' + b.cls + ' big">' + esc(b.label) + "</span></div>" +
+      '<p class="rt-rater-meta">' + chosen.length + " of " + steps.length + " steps chosen</p>" +
+      '<ul class="rt-rater-notes">' + notes.map(function (n) { return "<li>" + esc(n) + "</li>"; }).join("") + "</ul></div>";
   }
   // Day, night or both, as sun and moon icons on top of each product.
   function shelfBadge(when) {
@@ -706,7 +747,7 @@
     if (!p) {
       box.className = "match prompt";
       box.innerHTML = '<p class="match-title">' + ic(hk ? "hair" : "droplet") + (hk ? "Does this suit your hair?" : "Does this suit your skin?") + "</p>" +
-        '<button type="button" class="secondary small-btn" id="match-quiz">' + (hk ? "Take the 5-question hair quiz" : "Take the 4-question quiz") + "</button>";
+        '<button type="button" class="secondary small-btn" id="match-quiz">' + (hk ? "Take the 5-question hair quiz" : "Take the 5-question quiz") + "</button>";
       el("match-quiz").addEventListener("click", function () { startQuiz(null, hk ? "hair" : "skin"); });
       return;
     }
