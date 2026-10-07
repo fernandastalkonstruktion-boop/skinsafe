@@ -464,7 +464,7 @@
   }
 
   // ----- Your routine: one list of steps for the morning and one for the night, saved only on this phone -----
-  var catalogList = [], rtPeriod = "face", rtSel = 0, rtSelPeriod = "", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {};
+  var catalogList = [], rtPeriod = "face", rtSel = 0, rtSelPeriod = "", rtStripPeriod = "", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {};
   function analysisOf(p) { var c = anCache[p.ingredientsText]; if (!c) { c = window.Ingredients.analyze(p.ingredientsText); anCache[p.ingredientsText] = c; } return c; }
   function routineProd(p) { return { id: productId(p), code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial }; }
   function whenOf(p, kind) { return window.Routine.when(p, kind || kindOf(p), analysisOf(p).items); }
@@ -592,7 +592,7 @@
     if (rtSel > steps.length - 1) rtSel = Math.max(0, steps.length - 1);
     var used = steps.filter(function (s) { return s.product; }).map(function (s) { return productId(s.product); });
     rtSug = [];
-    // The routine is a shelf: three products per shelf, a bottle outline where nothing is chosen yet, and the details of the tapped one below.
+    // The routine is a shelf: one row of products that slides sideways, a bottle outline where nothing is chosen yet, and the details of the tapped one below.
     var slots = steps.map(function (s, i) {
       var sug = null, p = s.product;
       if (!p) { sug = suggest(s.kind, rtPeriod, used, 1)[0] || null; if (sug) used.push(productId(sug)); }
@@ -604,8 +604,7 @@
         '<span class="shelf-name">' + (shown ? esc(shown.name) : "Pick one") + "</span>" +
         '<span class="shelf-brand">' + (p ? esc(p.brand) : shown ? "Suggested for you" : "Nothing suggested yet") + "</span></button>";
     });
-    var shelves = "";
-    for (var r0 = 0; r0 < slots.length; r0 += 3) shelves += '<div class="shelf-row">' + slots.slice(r0, r0 + 3).join("") + '</div><div class="shelf-plank"></div>';
+    var shelves = '<div class="shelf-scroll"><div class="shelf-strip">' + slots.join("") + '</div></div><div class="shelf-plank"></div>';
     var panel = "";
     if (steps.length) {
       var i = rtSel, st = steps[i], pr = st.product, sg = rtSug[i], sh = pr || sg;
@@ -622,7 +621,15 @@
         '<div class="shelf-footrow">' + (sh ? '<button type="button" class="secondary small-btn" data-act="' + (pr ? "open" : "opensug") + '" data-i="' + i + '">Details</button>' : "<span></span>") +
         '<button type="button" class="link shelf-del" data-act="del" data-i="' + i + '">Delete this step</button></div></div>';
     }
+    var oldStrip = document.querySelector("#rt-steps .shelf-scroll"), keepX = oldStrip && rtStripPeriod === rtPeriod ? oldStrip.scrollLeft : 0;
     el("rt-steps").innerHTML = steps.length ? routineRater(routineAreaOf(rtPeriod)) + panel + shelves : '<p class="rt-empty">No steps yet. Add one below.</p>';
+    // The shelf slides sideways: keep its position after a tap, and bring the tapped product fully into view.
+    var strip = document.querySelector("#rt-steps .shelf-scroll");
+    if (strip) {
+      strip.scrollLeft = keepX; rtStripPeriod = rtPeriod;
+      var cur = strip.querySelector(".shelf-slot.sel");
+      if (cur) { var l = cur.offsetLeft, r = l + cur.offsetWidth; if (l < strip.scrollLeft) strip.scrollLeft = l - 4; else if (r > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = r - strip.clientWidth + 4; }
+    }
   }
   // ----- Routine score for the whole area (Face, Hair or Body), shown above the product card -----
   // Average safety score of the chosen products, minus points for each product that does not match your quiz (8), triggers an allergy (12)
@@ -633,8 +640,8 @@
     var steps = [], chosen = [];
     RT_AREA[area].forEach(function (pd) { (rt[pd] || []).forEach(function (st) { steps.push(st); if (st.product) chosen.push(st); }); });
     var name = area === "hair" ? "Hair routine" : area === "body" ? "Body routine" : "Face routine";
-    var head = '<p class="shelf-kind">' + name + "</p>";
-    if (!chosen.length) return '<div class="rt-rater">' + head + '<p class="rt-rater-empty">Choose your products to see the score of your ' + area + " routine.</p></div>";
+    var head = '<p class="rt-rater-name">' + name + "</p>";
+    if (!chosen.length) return '<div class="rt-rater">' + head + '<p class="rt-rater-empty">Choose products to see the score.</p></div>';
     var prof = area === "hair" ? window.Hair.load() : window.Profile.load(), ids = window.Profile.loadAllergies(), words = window.Profile.loadWords();
     var scores = [], notes = [], noMatch = 0, allergy = 0, alerts = 0, retinoid = 0, acid = 0, unrated = 0;
     chosen.forEach(function (st) {
@@ -646,19 +653,18 @@
       if (area === "face") { var why = window.Routine.when(p, st.kind, a.items).why; if (/^Retinoids/.test(why)) retinoid++; else if (/^Exfoliating acids/.test(why)) acid++; }
     });
     var clash = area === "face" && retinoid > 0 && acid > 0;
-    if (!scores.length) return '<div class="rt-rater">' + head + '<p class="rt-rater-empty">Not enough data to score these products yet.</p></div>';
+    if (!scores.length) return '<div class="rt-rater">' + head + '<p class="rt-rater-empty">Not enough data to score yet.</p></div>';
     var avg = scores.reduce(function (x, y) { return x + y; }, 0) / scores.length;
     var total = Math.max(0, Math.min(100, Math.round(avg - 8 * noMatch - 12 * allergy - 12 * alerts - (clash ? 5 : 0)))), b = band(total);
-    if (allergy) notes.push(plural(allergy, "product", "products") + " with something from your allergy list");
-    if (alerts) notes.push(plural(alerts, "product", "products") + " with an official alert");
-    if (noMatch) notes.push(plural(noMatch, "product", "products") + " that " + (noMatch === 1 ? "isn't" : "aren't") + " a match for your " + (area === "hair" ? "hair" : "skin"));
-    if (clash) notes.push("A retinoid and an exfoliating acid together can irritate: use them on different nights");
-    if (!prof) notes.push("Take the " + (area === "hair" ? "hair" : "skin") + " quiz to check the fit");
-    if (unrated) notes.push(plural(unrated, "product", "products") + " not scored");
-    if (!notes.length) notes.push("No problems found");
-    return '<div class="rt-rater">' + head + '<div class="rt-rater-row"><span class="rt-rater-score">' + total + '<small>/100</small></span><span class="tag sc ' + b.cls + ' big">' + esc(b.label) + "</span></div>" +
-      '<p class="rt-rater-meta">' + chosen.length + " of " + steps.length + " steps chosen</p>" +
-      '<ul class="rt-rater-notes">' + notes.map(function (n) { return "<li>" + esc(n) + "</li>"; }).join("") + "</ul></div>";
+    if (allergy) notes.push(plural(allergy, "allergy hit", "allergy hits"));
+    if (alerts) notes.push(plural(alerts, "official alert", "official alerts"));
+    if (noMatch) notes.push(noMatch + " not for your " + (area === "hair" ? "hair" : "skin"));
+    if (clash) notes.push("Retinoid + acid: use on different nights");
+    if (!prof) notes.push("Take the quiz to check the fit");
+    if (unrated) notes.push(unrated + " not scored");
+    if (!notes.length) notes.push("All good");
+    return '<div class="rt-rater">' + head + '<div class="rt-rater-row"><span class="rt-rater-score">' + total + '<small>/100</small></span><span class="tag sc ' + b.cls + '">' + esc(b.label) + '</span><span class="rt-rater-meta">' + chosen.length + "/" + steps.length + ' steps</span></div>' +
+      '<p class="rt-rater-notes">' + esc(notes.join(" \u00b7 ")) + "</p></div>";
   }
   // Day, night or both, as sun and moon icons on top of each product.
   function shelfBadge(when) {
