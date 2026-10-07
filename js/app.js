@@ -459,7 +459,7 @@
   }
 
   // ----- Your routine: one list of steps for the morning and one for the night, saved only on this phone -----
-  var catalogList = [], rtPeriod = "face", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {};
+  var catalogList = [], rtPeriod = "face", rtSel = 0, rtSelPeriod = "", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {};
   function analysisOf(p) { var c = anCache[p.ingredientsText]; if (!c) { c = window.Ingredients.analyze(p.ingredientsText); anCache[p.ingredientsText] = c; } return c; }
   function routineProd(p) { return { id: productId(p), code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial }; }
   function whenOf(p, kind) { return window.Routine.when(p, kind || kindOf(p), analysisOf(p).items); }
@@ -583,26 +583,47 @@
     var kinds = hairArea ? window.Hair.ORDER : bodyArea ? window.Body.ORDER : window.Routine.ORDER;
     el("rt-add-kind").innerHTML = kinds.map(function (k) { return '<option value="' + k + '">' + K[k].label + "</option>"; }).join("");
     var steps = rt[rtPeriod];
+    if (rtSelPeriod !== rtPeriod) { rtSel = 0; rtSelPeriod = rtPeriod; }
+    if (rtSel > steps.length - 1) rtSel = Math.max(0, steps.length - 1);
     var used = steps.filter(function (s) { return s.product; }).map(function (s) { return productId(s.product); });
     rtSug = [];
-    el("rt-steps").innerHTML = steps.map(function (s, i) {
-      var head = '<div class="rt-head"><span class="rt-num">' + (i + 1) + '</span><p class="rt-kind">' + esc(K[s.kind].label) + '</p><button type="button" class="rt-x" data-act="del" data-i="' + i + '" aria-label="Remove this step">' + ic("x") + "</button></div>";
-      var body;
-      if (s.product) {
-        var w = noTimeKind(s.kind) ? { when: "any", why: K[s.kind].tip } : whenOf(s.product, s.kind);
-        body = '<div class="rt-card">' + rtRow(s.product, s.kind, "open", i) +
-          '<p class="rt-tip">' + esc(w.why) + "</p>" +
-          '<div class="rt-actions"><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Change</button><button type="button" class="secondary small-btn" data-act="clear" data-i="' + i + '">Remove</button></div></div>';
-      } else {
-        var sug = suggest(s.kind, rtPeriod, used, 1)[0];
-        rtSug[i] = sug || null;
-        if (sug) used.push(productId(sug));
-        body = '<div class="rt-card">' + (sug
-          ? '<p class="rt-sug">Suggested for you</p>' + rtRow(sug, s.kind, "opensug", i) + '<div class="rt-actions"><button type="button" class="primary small" data-act="use" data-i="' + i + '">Use this</button><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">See alternatives</button></div>'
-          : '<p class="rt-empty">We have no suggestion for this step yet.</p><div class="rt-actions"><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Pick my own</button></div>') + "</div>";
-      }
-      return '<div class="rt-step">' + head + body + "</div>";
-    }).join("") || '<p class="rt-empty">No steps yet. Add one below.</p>';
+    // The routine is a shelf: two products per shelf, a bottle outline where nothing is chosen yet, and the details of the tapped one below.
+    var slots = steps.map(function (s, i) {
+      var sug = null, p = s.product;
+      if (!p) { sug = suggest(s.kind, rtPeriod, used, 1)[0] || null; if (sug) used.push(productId(sug)); }
+      rtSug[i] = sug;
+      var shown = p || sug, w = noTimeKind(s.kind) ? null : (shown ? whenOf(shown, s.kind) : { when: window.Routine.stepWhen(s.kind) });
+      var img = shown ? photoHtml(shown) : bottleSvg(s.kind);
+      return '<button type="button" class="shelf-slot' + (i === rtSel ? " sel" : "") + (p ? "" : " ghost") + '" data-act="sel" data-i="' + i + '"><span class="shelf-img">' + img + (w ? shelfBadge(w.when) : "") + "</span>" +
+        '<span class="shelf-kind">' + esc(K[s.kind].label) + "</span>" +
+        '<span class="shelf-name">' + (shown ? esc(shown.name) : "Pick one") + "</span>" +
+        '<span class="shelf-brand">' + (p ? esc(p.brand) : shown ? "Suggested for you" : "Nothing suggested yet") + "</span></button>";
+    });
+    var shelves = "";
+    for (var r0 = 0; r0 < slots.length; r0 += 2) shelves += '<div class="shelf-row">' + slots.slice(r0, r0 + 2).join("") + '</div><div class="shelf-plank"></div>';
+    var panel = "";
+    if (steps.length) {
+      var i = rtSel, st = steps[i], pr = st.product, sg = rtSug[i], sh = pr || sg;
+      var w2 = noTimeKind(st.kind) ? { when: "any", why: K[st.kind].tip } : sh ? whenOf(sh, st.kind) : { when: window.Routine.stepWhen(st.kind), why: K[st.kind].hint };
+      panel = '<div class="shelf-panel"><p class="shelf-kind">' + esc(K[st.kind].label) + (pr ? "" : sg ? " · suggested for you" : "") + "</p>" +
+        (sh ? '<p class="shelf-pname">' + esc(sh.name) + '</p><p class="shelf-brand">' + esc(sh.brand) + '</p><div class="tags">' + scorePill(sh) + (noTimeKind(st.kind) ? "" : whenTag(w2)) + "</div>" : '<p class="shelf-pname">Nothing here yet</p>') +
+        '<p class="rt-tip">' + esc(w2.why) + "</p>" +
+        '<div class="rt-actions">' + (pr
+          ? '<button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Change</button><button type="button" class="secondary small-btn" data-act="clear" data-i="' + i + '">Remove</button><button type="button" class="secondary small-btn" data-act="open" data-i="' + i + '">Details</button>'
+          : sg ? '<button type="button" class="primary small" data-act="use" data-i="' + i + '">Use this</button><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">See alternatives</button><button type="button" class="secondary small-btn" data-act="opensug" data-i="' + i + '">Details</button>'
+          : '<button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Pick my own</button>') + "</div>" +
+        '<button type="button" class="link shelf-del" data-act="del" data-i="' + i + '">Delete this step</button></div>';
+    }
+    el("rt-steps").innerHTML = steps.length ? shelves + panel : '<p class="rt-empty">No steps yet. Add one below.</p>';
+  }
+  // Day, night or both, as sun and moon icons on top of each product.
+  function shelfBadge(when) {
+    return '<span class="shelf-badge" aria-label="' + (when === "am" ? "Morning" : when === "pm" ? "Night" : "Day and night") + '">' + (when === "pm" ? "" : ic("sun")) + (when === "am" ? "" : ic("moon")) + "</span>";
+  }
+  var SHAPE = { cleanser: "tube", toner: "tall", serum: "drop", treatment: "drop", eye: "jar", moisturizer: "jar", sunscreen: "tube", mask: "jar", shampoo: "tall", conditioner: "tube", hmask: "jar", leavein: "tall", heat: "tall", hoil: "drop", scalp: "drop", intimate: "tall", bodywash: "tall", bscrub: "jar", blotion: "tube", boil: "drop", bsun: "tube", deo: "tall", hand: "tube", foot: "jar", lip: "tube", bmist: "tall" };
+  function bottleSvg(kind) {
+    var g = { tube: '<rect x="22" y="6" width="26" height="12" rx="3"/><path d="M14 18h42l-4 76H18z"/>', tall: '<rect x="26" y="4" width="18" height="14" rx="3"/><rect x="29" y="18" width="12" height="10"/><rect x="16" y="28" width="38" height="66" rx="8"/>', drop: '<rect x="30" y="2" width="10" height="16" rx="5"/><rect x="26" y="16" width="18" height="10" rx="2"/><rect x="16" y="26" width="38" height="68" rx="9"/>', jar: '<rect x="10" y="46" width="50" height="16" rx="4"/><rect x="8" y="62" width="54" height="32" rx="8"/>' }[SHAPE[kind] || "tall"];
+  return '<svg class="shelf-outline" viewBox="0 0 70 100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="5 4">' + g + "</svg>";
   }
   function saveRoutine() { window.Routine.save(rt); renderRoutineCard(); }
   function openRoutine() {
@@ -651,6 +672,7 @@
     var b = e.target.closest ? e.target.closest("[data-act]") : null;
     if (!b) return;
     var act = b.getAttribute("data-act"), i = Number(b.getAttribute("data-i")), steps = rt[rtPeriod];
+    if (act === "sel") { rtSel = i; renderRoutine(); var pn = document.querySelector(".shelf-panel"); if (pn && pn.scrollIntoView) pn.scrollIntoView({ block: "nearest", behavior: "smooth" }); return; }
     if (act === "del") steps.splice(i, 1);
     else if (act === "clear") steps[i].product = null;
     else if (act === "use" && rtSug[i]) steps[i].product = routineProd(rtSug[i]);
@@ -1656,8 +1678,10 @@
   el("rt-steps").addEventListener("click", routineAction);
   el("rt-add").addEventListener("click", function () {
     var k = el("rt-add-kind").value, order = isHairPeriod(rtPeriod) ? window.Hair.ORDER : isBodyPeriod(rtPeriod) ? window.Body.ORDER : window.Routine.ORDER;
-    rt[rtPeriod].push({ kind: k, product: null });
+    var added = { kind: k, product: null };
+    rt[rtPeriod].push(added);
     rt[rtPeriod].sort(function (a, b) { return order.indexOf(a.kind) - order.indexOf(b.kind); });
+    rtSel = rt[rtPeriod].indexOf(added);
     saveRoutine(); renderRoutine();
   });
   el("rt-reset").addEventListener("click", function () { window.Routine.reset(); rt = window.Routine.load(); renderRoutineCard(); renderRoutine(); });
@@ -1671,6 +1695,7 @@
     if (!p) return;
     rtPeriod = pickCtx.period;
     rt[pickCtx.period][pickCtx.i].product = routineProd(p);
+    rtSel = pickCtx.i;
     saveRoutine(); renderRoutine(); show("routine");
   });
   el("manual").addEventListener("submit", function (e) {
