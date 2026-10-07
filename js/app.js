@@ -1574,6 +1574,19 @@
     el("results-q").blur();
   });
   el("search-form").addEventListener("submit", function (e) { e.preventDefault(); runSearch(el("q").value); });
+  // iPhone: opening the keyboard pushes the page up and closing it leaves the page there (the logo gets cut). On Home nothing scrolls, so put it back.
+  function homeScrollReset() {
+    if (!document.body.classList.contains("on-home")) return;
+    window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0;
+    var app = document.querySelector(".app"); if (app) app.scrollTop = 0;
+  }
+  document.addEventListener("focusout", function (e) {
+    if (!e.target || !/^(input|textarea|select)$/i.test(e.target.tagName)) return;
+    [0, 80, 300, 600].forEach(function (ms) { setTimeout(homeScrollReset, ms); });
+  });
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", function () {
+    if (window.visualViewport.height >= window.innerHeight - 80) homeScrollReset();
+  });
   el("q").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); runSearch(el("q").value); el("q").blur(); } });
   el("status-photo").addEventListener("click", startPhoto);
   el("status-find").addEventListener("submit", function (e) { e.preventDefault(); findForBarcode(el("status-find-q").value); });
