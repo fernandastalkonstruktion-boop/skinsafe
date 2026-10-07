@@ -823,3 +823,25 @@ body.on-profile #skin .privacy-note { margin-top: 10px; }
 .cat-chip.on { background: var(--btn); color: var(--on-btn); border-color: transparent; }
 #cats .search { margin-bottom: 8px; }
 #cats-more { width: 100%; margin: 10px 0 14px; }
+
+/* Edit the photo (crop) screen, shown after a photo is picked from the gallery or the phone's Camera app */
+.crop { position: absolute; inset: 0; z-index: 7; display: flex; flex-direction: column; color: var(--text); background-color: var(--sheet);
+  background-image: linear-gradient(rgba(47,143,216,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(47,143,216,0.08) 1px, transparent 1px); background-size: 26px 26px; }
+.crop-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: calc(env(safe-area-inset-top) + 14px) 16px 8px; }
+.crop-title { flex: 1; margin: 0; text-align: center; font-size: 17px; font-weight: 600; }
+.crop-top-gap { width: 46px; flex: none; }
+.crop-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 8px 22px; }
+.crop-wrap { position: relative; overflow: hidden; border-radius: 4px; touch-action: none; user-select: none; -webkit-user-select: none; box-shadow: 0 6px 22px rgba(14,47,77,0.18); }
+.crop-wrap canvas { display: block; width: 100%; height: 100%; }
+.crop-box { position: absolute; border: 2px dashed #fff; outline: 1px solid rgba(14,47,77,0.55); box-shadow: 0 0 0 100vmax rgba(14,47,77,0.45); cursor: move; touch-action: none; }
+.crop-h { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: #fff; border: 2px solid #2f8fd8; box-shadow: 0 1px 6px rgba(0,0,0,0.3); touch-action: none; }
+.crop-h::after { content: ""; position: absolute; inset: -12px; }
+.crop-h.nw { left: 0; top: 0; } .crop-h.n { left: 50%; top: 0; } .crop-h.ne { left: 100%; top: 0; }
+.crop-h.w { left: 0; top: 50%; } .crop-h.e { left: 100%; top: 50%; }
+.crop-h.sw { left: 0; top: 100%; } .crop-h.s { left: 50%; top: 100%; } .crop-h.se { left: 100%; top: 100%; }
+.crop-hint { margin: 0 auto 10px; width: fit-content; max-width: calc(100% - 40px); padding: 9px 16px; border-radius: 999px; background: var(--glass); border: 1px solid var(--glass-line); font-size: 14.5px; text-align: center; }
+.crop-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 16px calc(env(safe-area-inset-bottom) + 18px); }
+.crop-tools { display: flex; gap: 8px; }
+.crop-tool { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 62px; padding: 8px 8px 7px; border-radius: 14px; border: 1px solid var(--glass-line); background: var(--glass); color: var(--text); font: 600 11.5px/1.1 inherit; font-family: inherit; cursor: pointer; }
+.crop-tool .ic { width: 22px; height: 22px; }
+.crop-go { flex: none; background: var(--btn); }

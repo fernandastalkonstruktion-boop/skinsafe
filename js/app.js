@@ -1103,6 +1103,7 @@
   }
   function hideCam() {
     cam.open = false; cam.busy = false; cam.job++;
+    if (crop && crop.open) closeCrop();
     el("cam").hidden = true;
     document.body.classList.remove("cam-open");
   }
@@ -1279,6 +1280,140 @@
       camMsg("The camera isn't ready yet. Wait a second and try again.");
     });
   }
+
+  // ---- "Edit the photo": crop screen for photos picked from the gallery or the phone's Camera app (not for the live shutter) ----
+  // The frame starts fitted to the product (background-colour guess); drag the handles to change it, then Continue sends only the crop to the reader.
+  var crop = { cv: null, box: null, mode: "product", s: 1, drag: null, open: false };
+  var CROP_HINT = { code: "Crop to just the barcode", product: "Crop to just the front of the product", shelf: "Crop to the shelf you want to read", ingredients: "Crop to just the ingredient list" };
+  function cropLoad(file) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () {
+        var k = Math.min(1, 2400 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(im.naturalWidth * k)); c.height = Math.max(1, Math.round(im.naturalHeight * k));
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url); res(c);
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); rej(new Error("image")); };
+      im.src = url;
+    });
+  }
+  function cropWhole(c) { return { x: 0, y: 0, w: c.width, h: c.height }; }
+  function cropInset(c) { var m = 0.06; return { x: c.width * m, y: c.height * m, w: c.width * (1 - 2 * m), h: c.height * (1 - 2 * m) }; }
+  // Guess where the product is: everything that differs from the colour around the edges, the blob nearest the middle. Falls back to a small margin.
+  function cropAuto(c) {
+    try {
+      var k = 96 / Math.max(c.width, c.height), gw = Math.max(8, Math.round(c.width * k)), gh = Math.max(8, Math.round(c.height * k));
+      var t = document.createElement("canvas"); t.width = gw; t.height = gh;
+      var g = t.getContext("2d"); g.drawImage(c, 0, 0, gw, gh);
+      var d = g.getImageData(0, 0, gw, gh).data, rs = [], gs = [], bs = [], x, y, i;
+      function take(px, py) { var j = (py * gw + px) * 4; rs.push(d[j]); gs.push(d[j + 1]); bs.push(d[j + 2]); }
+      for (x = 0; x < gw; x++) { take(x, 0); take(x, gh - 1); }
+      for (y = 1; y < gh - 1; y++) { take(0, y); take(gw - 1, y); }
+      function med(a) { a.sort(function (p, q) { return p - q; }); return a[a.length >> 1]; }
+      var br = med(rs), bg = med(gs), bb = med(bs), m = new Uint8Array(gw * gh);
+      for (i = 0; i < gw * gh; i++) m[i] = Math.abs(d[i * 4] - br) + Math.abs(d[i * 4 + 1] - bg) + Math.abs(d[i * 4 + 2] - bb) > 70 ? 1 : 0;
+      var m2 = new Uint8Array(gw * gh);   // close tiny gaps (label text, thin lines): one cell of dilation
+      for (y = 0; y < gh; y++) for (x = 0; x < gw; x++) {
+        if (!m[y * gw + x]) continue;
+        for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) { var xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < gw && yy < gh) m2[yy * gw + xx] = 1; }
+      }
+      var seen = new Uint8Array(gw * gh), best = null;
+      for (i = 0; i < gw * gh; i++) {
+        if (!m2[i] || seen[i]) continue;
+        var st = [i], n = 0, x0 = gw, y0 = gh, x1 = 0, y1 = 0, sx = 0, sy = 0; seen[i] = 1;
+        while (st.length) {
+          var q = st.pop(), qx = q % gw, qy = (q - qx) / gw; n++; sx += qx; sy += qy;
+          if (qx < x0) x0 = qx; if (qx > x1) x1 = qx; if (qy < y0) y0 = qy; if (qy > y1) y1 = qy;
+          var nb = [q - 1, q + 1, q - gw, q + gw];
+          for (var z = 0; z < 4; z++) { var r = nb[z]; if (r < 0 || r >= gw * gh || seen[r] || !m2[r]) continue; if (z === 0 && qx === 0) continue; if (z === 1 && qx === gw - 1) continue; seen[r] = 1; st.push(r); }
+        }
+        if (n < gw * gh * 0.015) continue;
+        var cxn = sx / n / gw - 0.5, cyn = sy / n / gh - 0.5, score = n * (1 - 1.2 * Math.min(0.8, Math.sqrt(cxn * cxn + cyn * cyn)));
+        if (!best || score > best.score) best = { score: score, x0: x0, y0: y0, x1: x1, y1: y1 };
+      }
+      if (!best) return cropInset(c);
+      var bw = (best.x1 - best.x0 + 1) / gw, bh = (best.y1 - best.y0 + 1) / gh;
+      if (bw * bh > 0.9 || bw * bh < 0.08) return cropInset(c);
+      var px = bw * 0.07, py = bh * 0.05, fx = Math.max(0, best.x0 / gw - px), fy = Math.max(0, best.y0 / gh - py);
+      var fx2 = Math.min(1, (best.x1 + 1) / gw + px), fy2 = Math.min(1, (best.y1 + 1) / gh + py);
+      return { x: fx * c.width, y: fy * c.height, w: (fx2 - fx) * c.width, h: (fy2 - fy) * c.height };
+    } catch (e) { return cropInset(c); }
+  }
+  function cropLayout() {
+    var c = crop.cv, st = el("crop-stage"), cs = getComputedStyle(st);
+    var aw = st.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), ah = st.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    crop.s = Math.min(aw / c.width, ah / c.height, 1);
+    var wrap = el("crop-wrap"), cv = el("crop-cv");
+    wrap.style.width = Math.round(c.width * crop.s) + "px"; wrap.style.height = Math.round(c.height * crop.s) + "px";
+    cv.width = c.width; cv.height = c.height; cv.getContext("2d").drawImage(c, 0, 0);
+    cropPlace();
+  }
+  function cropPlace() {
+    var b = crop.box, s = crop.s, bx = el("crop-box");
+    bx.style.left = b.x * s + "px"; bx.style.top = b.y * s + "px"; bx.style.width = b.w * s + "px"; bx.style.height = b.h * s + "px";
+  }
+  function openCrop(file, mode) {
+    crop.mode = mode;
+    cropLoad(file).then(function (c) {
+      crop.cv = c; crop.box = cropAuto(c); crop.open = true;
+      el("crop-hint").textContent = CROP_HINT[mode] || CROP_HINT.product;
+      el("crop").hidden = false;
+      cropLayout();
+    }).catch(function () { handleFile(file, mode); });   // unreadable format: skip the editor and read it as before
+  }
+  function closeCrop() { crop.open = false; crop.drag = null; el("crop").hidden = true; }
+  function cropRotate() {
+    var c = crop.cv, r = document.createElement("canvas"), b = crop.box;
+    r.width = c.height; r.height = c.width;
+    var g = r.getContext("2d"); g.translate(r.width, 0); g.rotate(Math.PI / 2); g.drawImage(c, 0, 0);
+    crop.box = { x: c.height - (b.y + b.h), y: b.x, w: b.h, h: b.w };
+    crop.cv = r; cropLayout();
+  }
+  function cropGo() {
+    var c = crop.cv, b = crop.box, k = Math.min(1, 2400 / Math.max(b.w, b.h)), o = document.createElement("canvas");
+    o.width = Math.max(1, Math.round(b.w * k)); o.height = Math.max(1, Math.round(b.h * k));
+    o.getContext("2d").drawImage(c, b.x, b.y, b.w, b.h, 0, 0, o.width, o.height);
+    var mode = crop.mode;
+    o.toBlob(function (blob) {
+      if (!blob) return;
+      var f = new File([blob], "crop.jpg", { type: "image/jpeg" });
+      closeCrop();
+      if (cam.open) handleFile(f, mode);
+    }, "image/jpeg", 0.92);
+  }
+  function cropDown(e) {
+    var h = e.target.getAttribute && e.target.getAttribute("data-h");
+    if (!h) return;
+    e.preventDefault();
+    crop.drag = { h: h, x: e.clientX, y: e.clientY, b: { x: crop.box.x, y: crop.box.y, w: crop.box.w, h: crop.box.h }, id: e.pointerId };
+    try { el("crop-wrap").setPointerCapture(e.pointerId); } catch (x) {}
+  }
+  function cropMove(e) {
+    var d = crop.drag; if (!d || e.pointerId !== d.id) return;
+    var c = crop.cv, dx = (e.clientX - d.x) / crop.s, dy = (e.clientY - d.y) / crop.s, b = d.b, min = Math.max(40, Math.min(c.width, c.height) * 0.08);
+    var x0 = b.x, y0 = b.y, x1 = b.x + b.w, y1 = b.y + b.h;
+    if (d.h === "move") {
+      var nx = Math.min(Math.max(0, b.x + dx), c.width - b.w), ny = Math.min(Math.max(0, b.y + dy), c.height - b.h);
+      crop.box = { x: nx, y: ny, w: b.w, h: b.h }; cropPlace(); return;
+    }
+    if (d.h.indexOf("w") >= 0) x0 = Math.min(Math.max(0, b.x + dx), x1 - min);
+    if (d.h.indexOf("e") >= 0) x1 = Math.max(Math.min(c.width, b.x + b.w + dx), x0 + min);
+    if (d.h.indexOf("n") >= 0) y0 = Math.min(Math.max(0, b.y + dy), y1 - min);
+    if (d.h.indexOf("s") >= 0) y1 = Math.max(Math.min(c.height, b.y + b.h + dy), y0 + min);
+    crop.box = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }; cropPlace();
+  }
+  function cropUp(e) { if (crop.drag && e.pointerId === crop.drag.id) crop.drag = null; }
+  el("crop-wrap").addEventListener("pointerdown", cropDown);
+  el("crop-wrap").addEventListener("pointermove", cropMove);
+  el("crop-wrap").addEventListener("pointerup", cropUp);
+  el("crop-wrap").addEventListener("pointercancel", cropUp);
+  el("crop-back").addEventListener("click", closeCrop);
+  el("crop-rotate").addEventListener("click", cropRotate);
+  el("crop-auto").addEventListener("click", function () { crop.box = cropAuto(crop.cv); cropPlace(); });
+  el("crop-full").addEventListener("click", function () { crop.box = cropWhole(crop.cv); cropPlace(); });
+  el("crop-go").addEventListener("click", cropGo);
+  window.addEventListener("resize", function () { if (crop.open) cropLayout(); });
 
   function handleFile(file, mode) {
     var alts = cam.alts || []; cam.alts = [];
@@ -1708,8 +1843,8 @@
   el("cam-gallery").addEventListener("click", function () { el("cam-file").value = ""; el("cam-file").click(); });
   // "Camera app" opens the phone's own camera (zoom 1x to 5x, tap to focus, flash). Its photo is read like any other.
   el("cam-native").addEventListener("click", function () { el("cam-native-file").value = ""; el("cam-native-file").click(); });
-  el("cam-native-file").addEventListener("change", function () { var f = el("cam-native-file").files && el("cam-native-file").files[0]; if (f) handleFile(f, cam.mode); });
-  el("cam-file").addEventListener("change", function () { var f = el("cam-file").files && el("cam-file").files[0]; if (f) handleFile(f, cam.mode); });
+  el("cam-native-file").addEventListener("change", function () { var f = el("cam-native-file").files && el("cam-native-file").files[0]; if (f) openCrop(f, cam.mode); });
+  el("cam-file").addEventListener("change", function () { var f = el("cam-file").files && el("cam-file").files[0]; if (f) openCrop(f, cam.mode); });
   el("cam-modes").addEventListener("click", function (e) {
     var b = e.target.closest ? e.target.closest("button[data-mode]") : null;
     if (b && !cam.busy) setMode(b.getAttribute("data-mode"));
