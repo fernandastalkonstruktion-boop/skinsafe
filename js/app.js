@@ -483,19 +483,49 @@
       return sug || null;
     });
   }
+  // The routine keeps a copy of each chosen product. When our list changes (new ingredients, new photo, new name), refresh the copies
+  // from the catalog: by barcode when there is one, otherwise by brand + name. Products we cannot find stay as they were.
+  function sameKey(p) { return p.code ? "c:" + p.code : "n:" + String(p.brand || "").toLowerCase() + "|" + String(p.name || "").toLowerCase(); }
+  function refreshRoutine(r) {
+    var map = {}, changed = false;
+    catalogList.forEach(function (c) { map[sameKey(c)] = c; });
+    ["am", "pm", "hw", "hs", "bs", "bc"].forEach(function (pd) {
+      (r[pd] || []).forEach(function (s) {
+        if (!s.product || !s.product.shop) return;
+        var c = map[sameKey(s.product)];
+        if (!c) return;
+        var fresh = routineProd(c);
+        if (fresh.image !== s.product.image || fresh.ingredientsText !== s.product.ingredientsText || fresh.name !== s.product.name || fresh.brand !== s.product.brand || fresh.partial !== s.product.partial) { s.product = fresh; changed = true; }
+      });
+    });
+    return changed;
+  }
+  // Home card: three areas (Face, Hair, Body), each with the first three products of its steps (chosen, or our suggestion).
+  var RC_AREAS = [["Face", "face", ["am", "pm"], "am"], ["Hair", "hair", ["hw", "hs"], "hw"], ["Body", "droplet", ["bs", "bc"], "bs"]];
   function renderRoutineCard() {
-    var r = window.Routine.load();
-    function col(label, icon, steps, period) {
-      var prods = previewProducts(steps, period);
-      var dots = prods.slice(0, 3).map(function (p) { return '<span class="rc-dot">' + (p ? photoHtml(p) : ic("droplet")) + "</span>"; }).join("");
-      return '<div class="rc-col">' + ic(icon) + '<b class="rc-name">' + label + '</b><span class="rc-steps">' + plural(steps.length, "step", "steps") + '</span><div class="rc-dots">' + dots + "</div></div>";
-    }
-    function draw() {
-      el("routine-card").innerHTML = '<p class="rc-title">Your routine</p><div class="rc-cols">' + col("Morning", "sun", r.am, "am") + col("Night", "moon", r.pm, "pm") + col("Wash day", "droplet", r.hw, "hw") + col("Styling", "flame", r.hs, "hs") + col("Shower", "droplet", r.bs, "bs") + col("Body care", "leaf", r.bc, "bc") + "</div>" +
+    function draw(r) {
+      var cols = RC_AREAS.map(function (a) {
+        var seen = {}, prods = [];
+        a[2].forEach(function (pd) {
+          previewProducts(r[pd], pd).forEach(function (p) {
+            if (!p || seen[productId(p)]) return;
+            seen[productId(p)] = true; prods.push(p);
+          });
+        });
+        var dots = [0, 1, 2].map(function (i) { var p = prods[i]; return '<span class="rc-dot">' + (p ? photoHtml(p) : ic("droplet")) + "</span>"; }).join("");
+        return '<div class="rc-col" data-period="' + a[3] + '">' + ic(a[1]) + '<b class="rc-name">' + a[0] + '</b><div class="rc-dots">' + dots + "</div></div>";
+      }).join("");
+      el("routine-card").innerHTML = '<p class="rc-title">Your routine</p><div class="rc-cols">' + cols + "</div>" +
         '<p class="rc-go">Tap to see and change your steps</p>';
     }
-    draw();
-    if (!catalogList.length) window.Shop.load().then(function (list) { if (list.length) { catalogList = list; draw(); } });
+    draw(window.Routine.load());
+    window.Shop.load().then(function (list) {
+      if (!list.length) return;
+      catalogList = list;
+      var r = window.Routine.load();
+      if (refreshRoutine(r)) window.Routine.save(r);
+      draw(r);
+    });
   }
   // Best-rated products of this kind that suit the person: no allergy hit, no official alert, a fair match for the quiz, and right for the time of day.
   function suggest(kind, period, exclude, limit) {
@@ -576,6 +606,7 @@
   function openRoutine() {
     window.Shop.load().then(function (list) {
       catalogList = list; rt = window.Routine.load();
+      if (refreshRoutine(rt)) window.Routine.save(rt);
       renderRoutine(); show("routine");
     });
   }
@@ -1582,7 +1613,11 @@
   el("open-about").addEventListener("click", function () { lastProduct = null; renderAbout(); show("about"); });
   el("disclaimer-about").addEventListener("click", function () { renderAbout(); show("about"); });
   el("about-back").addEventListener("click", function () { if (lastProduct) show("result"); else { renderProfileCard(); show("skin"); } });
-  el("routine-card").addEventListener("click", openRoutine);
+  el("routine-card").addEventListener("click", function (e) {
+    var c = e.target.closest ? e.target.closest(".rc-col") : null;
+    if (c) rtPeriod = c.getAttribute("data-period");
+    openRoutine();
+  });
   el("fav-filter").addEventListener("change", function () { favFilter = el("fav-filter").value; renderSavedList(); });
   el("rt-profile").addEventListener("click", function () {
     if (isHairPeriod(rtPeriod)) { startQuiz(window.Hair.load(), "hair", "routine"); return; }
