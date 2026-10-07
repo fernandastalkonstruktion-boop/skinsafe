@@ -28,13 +28,19 @@
   // Brands that only make body care (names like "Calming Wash" or "Stay Glow Body Serum Mist" do not always say body)
   var BODY_BRAND = /^login forest$/i;
 
+  var NOT_WASH = /(wipe|cloth|spray|\bmist\b|lubricant|moisturizer|\bserum\b|odor block gel|vulva gel|panty)/;
+  // Soap for the hands only, and hand sanitizer, are not body wash or hand cream.
+  var HAND_ONLY = /(\bhand (wash|soap)\b|liquid hand|sanitizer)/;
+
   function classify(p) {
     var n = (p.name || "").toLowerCase().replace(/&/g, " and ").replace(/\s+/g, " ");
-    if (INTIMATE.test(n) || INTIMATE_BRAND.test(p.brand || "")) return "intimate";
+    // The intimate step is for washes: wipes, sprays, lubricants, moisturizers and leave-on gels are not washes.
+    if (INTIMATE.test(n) || INTIMATE_BRAND.test(p.brand || "")) return NOT_WASH.test(n) ? null : "intimate";
     if (/(lip (balm|care|treatment|mask|sleeping|butter)|lipsoftie|lip sleeping|balmy tint)/.test(n)) return "lip";
     var bodyBrand = BODY_BRAND.test(p.brand || "");
     if (!BODY_WORD.test(n) && !bodyBrand) return null;
     if (FACE_ONLY.test(n) && !/\bbody\b/.test(n)) return null;
+    if (HAND_ONLY.test(n) && !/\bbody\b/.test(n)) return null;
     if (/(deodorant|desodorante|antiperspirant|antitranspirante)/.test(n)) return "deo";
     if (/(sun ?screen|\bspf\b|\bsun\b)/.test(n)) return "bsun";
     if (/hand (and|&)? ?body/.test(n) && /(lotion|cream|crema|butter)/.test(n)) return "blotion";
