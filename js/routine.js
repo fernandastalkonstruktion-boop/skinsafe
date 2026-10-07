@@ -59,12 +59,28 @@
 
   function load() {
     var HD = (window.Hair && window.Hair.DEFAULT_STEPS) || { hw: ["shampoo", "conditioner", "hmask"], hs: ["leavein", "heat", "hoil"] };
+    var BD = (window.Body && window.Body.DEFAULT_STEPS) || { bs: ["intimate", "bodywash", "bscrub"], bc: ["blotion", "deo", "hand"] };
     function mk(list) { return list.map(function (k) { return { kind: k, product: null }; }); }
     try {
       var r = JSON.parse(localStorage.getItem(KEY) || "null");
-      if (r && r.am && r.pm) { r.hw = r.hw || mk(HD.hw); r.hs = r.hs || mk(HD.hs); return r; }
+      if (r && r.am && r.pm) {
+        r.hw = r.hw || mk(HD.hw); r.hs = r.hs || mk(HD.hs); r.bs = r.bs || mk(BD.bs); r.bc = r.bc || mk(BD.bc);
+        // The night routine follows the morning one until the person changes the night one.
+        if (r.pmLinked === undefined) r.pmLinked = !r.pm.some(function (s) { return s.product; });
+        return r;
+      }
     } catch (e) {}
-    return { hw: mk(HD.hw), hs: mk(HD.hs), am: DEFAULT_STEPS.am.map(function (k) { return { kind: k, product: null }; }), pm: DEFAULT_STEPS.pm.map(function (k) { return { kind: k, product: null }; }) };
+    return { hw: mk(HD.hw), hs: mk(HD.hs), bs: mk(BD.bs), bc: mk(BD.bc), am: DEFAULT_STEPS.am.map(function (k) { return { kind: k, product: null }; }), pm: DEFAULT_STEPS.pm.map(function (k) { return { kind: k, product: null }; }), pmLinked: true };
+  }
+  // Copies what was chosen in the morning into the matching night steps (not sunscreen: it is only for the day).
+  function syncNight(r) {
+    var used = {};
+    r.pm.forEach(function (s) {
+      if (s.kind === "sunscreen") return;
+      for (var i = 0; i < r.am.length; i++) {
+        if (!used[i] && r.am[i].kind === s.kind) { used[i] = true; s.product = r.am[i].product ? JSON.parse(JSON.stringify(r.am[i].product)) : null; break; }
+      }
+    });
   }
   function save(r) { try { localStorage.setItem(KEY, JSON.stringify(r)); } catch (e) {} }
   function reset() { try { localStorage.removeItem(KEY); } catch (e) {} }
@@ -83,5 +99,5 @@
   Object.keys(ORAL_KINDS).forEach(function (k) { KINDS[k] = ORAL_KINDS[k]; });
   window.Oral = { KINDS: ORAL_KINDS, ORDER: ["oral"], classify: classifyOral };
 
-  window.Routine = { KINDS: KINDS, ORDER: ORDER, DEFAULT_STEPS: DEFAULT_STEPS, classify: classify, when: when, load: load, save: save, reset: reset };
+  window.Routine = { KINDS: KINDS, ORDER: ORDER, DEFAULT_STEPS: DEFAULT_STEPS, classify: classify, when: when, load: load, save: save, reset: reset, syncNight: syncNight };
 })();

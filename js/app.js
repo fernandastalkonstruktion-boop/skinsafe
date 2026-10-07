@@ -394,7 +394,9 @@
     b.classList.toggle("on", on);
   }
   var favFilter = "all";
-  function kindOf(p) { return window.Oral.classify(p) || window.Hair.classify(p) || window.Routine.classify(p) || "other"; }
+  // Products sold for "face and body" stay with the face routine.
+  function faceAndBody(p) { return /\b(face|facial)\b/i.test(p.name || ""); }
+  function kindOf(p) { return window.Oral.classify(p) || window.Hair.classify(p) || (faceAndBody(p) && window.Routine.classify(p)) || window.Body.classify(p) || window.Routine.classify(p) || "other"; }
   function kindLabel(k) { return k === "other" ? "Other" : window.Routine.KINDS[k].label; }
   function cardHtml(p, i, heart) {
     var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), hk = window.Hair.classify(p), prof = window.Oral.classify(p) ? null : hk ? window.Hair.load() : window.Profile.load();
@@ -436,7 +438,7 @@
     var kinds = {};
     all.forEach(function (p) { kinds[kindOf(p)] = true; });
     if (!kinds[favFilter]) favFilter = "all";
-    sel.innerHTML = '<option value="all">All</option>' + window.Routine.ORDER.concat(window.Hair.ORDER, window.Oral.ORDER, ["other"]).filter(function (k) { return kinds[k]; }).map(function (k) {
+    sel.innerHTML = '<option value="all">All</option>' + window.Routine.ORDER.concat(window.Hair.ORDER, window.Body.ORDER, window.Oral.ORDER, ["other"]).filter(function (k) { return kinds[k]; }).map(function (k) {
       return '<option value="' + k + '">' + kindLabel(k) + "</option>";
     }).join("");
     sel.value = favFilter;
@@ -463,7 +465,11 @@
   function whenOf(p, kind) { return window.Routine.when(p, kind || kindOf(p), analysisOf(p).items); }
   function isHairKind(k) { return !!(window.Hair.KINDS[k]); }
   function isHairPeriod(pd) { return pd === "hw" || pd === "hs"; }
-  var PERIOD_NAME = { am: "Morning routine", pm: "Night routine", hw: "Wash day", hs: "Styling and care" };
+  function isBodyKind(k) { return !!(window.Body && window.Body.KINDS[k]); }
+  function isBodyPeriod(pd) { return pd === "bs" || pd === "bc"; }
+  // Hair and body steps have no morning or night.
+  function noTimeKind(k) { return isHairKind(k) || isBodyKind(k); }
+  var PERIOD_NAME = { am: "Morning routine", pm: "Night routine", hw: "Wash day", hs: "Styling and care", bs: "Shower", bc: "Body care" };
   function whenTag(w) {
     return w.when === "am" ? '<span class="tag am">' + ic("sun") + "Morning</span>" : w.when === "pm" ? '<span class="tag pm">' + ic("moon") + "Night</span>" : '<span class="tag any">Morning or night</span>';
   }
@@ -485,7 +491,7 @@
       return '<div class="rc-col">' + ic(icon) + '<b class="rc-name">' + label + '</b><span class="rc-steps">' + plural(steps.length, "step", "steps") + '</span><div class="rc-dots">' + dots + "</div></div>";
     }
     function draw() {
-      el("routine-card").innerHTML = '<p class="rc-title">Your routine</p><div class="rc-cols">' + col("Morning", "sun", r.am, "am") + col("Night", "moon", r.pm, "pm") + col("Wash day", "droplet", r.hw, "hw") + col("Styling", "flame", r.hs, "hs") + "</div>" +
+      el("routine-card").innerHTML = '<p class="rc-title">Your routine</p><div class="rc-cols">' + col("Morning", "sun", r.am, "am") + col("Night", "moon", r.pm, "pm") + col("Wash day", "droplet", r.hw, "hw") + col("Styling", "flame", r.hs, "hs") + col("Shower", "droplet", r.bs, "bs") + col("Body care", "leaf", r.bc, "bc") + "</div>" +
         '<p class="rc-go">Tap to see and change your steps</p>';
     }
     draw();
@@ -493,15 +499,15 @@
   }
   // Best-rated products of this kind that suit the person: no allergy hit, no official alert, a fair match for the quiz, and right for the time of day.
   function suggest(kind, period, exclude, limit) {
-    var hair = isHairKind(kind);
+    var hair = isHairKind(kind), body = isBodyKind(kind);
     var prof = hair ? window.Hair.load() : window.Profile.load(), ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), out = [];
     catalogList.forEach(function (p) {
       if (p.partial || window.Oral.classify(p)) return;
-      if (hair ? window.Hair.classify(p) !== kind : (window.Hair.classify(p) || window.Routine.classify(p) !== kind)) return;
+      if (hair ? window.Hair.classify(p) !== kind : body ? (window.Hair.classify(p) || window.Body.classify(p) !== kind) : (window.Hair.classify(p) || (window.Body.classify(p) && !faceAndBody(p)) || window.Routine.classify(p) !== kind)) return;
       var a = analysisOf(p);
       // Hair products score lower in general, so they get a lower floor, and the best-rated ones still come first.
       if (a.score === null || a.score < (hair ? 35 : 51)) return;
-      if (!hair) {
+      if (!hair && !body) {
         var w = window.Routine.when(p, kind, a.items).when;
         if (w !== "any" && w !== period) return;
       }
@@ -518,24 +524,26 @@
   function rtRow(p, kind, act, i) {
     return '<button type="button" class="result-item" data-act="' + act + '" data-i="' + i + '">' + photoHtml(p) +
       '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
-      '<span class="tags">' + scorePill(p) + (isHairKind(kind) ? "" : whenTag(whenOf(p, kind))) + "</span></span>" + ic("chevron-right", "chev-ic") + "</button>";
+      '<span class="tags">' + scorePill(p) + (noTimeKind(kind) ? "" : whenTag(whenOf(p, kind))) + "</span></span>" + ic("chevron-right", "chev-ic") + "</button>";
   }
   function renderRoutine() {
-    var K = window.Routine.KINDS, hairArea = isHairPeriod(rtPeriod);
+    var K = window.Routine.KINDS, hairArea = isHairPeriod(rtPeriod), bodyArea = isBodyPeriod(rtPeriod);
     var prof = hairArea ? window.Hair.load() : window.Profile.load();
     el("rt-profile").innerHTML = hairArea
       ? "<b>Hair</b><span>" + esc(prof ? window.Hair.summary(prof) : "Take the hair quiz for better suggestions") + "</span>" + ic("chevron-right", "chev-ic")
       : "<b>Skin</b><span>" + esc(prof ? window.Profile.summary(prof) : "Take the skin quiz for better suggestions") + "</span>" + ic("chevron-right", "chev-ic");
-    el("rt-face").classList.toggle("on", !hairArea); el("rt-hair").classList.toggle("on", hairArea);
-    el("rt-face").setAttribute("aria-selected", String(!hairArea)); el("rt-hair").setAttribute("aria-selected", String(hairArea));
-    var tabs = hairArea ? [["hw", "droplet", "Wash day"], ["hs", "flame", "Styling"]] : [["am", "sun", "Morning"], ["pm", "moon", "Night"]];
+    var faceArea = !hairArea && !bodyArea;
+    el("rt-face").classList.toggle("on", faceArea); el("rt-hair").classList.toggle("on", hairArea); el("rt-body").classList.toggle("on", bodyArea);
+    el("rt-face").setAttribute("aria-selected", String(faceArea)); el("rt-hair").setAttribute("aria-selected", String(hairArea)); el("rt-body").setAttribute("aria-selected", String(bodyArea));
+    var tabs = hairArea ? [["hw", "droplet", "Wash day"], ["hs", "flame", "Styling"]] : bodyArea ? [["bs", "droplet", "Shower"], ["bc", "leaf", "Body care"]] : [["am", "sun", "Morning"], ["pm", "moon", "Night"]];
+    el("rt-linknote").hidden = !(rtPeriod === "pm" && rt.pmLinked !== false);
     ["rt-am", "rt-pm"].forEach(function (id, n) {
       var t = tabs[n];
       el(id).innerHTML = ic(t[1]) + t[2];
       el(id).setAttribute("data-period", t[0]);
       el(id).classList.toggle("on", rtPeriod === t[0]); el(id).setAttribute("aria-selected", String(rtPeriod === t[0]));
     });
-    var kinds = hairArea ? window.Hair.ORDER : window.Routine.ORDER;
+    var kinds = hairArea ? window.Hair.ORDER : bodyArea ? window.Body.ORDER : window.Routine.ORDER;
     el("rt-add-kind").innerHTML = kinds.map(function (k) { return '<option value="' + k + '">' + K[k].label + "</option>"; }).join("");
     var steps = rt[rtPeriod];
     var used = steps.filter(function (s) { return s.product; }).map(function (s) { return productId(s.product); });
@@ -544,7 +552,7 @@
       var head = '<div class="rt-head"><span class="rt-num">' + (i + 1) + '</span><p class="rt-kind">' + esc(K[s.kind].label) + '</p><button type="button" class="rt-x" data-act="del" data-i="' + i + '" aria-label="Remove this step">' + ic("x") + "</button></div>";
       var body;
       if (s.product) {
-        var w = isHairKind(s.kind) ? { when: "any", why: K[s.kind].tip } : whenOf(s.product, s.kind), warn = w.when !== "any" && w.when !== rtPeriod;
+        var w = noTimeKind(s.kind) ? { when: "any", why: K[s.kind].tip } : whenOf(s.product, s.kind), warn = w.when !== "any" && w.when !== rtPeriod;
         body = '<div class="rt-card">' + rtRow(s.product, s.kind, "open", i) +
           '<p class="rt-tip' + (warn ? " warn" : "") + '">' + esc((warn ? (w.when === "pm" ? "Usually used at night, and it is in your morning routine. " : "Usually used in the morning, and it is in your night routine. ") : "") + w.why) + "</p>" +
           '<div class="rt-actions"><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Change</button><button type="button" class="secondary small-btn" data-act="clear" data-i="' + i + '">Remove</button></div></div>';
@@ -559,7 +567,12 @@
       return '<div class="rt-step">' + head + body + "</div>";
     }).join("") || '<p class="rt-empty">No steps yet. Add one below.</p>';
   }
-  function saveRoutine() { window.Routine.save(rt); renderRoutineCard(); }
+  // The night routine follows what was chosen in the morning, until the night one is changed by hand (then it stays as it is).
+  function saveRoutine() {
+    if (rtPeriod === "pm") rt.pmLinked = false;
+    else if (rtPeriod === "am" && rt.pmLinked !== false) window.Routine.syncNight(rt);
+    window.Routine.save(rt); renderRoutineCard();
+  }
   function openRoutine() {
     window.Shop.load().then(function (list) {
       catalogList = list; rt = window.Routine.load();
@@ -1477,7 +1490,7 @@
     ["info", "Product alerts", "Official recalls are facts, with the date and a link to the notice. Lawsuits only appear when a court grouped many cases from different people and published science backs the claim. They are always labeled not proven."],
     ["ban", "What we can't know", "The list order tells us the biggest ingredients, not the exact amounts. Photos can be misread. Product data comes from a community database that can be out of date. A cosmetic scientist has not reviewed our ratings yet. This is not medical advice."],
     ["package", "Find a product", "One camera does it all. Barcode reads by itself. Product takes a photo of the front (we read its barcode first, then the words on the label). Shelf tries to recognize several products in one photo, and Ingredients reads the ingredient list. You can also search by name. For a round bottle, tap Camera app to use your phone's own camera: you can zoom in (for example 5×) so the list looks flatter, and tap to focus. Reading words from a photo can miss stylized fonts and crowded shelves, so check that each match is your product. Photos are read on your phone and are not uploaded."],
-    ["sun", "Your routine", "There is a face routine (morning and night) and a hair routine (wash day and styling). Suggested products are the best-rated ones in our list that fit your skin or hair quiz and have no allergy hit or official alert. The hair quiz asks about pattern, strand thickness, scalp, past treatments and goals, with a tip in each question to find out your answer; it is guidance, not a diagnosis. Hair products tend to score lower, so for hair we also suggest a few fair ones (35 or more) after the best ones. The morning or night tip comes from the product name and its ingredients: retinol and exfoliating acids at night, sunscreen and vitamin C in the morning. It is guidance, so follow the package. You can swap any suggestion for the product you really own."],
+    ["sun", "Your routine", "There is a face routine (morning and night), a hair routine (wash day and styling) and a body routine (shower, from the intimate wash to the body wash and scrub, and body care, from lotion and deodorant to hand cream). What you choose for the morning is copied to the night routine until you change the night one yourself; after that it stays as you left it (sunscreen is not copied). Suggested products are the best-rated ones in our list that fit your skin or hair quiz and have no allergy hit or official alert. The hair quiz asks about pattern, strand thickness, scalp, past treatments and goals, with a tip in each question to find out your answer; it is guidance, not a diagnosis. Hair products tend to score lower, so for hair we also suggest a few fair ones (35 or more) after the best ones. The morning or night tip comes from the product name and its ingredients: retinol and exfoliating acids at night, sunscreen and vitamin C in the morning. It is guidance, so follow the package. You can swap any suggestion for the product you really own."],
     ["leaf", "Vegan and cruelty-free marks", "These small marks appear only when they are true, and they never change the score. Vegan-friendly means we found no animal-derived ingredient in the list (honey, beeswax, collagen, lanolin, milk proteins and similar). Some common ingredients, like glycerin or stearic acid, can come from animals or plants and the list does not say which, so this is not a vegan certification. Cruelty-free means the brand is listed by Leaping Bunny or PETA, two independent nonprofits; we do not use the brand's own claim."],
     ["camera", "Product photos", "Where we have one, the product photo is the brand's own or a large beauty retailer's studio photo, shown straight from their website. The photos belong to those brands and shops. We never store or sell them, and a photo can disappear if the website changes it."],
     ["lock", "Your data", "Nothing is uploaded. Your skin answers and allergies stay on your device, and there are no accounts."]
@@ -1575,13 +1588,14 @@
     if (isHairPeriod(rtPeriod)) { startQuiz(window.Hair.load(), "hair", "routine"); return; }
     renderProfileCard(); renderAllergyCard(); show("skin");
   });
-  el("rt-face").addEventListener("click", function () { if (isHairPeriod(rtPeriod)) { rtPeriod = "am"; renderRoutine(); } });
+  el("rt-face").addEventListener("click", function () { if (isHairPeriod(rtPeriod) || isBodyPeriod(rtPeriod)) { rtPeriod = "am"; renderRoutine(); } });
   el("rt-hair").addEventListener("click", function () { if (!isHairPeriod(rtPeriod)) { rtPeriod = "hw"; renderRoutine(); } });
+  el("rt-body").addEventListener("click", function () { if (!isBodyPeriod(rtPeriod)) { rtPeriod = "bs"; renderRoutine(); } });
   el("rt-am").addEventListener("click", function () { rtPeriod = el("rt-am").getAttribute("data-period"); renderRoutine(); });
   el("rt-pm").addEventListener("click", function () { rtPeriod = el("rt-pm").getAttribute("data-period"); renderRoutine(); });
   el("rt-steps").addEventListener("click", routineAction);
   el("rt-add").addEventListener("click", function () {
-    var k = el("rt-add-kind").value, order = isHairPeriod(rtPeriod) ? window.Hair.ORDER : window.Routine.ORDER;
+    var k = el("rt-add-kind").value, order = isHairPeriod(rtPeriod) ? window.Hair.ORDER : isBodyPeriod(rtPeriod) ? window.Body.ORDER : window.Routine.ORDER;
     rt[rtPeriod].push({ kind: k, product: null });
     rt[rtPeriod].sort(function (a, b) { return order.indexOf(a.kind) - order.indexOf(b.kind); });
     saveRoutine(); renderRoutine();
