@@ -527,13 +527,19 @@
       draw(r);
     });
   }
+  // Is this product of the kind a routine step asks for (cleanser, shampoo, body lotion...)? Same rule for suggestions and for the picker search.
+  function sameKind(p, kind) {
+    if (window.Oral.classify(p)) return false;
+    if (isHairKind(kind)) return window.Hair.classify(p) === kind;
+    if (isBodyKind(kind)) return !window.Hair.classify(p) && window.Body.classify(p) === kind;
+    return !window.Hair.classify(p) && !(window.Body.classify(p) && !faceAndBody(p)) && window.Routine.classify(p) === kind;
+  }
   // Best-rated products of this kind that suit the person: no allergy hit, no official alert, a fair match for the quiz, and right for the time of day.
   function suggest(kind, period, exclude, limit) {
     var hair = isHairKind(kind), body = isBodyKind(kind);
     var prof = hair ? window.Hair.load() : window.Profile.load(), ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), out = [];
     catalogList.forEach(function (p) {
-      if (p.partial || window.Oral.classify(p)) return;
-      if (hair ? window.Hair.classify(p) !== kind : body ? (window.Hair.classify(p) || window.Body.classify(p) !== kind) : (window.Hair.classify(p) || (window.Body.classify(p) && !faceAndBody(p)) || window.Routine.classify(p) !== kind)) return;
+      if (p.partial || !sameKind(p, kind)) return;
       var a = analysisOf(p);
       // Hair products score lower in general, so they get a lower floor, and the best-rated ones still come first.
       if (a.score === null || a.score < (hair ? 35 : 51)) return;
@@ -630,10 +636,19 @@
   function pickSearch(q) {
     q = String(q || "").trim();
     if (q.length < 2) return;
+    var kind = pickCtx.kind, label = window.Routine.KINDS[kind].label.toLowerCase();
     var mine = window.Catalog.search(q);
+    el("pick-list").innerHTML = '<p class="pick-head">Searching…</p>';
     window.Shop.search(q).then(function (found) {
-      pickList = mine.concat(found).slice(0, 300);
-      el("pick-list").innerHTML = '<p class="pick-head">Results for “' + esc(q) + '”</p>' + (pickList.length ? pickRows(pickList) : '<p class="rt-empty">Nothing found. Try the brand and one product word.</p>');
+      // Products of this step's kind first, all of them; the rest go below in case one is filed under another kind.
+      var all = mine.concat(found.filter(function (s) { return !mine.some(function (m) { return m.brand === s.brand && m.name === s.name; }); }));
+      var same = all.filter(function (p) { return sameKind(p, kind); }), other = all.filter(function (p) { return !sameKind(p, kind); }).slice(0, 60);
+      pickList = same.concat(other);
+      function rows(list, from) { return list.map(function (p, k) { return rtRow(p, kind, "choose", from + k); }).join(""); }
+      el("pick-list").innerHTML = pickList.length
+        ? '<p class="pick-head">Results for “' + esc(q) + '” in ' + esc(label) + "</p>" + (same.length ? rows(same, 0) : '<p class="rt-empty">No ' + esc(label) + ' matches. These are the other products that match:</p>') +
+          (other.length && same.length ? '<p class="pick-head">Other products matching “' + esc(q) + '”</p>' : "") + rows(other, same.length)
+        : '<p class="rt-empty">Nothing found. Try the brand and one product word.</p>';
     });
   }
   function routineAction(e) {
@@ -1559,6 +1574,7 @@
     el("results-q").blur();
   });
   el("search-form").addEventListener("submit", function (e) { e.preventDefault(); runSearch(el("q").value); });
+  el("q").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); runSearch(el("q").value); el("q").blur(); } });
   el("status-photo").addEventListener("click", startPhoto);
   el("status-find").addEventListener("submit", function (e) { e.preventDefault(); findForBarcode(el("status-find-q").value); });
   el("manual-btn").addEventListener("click", function () {
@@ -1638,6 +1654,7 @@
   el("rt-reset").addEventListener("click", function () { window.Routine.reset(); rt = window.Routine.load(); renderRoutineCard(); renderRoutine(); });
   el("pick-back").addEventListener("click", function () { show("routine"); });
   el("pick-form").addEventListener("submit", function (e) { e.preventDefault(); pickSearch(el("pick-q").value); });
+  el("pick-q").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); pickSearch(el("pick-q").value); el("pick-q").blur(); } });
   el("pick-list").addEventListener("click", function (e) {
     var b = e.target.closest ? e.target.closest('[data-act="choose"]') : null;
     if (!b || !pickCtx) return;
