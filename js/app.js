@@ -632,7 +632,7 @@
     if (q.length < 2) return;
     var mine = window.Catalog.search(q);
     window.Shop.search(q).then(function (found) {
-      pickList = mine.concat(found).slice(0, 30);
+      pickList = mine.concat(found).slice(0, 300);
       el("pick-list").innerHTML = '<p class="pick-head">Results for “' + esc(q) + '”</p>' + (pickList.length ? pickRows(pickList) : '<p class="rt-empty">Nothing found. Try the brand and one product word.</p>');
     });
   }
