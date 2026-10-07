@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#6fd0d8" id="theme-color">
-  <meta name="app-version" content="20261007130002">
+  <meta name="app-version" content="20261007134118">
   <title>SkinSafe</title>
   <link rel="icon" type="image/png" sizes="32x32" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-fav-10.png">
   <link rel="icon" type="image/png" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-10.png">
@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="SkinSafe">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="styles.css?v=20261007130002">
+  <link rel="stylesheet" href="styles.css?v=20261007134118">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -83,7 +83,7 @@
       <h2 class="section-title">Explore</h2>
       <div class="explore">
         <button class="xtile t-scan" id="scan-btn" type="button"><svg class="ic"><use href="#i-scan"/></svg><b>Scan</b><span>Analyze a product with its barcode or a photo</span></button>
-        <button class="xtile t-shelf" id="tile-shelf" type="button"><svg class="ic"><use href="#i-package"/></svg><b>Shelf</b><span>Several products in one photo</span></button>
+        <button class="xtile t-shelf" id="tile-cats" type="button"><svg class="ic"><use href="#i-package"/></svg><b>Categories</b><span>Browse products by type</span></button>
         <button class="xtile t-ing" id="tile-ing" type="button"><svg class="ic"><use href="#i-camera"/></svg><b>Ingredients</b><span>Photo of the list on the package</span></button>
         <button class="xtile t-code" id="manual-btn" type="button"><svg class="ic"><use href="#i-keyboard"/></svg><b>Barcode</b><span>Type the number</span></button>
       </div>
@@ -97,6 +97,25 @@
           <button type="submit" class="secondary">Look up</button>
         </div>
       </form>
+    </section>
+
+    <section id="cats" hidden>
+      <button class="back" id="cats-back" type="button"><svg class="ic"><use href="#i-arrow-left"/></svg>Back</button>
+      <h2 class="page-title">Categories</h2>
+      <div class="seg" id="cats-areas" role="tablist" aria-label="Area">
+        <button type="button" role="tab" data-area="face">Face</button>
+        <button type="button" role="tab" data-area="hair">Hair</button>
+        <button type="button" role="tab" data-area="body">Body</button>
+        <button type="button" role="tab" data-area="mouth">Mouth</button>
+      </div>
+      <div class="cat-chips" id="cats-chips"></div>
+      <form class="search" id="cats-form" role="search" autocomplete="off">
+        <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+        <input id="cats-q" type="search" placeholder="Search in this category" aria-label="Search in this category">
+      </form>
+      <p class="quiz-sub" id="cats-count"></p>
+      <div class="result-list" id="cats-list"></div>
+      <button class="secondary" id="cats-more" type="button" hidden>Show more</button>
     </section>
 
     <section id="history" hidden>
@@ -128,7 +147,7 @@
       <div class="rt-steps" id="rt-steps"></div>
       <div class="rt-add"><select id="rt-add-kind" aria-label="Add a step"></select>
         <button type="button" class="secondary small-btn" id="rt-add"><svg class="ic"><use href="#i-plus"/></svg>Add step</button></div>
-      <p class="privacy-note">Suggestions are the best-rated products in our list that fit your skin or your hair (body products use your skin quiz) and have no allergy or alert. The morning or night tip comes from the name and ingredients, so check the package too. Your routine stays on this phone.</p>
+      <p class="privacy-note">Picks are the best-rated products that fit you, with no allergy or alert. Check the package too. Saved only on this phone.</p>
       <button class="link" id="rt-reset" type="button">Start the routine over</button>
     </section>
 
@@ -349,16 +368,16 @@
   </div>
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/ingredients.js?v=20261007130002"></script>
-  <script src="js/alerts.js?v=20261007130002"></script>
-  <script src="js/profile.js?v=20261007130002"></script>
-  <script src="js/api.js?v=20261007130002"></script>
-  <script src="js/routine.js?v=20261007130002"></script>
-  <script src="js/hair.js?v=20261007130002"></script>
-  <script src="js/body.js?v=20261007130002"></script>
-  <script src="js/ocr.js?v=20261007130002"></script>
-  <script src="js/app.js?v=20261007130002"></script>
-  <script src="js/update.js?v=20261007130002"></script>
-  <script src="js/offline.js?v=20261007130002"></script>
+  <script src="js/ingredients.js?v=20261007134118"></script>
+  <script src="js/alerts.js?v=20261007134118"></script>
+  <script src="js/profile.js?v=20261007134118"></script>
+  <script src="js/api.js?v=20261007134118"></script>
+  <script src="js/routine.js?v=20261007134118"></script>
+  <script src="js/hair.js?v=20261007134118"></script>
+  <script src="js/body.js?v=20261007134118"></script>
+  <script src="js/ocr.js?v=20261007134118"></script>
+  <script src="js/app.js?v=20261007134118"></script>
+  <script src="js/update.js?v=20261007134118"></script>
+  <script src="js/offline.js?v=20261007134118"></script>
 </body>
 </html>

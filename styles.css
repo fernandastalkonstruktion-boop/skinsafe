@@ -815,3 +815,11 @@ body.on-profile #skin .privacy-note { margin-top: 10px; }
 .rt-rater-meta { margin-left: auto; font-size: 13px; color: var(--text-2); }
 .rt-rater-notes { margin: 2px 0 0; font-size: 13.5px; line-height: 1.4; color: var(--text); }
 .rt-rater-empty { margin: 2px 0 0; font-size: 13.5px; color: var(--text-2); }
+
+/* Categories */
+.cat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.cat-chip { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--glass-line); background: var(--glass); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.cat-chip small { margin-left: 5px; font-size: 12px; font-weight: 600; opacity: 0.65; }
+.cat-chip.on { background: var(--btn); color: var(--on-btn); border-color: transparent; }
+#cats .search { margin-bottom: 8px; }
+#cats-more { width: 100%; margin: 10px 0 14px; }

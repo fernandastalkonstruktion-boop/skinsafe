@@ -1,5 +1,5 @@
 (function () {
-  var VIEWS = ["home", "history", "favorites", "routine", "pick", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result"];
+  var VIEWS = ["home", "history", "favorites", "routine", "cats", "pick", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result"];
   var scanner = null;
   var lastProduct = null;
   var cameFrom = "home";        // where "Back" on a result should go
@@ -20,7 +20,7 @@
   function ic(name, cls) {
     return '<svg class="ic ' + (cls || "") + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
   }
-  var TAB_OF = { home: "home", routine: "home", pick: "home", history: "hist", favorites: "fav", skin: "skin", quiz: "skin", allergies: "skin", about: "skin" };
+  var TAB_OF = { home: "home", routine: "home", cats: "home", pick: "home", history: "hist", favorites: "fav", skin: "skin", quiz: "skin", allergies: "skin", about: "skin" };
   var aboutFrom = "skin";
   // The selection pill slides to the tab with a small spring and a soft glow while it moves (like the reference app).
   var indTab = null, indTimer = 0;
@@ -463,6 +463,42 @@
     });
   }
 
+  // ----- Categories: browse the whole list by type (Face, Hair, Body, Mouth), best-rated first, with a search inside the category -----
+  var cats = { area: "face", kind: "all", q: "", shown: 40 }, catsRows = [];
+  function catsKinds() {
+    var a = cats.area;
+    return a === "hair" ? window.Hair.ORDER : a === "body" ? window.Body.ORDER : a === "mouth" ? window.Oral.ORDER : window.Routine.ORDER;
+  }
+  function openCats() {
+    window.Shop.load().then(function (list) {
+      catalogList = list; catsCount = null;
+      renderCats();
+      show("cats");
+    });
+  }
+  var catsCount = null;
+  function renderCats(keepShown) {
+    if (!catsCount) { catsCount = {}; catalogList.forEach(function (p) { var k = kindOf(p); catsCount[k] = (catsCount[k] || 0) + 1; }); }
+    Array.prototype.forEach.call(el("cats-areas").querySelectorAll("button"), function (b) { var on = b.getAttribute("data-area") === cats.area; b.classList.toggle("on", on); b.setAttribute("aria-selected", String(on)); });
+    var kinds = catsKinds().filter(function (k) { return catsCount[k]; }), total = kinds.reduce(function (n, k) { return n + catsCount[k]; }, 0);
+    el("cats-chips").innerHTML = ['<button type="button" class="cat-chip' + (cats.kind === "all" ? " on" : "") + '" data-k="all">All<small>' + total + "</small></button>"].concat(kinds.map(function (k) {
+      return '<button type="button" class="cat-chip' + (cats.kind === k ? " on" : "") + '" data-k="' + k + '">' + esc(kindLabel(k)) + "<small>" + catsCount[k] + "</small></button>";
+    })).join("");
+    if (!keepShown) cats.shown = 40;
+    var want = cats.kind === "all" ? kinds : [cats.kind];
+    var words = cats.q.toLowerCase().split(/\s+/).filter(Boolean);
+    var rows = catalogList.filter(function (p) {
+      if (want.indexOf(kindOf(p)) < 0) return false;
+      var hay = (p.brand + " " + p.name).toLowerCase();
+      return words.every(function (w) { return hay.indexOf(w) > -1; });
+    });
+    rows = rows.map(function (p) { return { p: p, sc: analysisOf(p).score }; }).sort(function (x, y) { return (y.sc === null ? -1 : y.sc) - (x.sc === null ? -1 : x.sc); }).map(function (x) { return x.p; });
+    catsRows = rows.slice(0, cats.shown);
+    el("cats-count").textContent = rows.length ? plural(rows.length, "product", "products") + ", best rated first" : "Nothing found here.";
+    el("cats-list").innerHTML = resultRows(catsRows);
+    el("cats-more").hidden = rows.length <= cats.shown;
+  }
+
   // ----- Your routine: one list of steps for the morning and one for the night, saved only on this phone -----
   var catalogList = [], rtPeriod = "face", rtSel = 0, rtSelPeriod = "", rtStripPeriod = "", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {};
   function analysisOf(p) { var c = anCache[p.ingredientsText]; if (!c) { c = window.Ingredients.analyze(p.ingredientsText); anCache[p.ingredientsText] = c; } return c; }
@@ -640,7 +676,7 @@
     var steps = [], chosen = [];
     RT_AREA[area].forEach(function (pd) { (rt[pd] || []).forEach(function (st) { steps.push(st); if (st.product) chosen.push(st); }); });
     var name = area === "hair" ? "Hair routine" : area === "body" ? "Body routine" : "Face routine";
-    var head = '<p class="rt-rater-name">' + name + "</p>";
+    var head = "";
     if (!chosen.length) return '<div class="rt-rater">' + head + '<p class="rt-rater-empty">Choose products to see the score.</p></div>';
     var prof = area === "hair" ? window.Hair.load() : window.Profile.load(), ids = window.Profile.loadAllergies(), words = window.Profile.loadWords();
     var scores = [], notes = [], noMatch = 0, allergy = 0, alerts = 0, retinoid = 0, acid = 0, unrated = 0;
@@ -952,6 +988,7 @@
     else if (cameFrom === "history") { renderHistory(); show("history"); }
     else if (cameFrom === "favorites") { renderSavedList(); show("favorites"); }
     else if (cameFrom === "routine") openRoutine();
+    else if (cameFrom === "cats") show("cats");
     else goHome();
   }
 
@@ -1705,7 +1742,19 @@
   el("tab-hist").addEventListener("click", function () { lastProduct = null; renderHistory(); show("history"); });
   el("tab-fav").addEventListener("click", function () { lastProduct = null; renderSavedList(); show("favorites"); });
   el("fab-cam").addEventListener("click", function () { openCam("code"); });
-  el("tile-shelf").addEventListener("click", function () { openCam("shelf"); });
+  el("tile-cats").addEventListener("click", openCats);
+  el("cats-back").addEventListener("click", function () { goHome(); });
+  el("cats-areas").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-area]") : null; if (b) { cats.area = b.getAttribute("data-area"); cats.kind = "all"; cats.q = ""; el("cats-q").value = ""; renderCats(); } });
+  el("cats-chips").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-k]") : null; if (b) { cats.kind = b.getAttribute("data-k"); renderCats(); } });
+  el("cats-form").addEventListener("submit", function (e) { e.preventDefault(); el("cats-q").blur(); });
+  el("cats-q").addEventListener("input", function () { cats.q = el("cats-q").value; renderCats(true); });
+  el("cats-more").addEventListener("click", function () { cats.shown += 40; renderCats(true); });
+  el("cats-list").addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest(".result-item") : null;
+    if (!b) return;
+    var p = catsRows[Number(b.getAttribute("data-i"))];
+    if (p) { cameFrom = "cats"; renderResult(p); }
+  });
   el("tile-ing").addEventListener("click", startPhoto);
   el("open-about").addEventListener("click", function () { lastProduct = null; renderAbout(); show("about"); });
   el("disclaimer-about").addEventListener("click", function () { renderAbout(); show("about"); });
