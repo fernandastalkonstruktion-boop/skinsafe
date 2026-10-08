@@ -217,7 +217,7 @@
     return shared;
   }
   // Reads one canvas with the shared reader. psm 3 = a normal block of text, 6 = one block, 11 = words scattered anywhere (stylized logos, curved labels).
-  function recognize(canvas, psm, onProgress) {
+  function recognizeRaw(canvas, psm, onProgress) {
     progressCb = onProgress || function () {};
     var job = chain.then(function () {
       return sharedWorker().then(function (w) {
@@ -225,8 +225,20 @@
       });
     });
     chain = job.catch(function () {});
-    return job.then(function (r) { return String((r.data && r.data.text) || ""); });
+    return job;
   }
+  function recognize(canvas, psm, onProgress) {
+    return recognizeRaw(canvas, psm, onProgress).then(function (r) { return String((r.data && r.data.text) || ""); });
+  }
+  // The reader as js/reader.js wants it: a gray picture in, text and the position of every word out.
+  var engine = {
+    recognize: function (gray, psm) {
+      return recognizeRaw(window.ImgOps.toCanvas(gray), psm, null).then(function (r) {
+        var d = r.data || {};
+        return { text: String(d.text || ""), words: (d.words || []).map(function (w) { return { text: w.text, confidence: w.confidence, bbox: w.bbox }; }) };
+      });
+    }
+  };
   function stopShared() {
     var s = shared; shared = null; chain = Promise.resolve();
     if (s) s.then(function (w) { return w.terminate(); }).catch(function () {});
@@ -273,6 +285,6 @@
     { label: "Reading light letters", psm: 11, make: function (c) { return invert(c); } }
   ];
 
-  window.OCR = { recognize: recognize, stopShared: stopShared, passes: PASSES, prepareCanvas: prepareCanvas, rotate: rotate, invert: invert, part: part, prepare: prepare,  read: read, readRaw: readRaw, readWords: readWords, groups: groups, clean: clean, sharpness: sharpness, frameScore: frameScore };
+  window.OCR = { engine: engine, recognize: recognize, stopShared: stopShared, passes: PASSES, prepareCanvas: prepareCanvas, rotate: rotate, invert: invert, part: part, prepare: prepare,  read: read, readRaw: readRaw, readWords: readWords, groups: groups, clean: clean, sharpness: sharpness, frameScore: frameScore };
   if (typeof module !== "undefined" && module.exports) module.exports = { sharpness: sharpness };
 })();

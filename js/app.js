@@ -1078,6 +1078,7 @@
     el("cam").className = "cam m-" + mode;
     el("cam-hint").textContent = MODE_HINT[mode];
     el("cam-hint").hidden = false;
+    bc.since = Date.now();
     Array.prototype.forEach.call(el("cam-modes").querySelectorAll("button"), function (b) {
       var on = b.getAttribute("data-mode") === mode;
       b.classList.toggle("on", on);
@@ -1100,12 +1101,14 @@
     setMode(mode || "code");
     startCamera();
     autoStart();
+    bcStart();
     if (!guideSeen()) showGuide(0);
   }
   function hideCam() {
     cam.open = false; cam.busy = false; cam.job++;
     if (crop && crop.open) closeCrop();
     autoStop();
+    bcStop(); bcStopWorker();
     el("cam").hidden = true;
     document.body.classList.remove("cam-open");
   }
@@ -1146,13 +1149,14 @@
   }
 
   // A barcode counts when the same valid number is read twice in a row (avoids reading a wrong number once).
-  function onDecoded(text) {
+  function onDecoded(text, mine) {
     if (!cam.open || cam.busy || cam.mode !== "code") return;
     var code = String(text || "").replace(/\D/g, "");
     if (code.length < 8 || code.length > 14 || code === cam.shown) return;
     if ((code.length === 12 || code.length === 13) && !validGtin(code)) return;
     var now = Date.now();
-    if (code !== cam.cand || now - cam.candAt > 1500) { cam.cand = code; cam.candAt = now; return; }
+    // our own reader (js/barcode.js) takes about a second per picture, so its second read may come a few seconds after the first
+    if (code !== cam.cand || now - cam.candAt > (mine ? 6000 : 1500)) { cam.cand = code; cam.candAt = now; return; }
     cam.cand = "";
     camLookup(code);
   }
@@ -1245,10 +1249,72 @@
     });
   }
 
-  function tryBarcodeFile(file) {
-    if (!window.Html5Qrcode) return Promise.resolve("");
-    var q = new window.Html5Qrcode("reader-file", { verbose: false });
-    return q.scanFile(file, false).then(function (t) { try { q.clear(); } catch (e) {} return String(t || "").replace(/\D/g, ""); }).catch(function () { return ""; });
+  // ---- Barcode reader for blurry, hand-held codes (js/barcode.js, in a web worker) next to the scanner library ----
+  // The library needs a sharp, flat picture; a code held close to the lens is out of focus. This reader fits the whole code to what it sees.
+  var BARCODE_FAR = "Not reading? Move the phone back about a hand's length and hold it still, facing the code. Too close and it can't focus";
+  var bc = { timer: null, worker: null, busy: false, id: 0, since: 0, n: 0, waiting: {} };
+  function bcWorker() {
+    if (bc.worker !== null) return bc.worker || null;   // null = not started yet, false = not possible here
+    try {
+      var meta = document.querySelector('meta[name="app-version"]'), v = meta ? meta.getAttribute("content") : "dev";
+      var w = new Worker("js/barcode-worker.js?v=" + encodeURIComponent(v));
+      w.onmessage = function (e) { var f = bc.waiting[e.data.id]; if (f) { delete bc.waiting[e.data.id]; f(e.data.res); } };
+      w.onerror = function () {
+        Object.keys(bc.waiting).forEach(function (k) { bc.waiting[k](null); delete bc.waiting[k]; });
+        try { w.terminate(); } catch (x) {}
+        bc.worker = false;
+      };
+      bc.worker = w;
+    } catch (e) { bc.worker = false; }
+    return bc.worker || null;
+  }
+  function bcStopWorker() { if (bc.worker) { try { bc.worker.terminate(); } catch (e) {} } bc.worker = null; bc.waiting = {}; }
+  // src: a canvas or the <video>; sw, sh: its size. Resolves { code, ... } or null.
+  function bcDecode(src, sw, sh, opts) {
+    var k = Math.min(1, 1280 / Math.max(sw, sh)), w = Math.max(32, Math.round(sw * k)), h = Math.max(32, Math.round(sh * k));
+    var c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    var x = c.getContext("2d", { willReadFrequently: true });
+    x.drawImage(src, 0, 0, w, h);
+    var p = x.getImageData(0, 0, w, h).data, g = new Uint8Array(w * h), i;
+    for (i = 0; i < g.length; i++) g[i] = 0.299 * p[i * 4] + 0.587 * p[i * 4 + 1] + 0.114 * p[i * 4 + 2];
+    var wk = window.Barcode ? bcWorker() : null;
+    if (!window.Barcode) return Promise.resolve(null);
+    if (!wk) return new Promise(function (resolve) { setTimeout(function () { try { resolve(window.Barcode.decode(g, w, h, { keep: 6, ean8: false })); } catch (e) { resolve(null); } }, 0); });
+    return new Promise(function (resolve) {
+      var id = ++bc.id;
+      bc.waiting[id] = resolve;
+      setTimeout(function () { if (bc.waiting[id]) { delete bc.waiting[id]; resolve(null); } }, 10000);
+      try { wk.postMessage({ id: id, w: w, h: h, g: g, opts: opts || {} }, [g.buffer]); } catch (e) { delete bc.waiting[id]; resolve(null); }
+    });
+  }
+  function bcTick() {
+    if (bc.busy || !cam.open || cam.mode !== "code" || cam.busy || !el("cam-sheet").hidden || !el("cam-card").hidden || (crop && crop.open) || !el("cam-guide").hidden) return;
+    var v = document.querySelector("#cam-reader video");
+    if (!v || !v.videoWidth || v.readyState < 2) return;
+    bc.busy = true;
+    bcDecode(v, v.videoWidth, v.videoHeight, { ean8: (bc.n++ % 3) === 0, keep: 10 }).then(function (res) {
+      bc.busy = false;
+      if (!cam.open || cam.mode !== "code") return;
+      if (res && res.code) { bc.since = Date.now(); onDecoded(res.code, true); return; }
+      if (el("cam-card").hidden && Date.now() - bc.since > 4000) { el("cam-hint").textContent = BARCODE_FAR; el("cam-hint").hidden = false; }
+    }).catch(function () { bc.busy = false; });
+  }
+  function bcStart() { bcStop(); bc.since = Date.now(); bc.timer = setInterval(bcTick, 450); }
+  function bcStop() { if (bc.timer) clearInterval(bc.timer); bc.timer = null; bc.busy = false; }
+
+  // A barcode in a photo: the scanner library first, then our own reader. deep = a photo made for this (more lines tried).
+  function tryBarcodeFile(file, deep) {
+    var first = !window.Html5Qrcode ? Promise.resolve("") : (function () {
+      var q = new window.Html5Qrcode("reader-file", { verbose: false });
+      return q.scanFile(file, false).then(function (t) { try { q.clear(); } catch (e) {} return String(t || "").replace(/\D/g, ""); }).catch(function () { return ""; });
+    })();
+    return first.then(function (code) {
+      if (code.length >= 8) return code;
+      return cropLoad(file).then(function (c) {
+        return bcDecode(c, c.width, c.height, deep ? { keep: 24 } : { keep: 8, ean8: false });
+      }).then(function (r) { return r && r.code ? r.code : ""; }, function () { return ""; });
+    });
   }
 
   function setBusy(on, file) {
@@ -1267,17 +1333,9 @@
   // ---- Auto-scan (Product mode): no button needed. While the product is shown inside the frame the camera keeps reading its sharpest frames,
   // pools the words from the last few readings (a finger may hide a different part each time) and opens the product by itself once the brand and
   // every word of the name are read. A close-but-not-sure guess is offered as a card. It pauses after about 45 s so it doesn't drain the battery.
-  var AUTO_MIN_SHARP = 40, AUTO_MAX_MS = 45000;
-  var AUTO_PASSES = [
-    { psm: 3, make: function (c) { return c; } },
-    { psm: 11, make: function (c) { return c; } },
-    { psm: 3, make: function (c) { return c; } },
-    { psm: 3, make: function (c) { return window.OCR.rotate(c, true); } },
-    { psm: 3, make: function (c) { return c; } },
-    { psm: 3, make: function (c) { return window.OCR.rotate(c, false); } }
-  ];
-  var auto = { timer: null, busy: false, run: 0, k: 0, bag: [], started: 0, paused: false, blocked: true, guess: "" };
-  function autoReset() { auto.run++; auto.bag = []; auto.k = 0; auto.started = Date.now(); auto.paused = false; auto.guess = ""; }
+  var AUTO_MIN_SHARP = 40, AUTO_MAX_MS = 45000, AUTO_KEEP = 9;
+  var auto = { timer: null, busy: false, run: 0, k: 0, state: null, started: 0, paused: false, blocked: true, guess: "" };
+  function autoReset() { auto.run++; auto.state = window.Reader.newState(AUTO_KEEP); auto.k = 0; auto.started = Date.now(); auto.paused = false; auto.guess = ""; }
   function autoHint(text) { if (!el("cam-card").hidden) return; el("cam-hint").textContent = text; el("cam-hint").hidden = false; }
   function autoShowGuess(p, r) {
     var key = p.brand + "|" + p.name;
@@ -1304,11 +1362,12 @@
       if (!frames.length || run !== auto.run) return;
       frames.sort(function (a, b) { return b.s - a.s; });
       if (frames[0].s < AUTO_MIN_SHARP) { autoHint("Hold the product still, or move it a little farther back"); return; }
-      var ps = AUTO_PASSES[auto.k++ % AUTO_PASSES.length];
-      return window.OCR.recognize(ps.make(window.OCR.prepareCanvas(frames[0].c)), ps.psm, null).then(function (t) {
+      // One reading pass per turn (local contrast, other colour direction, the middle, sideways...), pooled with the last few turns.
+      var R = window.Reader, frame = R.frameFromCanvas(frames[0].c), ps = R.PASSES[auto.k++ % R.PASSES.length];
+      return R.runPass(ps, frame, window.OCR.engine).then(function (res) {
         if (run !== auto.run || !cam.open || cam.mode !== "product" || cam.busy) return;
-        auto.bag.push(t); if (auto.bag.length > 6) auto.bag.shift();
-        return window.Shop.identify(auto.bag.join("\n")).then(function (r) {
+        R.add(auto.state, ps, res);
+        return R.judge(auto.state, window.Shop).then(function (r) {
           if (run !== auto.run || !cam.open || cam.mode !== "product" || cam.busy) return;
           if (r.exact && r.matches.length) {
             auto.run++;
@@ -1496,7 +1555,7 @@
   function handleFile(file, mode) {
     var alts = cam.alts || []; cam.alts = [];
     if (mode === "code") {
-      tryBarcodeFile(file).then(function (code) {
+      tryBarcodeFile(file, true).then(function (code) {
         if (code.length >= 8) camLookup(code);
         else camMsg("We couldn't find a barcode in that photo. Try a closer, sharper one.");
       });
@@ -1525,82 +1584,36 @@
 
   // Product: try a barcode in the photo first, then read the words printed on the package.
   // If the first (sharpest) frame doesn't give a sure match, read the next-sharpest one too and match on the words of both.
-  // A match sure enough to stop reading: the exact one, or a clear leader (brand read, most of its name read, and well ahead of the second).
-  function isSure(r) {
-    if (!r) return false;
-    if (r.exact) return true;
-    var e0 = r.evidence && r.evidence[0], e1 = r.evidence && r.evidence[1];
-    return !!(e0 && e0.brand && e0.cov >= 0.75 && e0.hits >= 3 && (!e1 || e0.score >= 1.4 * e1.score));
-  }
+  // Product: try a barcode in the photo first, then read the words printed on the package with the passes of js/reader.js
+  // (local contrast, the other colour direction, the middle of the frame, sideways, light letters) until the match is sure.
+  // The other sharp frames of the burst add their words too: a finger may cover a different part of the label in each one.
   function identifyProduct(file, alts) {
     stage("Looking for a barcode");
-    return tryBarcodeFile(file).then(function (code) {
+    return tryBarcodeFile(file, false).then(function (code) {
       if (code.length >= 8) return { code: code };
-      var text = "";
-      function match() { stage("Matching products"); return window.Shop.identify(text); }
-      function better(r2, r) { return (r2.matches && r2.matches.length) || !(r.matches && r.matches.length) ? r2 : r; }
-      return window.OCR.readRaw(file, progress).then(function (t) {
-        text = t;
-        return match();
-      }).then(function (r) {
-        if (isSure(r)) return r;
-        var best = r, chain = Promise.resolve();
-        // Other sharp frames of the burst: a finger may cover a different part of the label in each one, so the words are pooled.
+      var R = window.Reader, st = R.newState(), best = null;
+      function frameOf(f) { return cropLoad(f).then(function (c) { return R.frameFromCanvas(c); }); }
+      function run(frame, passes) {
+        return R.readProduct(frame, window.OCR.engine, window.Shop, { state: st, passes: passes, onStage: stage }).then(function (r) { if (r) best = R.better(r, best); });
+      }
+      return frameOf(file).then(function (fr) { return run(fr); }).then(function () {
+        var chain = Promise.resolve();
         (alts || []).slice(0, 2).forEach(function (alt) {
           chain = chain.then(function () {
-            if (isSure(best)) return;
+            if (R.isSure(best)) return;
             stage("Reading again");
-            return window.OCR.prepare(alt).then(function (c) { return window.OCR.recognize(c, 3, progress); }).then(function (t2) {
-              text += "\n" + t2;
-              return match().then(function (r2) { best = better(r2, best); });
-            }).catch(function () {});
+            return frameOf(alt).then(function (fr) { return run(fr, R.PASSES.slice(0, 3)); }).catch(function () {});
           });
         });
-        // Still not sure: read the best frame again in other ways (scattered words, turned 90 degrees both ways, each side, light letters).
-        return chain.then(function () {
-          if (isSure(best)) return best;
-          return window.OCR.prepare(file).then(function (canvas) {
-            return window.OCR.passes.reduce(function (c2, ps) {
-              return c2.then(function () {
-                if (isSure(best)) return;
-                stage(ps.label);
-                return window.OCR.recognize(ps.make(canvas), ps.psm, progress).then(function (t3) {
-                  text += "\n" + t3;
-                  return match().then(function (r3) { best = better(r3, best); });
-                }).catch(function () {});
-              });
-            }, Promise.resolve());
-          }).then(function () { return best; }, function () { return best; });
-        });
-      });
+        return chain;
+      }).then(function () { return best || { matches: [], tokens: [] }; });
     });
   }
 
-  // Shelf (best effort): read all the words, group the ones that sit together into labels, and identify each label.
+  // Shelf (best effort): read the picture in overlapping tiles, group the words that sit together into labels, and identify each label.
   function findShelf(file) {
-    function pass(invert) {
-      return window.OCR.readWords(file, progress, invert).then(function (words) { return window.OCR.groups(words); });
-    }
-    function identifyAll(gs) {
-      var found = [];
-      stage("Matching products");
-      return gs.reduce(function (chain, g) {
-        return chain.then(function () {
-          return window.Shop.identify(g.text).then(function (r) {
-            var m = r.matches[0], ev = r.evidence[0];
-            // Keep only solid matches: the brand plus another word, or at least three words of the name.
-            if (m && ev && (ev.hits >= 3 || (ev.brand && ev.hits >= 2)) && !found.some(function (f) { return f.brand === m.brand && f.name === m.name; })) found.push(m);
-          });
-        });
-      }, Promise.resolve()).then(function () { return found; });
-    }
-    return pass(false).then(identifyAll).then(function (found) {
-      if (found.length >= 2) return found;
-      return pass(true).then(identifyAll).then(function (more) {
-        more.forEach(function (m) { if (!found.some(function (f) { return f.brand === m.brand && f.name === m.name; })) found.push(m); });
-        return found;
-      });
-    }).then(function (found) { return { matches: found, shelf: true, tokens: [] }; });
+    var R = window.Reader;
+    return cropLoad(file).then(function (c) { return R.readShelf(R.frameFromCanvas(c), window.OCR.engine, window.Shop, { onStage: stage }); });
   }
 
   // Open a product from a list of matches; "Back" from it returns to that list.

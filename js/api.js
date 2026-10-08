@@ -352,6 +352,8 @@
     if (a === b) return true;
     // "clarify" read for "clarifying": the shorter word starts the longer one
     if (a.length >= 5 && b.length >= 5 && Math.abs(a.length - b.length) <= 4 && (a.indexOf(b) === 0 || b.indexOf(a) === 0)) return true;
+    // a curved bottle cuts a word ("aplex" for "olaplex"): the shorter one sits inside the longer and is most of it
+    if (a.length >= 5 && b.length >= 5) { var sh = a.length <= b.length ? a : b, lo = sh === a ? b : a; if (lo.indexOf(sh) > -1 && sh.length >= 0.7 * lo.length) return true; }
     if (a.length < 5 || b.length < 5 || Math.abs(a.length - b.length) > 1) return false;
     var i = 0, j = 0, miss = 0;
     while (i < a.length && j < b.length) {
@@ -392,13 +394,19 @@
         var ownHits = 0;
         d.own.forEach(function (hw) { for (var i = 0; i < tokens.length; i++) if (close(tokens[i], hw)) { ownHits++; break; } });
         var cov = d.own.length ? ownHits / d.own.length : 0;
-        return { p: d.p, score: score, rank: score * (0.35 + 0.65 * cov), cov: cov, hits: hits, brand: brandWords.length && brandHit === brandWords.length };
+        return { p: d.p, score: score, rank: score * (0.35 + 0.65 * cov), cov: cov, hits: hits, brand: brandWords.length && brandHit === brandWords.length, own: d.own };
       }).filter(function (x) { return x.score >= 4 && (x.hits >= 2 || x.brand); });
       scored.sort(function (a, b) { return b.rank - a.rank; });
       var top = scored.slice(0, 6);
       // Exact: brand + every word of the name read, and no other product is fully read too.
       var exact = !!(top[0] && top[0].brand && top[0].cov === 1 && top[0].hits >= 3 && !(top[1] && top[1].cov === 1));
-      return { tokens: tokens, exact: exact, matches: top.map(function (x) { return x.p; }), evidence: top.map(function (x) { return { hits: x.hits, brand: x.brand, score: x.score, cov: x.cov }; }) };
+      // A shorter name that is part of a longer one of the same brand ("Eau Thermale Scrub Body Wash" and "... Leather Iris") can't be told apart
+      // unless the extra words were read, so don't open it straight away: let the person choose.
+      if (exact) {
+        var t0 = top[0];
+        if (scored.some(function (x) { return x !== t0 && x.p.brand === t0.p.brand && x.own.length > t0.own.length && t0.own.every(function (w) { return x.own.indexOf(w) > -1; }); })) exact = false;
+      }
+      return { tokens: tokens, exact: exact, matches: top.map(function (x) { return x.p; }), evidence: top.map(function (x) { return { hits: x.hits, brand: x.brand, score: x.score, cov: x.cov, rank: x.rank }; }) };
     });
   };
 
