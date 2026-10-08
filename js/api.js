@@ -363,22 +363,25 @@
   }
   Shop.identify = function (text) {
     var tokens = [];
+    // Brands with an apostrophe ("d'Alba", "L'Oréal", "Kiehl's") are written without it in the catalog words ("dalba"), so the text is also read with the apostrophes closed up.
     var raw = words(text);
+    words(String(text).replace(/(\w)['\u2019`\u00b4](\w)/g, "$1$2")).forEach(function (w) { if (raw.indexOf(w) < 0) raw.push(w); });
     // Neighbouring words also joined ("ever" + "pure" -> "everpure"), because packages split brand words the catalog writes as one.
+    // A lone letter before a word joins too ("d" + "alba"), for an apostrophe the reader saw as a space.
     var joined = [];
-    for (var j = 0; j + 1 < raw.length; j++) if (raw[j].length >= 3 && raw[j + 1].length >= 3 && raw[j].length + raw[j + 1].length >= 6) joined.push(raw[j] + raw[j + 1]);
+    for (var j = 0; j + 1 < raw.length; j++) if ((raw[j].length >= 3 && raw[j + 1].length >= 3 && raw[j].length + raw[j + 1].length >= 6) || (raw[j].length === 1 && raw[j + 1].length >= 3 && /^[a-z]$/.test(raw[j]))) joined.push(raw[j] + raw[j + 1]);
     withSyn(raw).concat(joined).forEach(function (w) { if (w.length >= 3 && !/^\d+$/.test(w) && tokens.indexOf(w) < 0) tokens.push(w); });
     return loadShop().then(function (list) {
       var pool = list.concat(Catalog.all().map(function (p) { return { brand: p.brand, name: p.name, code: p.code, image: p.image, ingredientsText: p.ingredientsText, local: true, shop: p.shop, partial: p.partial, note: p.note, source: p.source, linked: p.linked, hay: flat(p.brand + " " + p.name) }; }));
       // Unique words only: aliases repeat the same words, which would otherwise count (and score) several times.
       var docs = pool.map(function (p) { var uniq = function (a) { return a.filter(function (w, i) { return a.indexOf(w) === i; }); };
-        return { p: p, w: uniq(words(p.hay)), own: uniq(words((p.brand || "") + " " + (p.name || ""))) }; });
+        return { p: p, w: uniq(words(p.hay)), own: uniq(words(flat((p.brand || "") + " " + (p.name || "")))) }; });
       var df = {};
       docs.forEach(function (d) { var seen = {}; d.w.forEach(function (w) { if (!seen[w]) { seen[w] = 1; df[w] = (df[w] || 0) + 1; } }); });
       var N = docs.length || 1;
       function idf(w) { return Math.log(N / ((df[w] || 0) + 1)) + 1; }
       var scored = docs.map(function (d) {
-        var score = 0, hits = 0, brandWords = words(d.p.brand || "").filter(function (w) { return w.length >= 3; }), brandHit = 0;
+        var score = 0, hits = 0, brandWords = words(flat(d.p.brand || "")).filter(function (w) { return w.length >= 3; }), brandHit = 0;
         d.w.forEach(function (hw) {
           for (var i = 0; i < tokens.length; i++) {
             if (close(tokens[i], hw)) { score += idf(hw); hits++; if (brandWords.indexOf(hw) > -1) brandHit++; break; }

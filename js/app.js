@@ -1043,7 +1043,7 @@
   // ----- one camera for everything: barcode (live), product, shelf and ingredient list (photo) -----
   var MODE_HINT = {
     code: "Point the camera at a barcode",
-    product: "Fit the front of the product in the frame, tap the button, then hold still for a second",
+    product: "Show the front of the product inside the frame. It reads on its own; you can also tap the button",
     shelf: "Fit the shelf in the frame, tap the button, then hold still for a second",
     ingredients: "Fill the frame with the list, then tap the button. Round bottle? Use Camera app and zoom in (5×)"
   };
@@ -1099,11 +1099,13 @@
     camMsg("");
     setMode(mode || "code");
     startCamera();
+    autoStart();
     if (!guideSeen()) showGuide(0);
   }
   function hideCam() {
     cam.open = false; cam.busy = false; cam.job++;
     if (crop && crop.open) closeCrop();
+    autoStop();
     el("cam").hidden = true;
     document.body.classList.remove("cam-open");
   }
@@ -1262,9 +1264,85 @@
   function progress(msg) { if (cam.busy) el("cam-busy-text").textContent = msg.replace(/…$/, "") + "…"; }
   function stage(msg) { progress(msg); }
 
+  // ---- Auto-scan (Product mode): no button needed. While the product is shown inside the frame the camera keeps reading its sharpest frames,
+  // pools the words from the last few readings (a finger may hide a different part each time) and opens the product by itself once the brand and
+  // every word of the name are read. A close-but-not-sure guess is offered as a card. It pauses after about 45 s so it doesn't drain the battery.
+  var AUTO_MIN_SHARP = 40, AUTO_MAX_MS = 45000;
+  var AUTO_PASSES = [
+    { psm: 3, make: function (c) { return c; } },
+    { psm: 11, make: function (c) { return c; } },
+    { psm: 3, make: function (c) { return c; } },
+    { psm: 3, make: function (c) { return window.OCR.rotate(c, true); } },
+    { psm: 3, make: function (c) { return c; } },
+    { psm: 3, make: function (c) { return window.OCR.rotate(c, false); } }
+  ];
+  var auto = { timer: null, busy: false, run: 0, k: 0, bag: [], started: 0, paused: false, blocked: true, guess: "" };
+  function autoReset() { auto.run++; auto.bag = []; auto.k = 0; auto.started = Date.now(); auto.paused = false; auto.guess = ""; }
+  function autoHint(text) { if (!el("cam-card").hidden) return; el("cam-hint").textContent = text; el("cam-hint").hidden = false; }
+  function autoShowGuess(p, r) {
+    var key = p.brand + "|" + p.name;
+    if (auto.guess === key) return;
+    auto.guess = key;
+    var marks = scorePill(p) + markTags(p);
+    showCard('<p class="cam-card-note">Looks like this one. Tap it, or keep the product in the frame.</p><button type="button" class="cam-card-btn" id="cam-guess-open">' + photoHtml(p) +
+      '<span class="cam-card-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" + (marks ? '<span class="tags">' + marks + "</span>" : "") + "</span>" + ic("arrow-right", "chev-ic") + "</button>");
+    el("cam-guess-open").addEventListener("click", function () {
+      var list = (r.matches || []).slice();
+      cam.read = { mode: "product", tokens: r.tokens || [] };
+      openFromMatches(list.length ? list : [p], p, "Is it one of these?", null);
+    });
+  }
+  function autoStep(run) {
+    var frames = [], n = 0;
+    return new Promise(function (resolve) {
+      (function grab() {
+        var c = cropFrame();
+        if (c) frames.push({ c: c, s: window.OCR.frameScore(c) });
+        if (++n < 4) setTimeout(grab, 90); else resolve();
+      })();
+    }).then(function () {
+      if (!frames.length || run !== auto.run) return;
+      frames.sort(function (a, b) { return b.s - a.s; });
+      if (frames[0].s < AUTO_MIN_SHARP) { autoHint("Hold the product still, or move it a little farther back"); return; }
+      var ps = AUTO_PASSES[auto.k++ % AUTO_PASSES.length];
+      return window.OCR.recognize(ps.make(window.OCR.prepareCanvas(frames[0].c)), ps.psm, null).then(function (t) {
+        if (run !== auto.run || !cam.open || cam.mode !== "product" || cam.busy) return;
+        auto.bag.push(t); if (auto.bag.length > 6) auto.bag.shift();
+        return window.Shop.identify(auto.bag.join("\n")).then(function (r) {
+          if (run !== auto.run || !cam.open || cam.mode !== "product" || cam.busy) return;
+          if (r.exact && r.matches.length) {
+            auto.run++;
+            cam.read = { mode: "product", tokens: r.tokens || [] };
+            openFromMatches(r.matches, r.matches[0], "Is it one of these?", { mode: "product", tokens: r.tokens || [] });
+            return;
+          }
+          var m = r.matches[0], ev = r.evidence[0];
+          if (m && ev && ((ev.brand && ev.hits >= 2) || ev.hits >= 3)) autoShowGuess(m, r);
+          else autoHint(MODE_HINT.product);
+        });
+      });
+    });
+  }
+  function autoTick() {
+    var blocked = !cam.open || cam.mode !== "product" || cam.busy || (crop && crop.open) || !el("cam-sheet").hidden || !el("cam-guide").hidden || !el("cam-busy").hidden;
+    if (blocked) { auto.blocked = true; return; }
+    if (auto.blocked) { auto.blocked = false; autoReset(); }   // coming back to the live camera: start fresh
+    if (auto.busy) return;
+    if (Date.now() - auto.started > AUTO_MAX_MS) {
+      if (!auto.paused) { auto.paused = true; autoHint("Auto-scan paused. Tap the button to read the product"); }
+      return;
+    }
+    auto.busy = true;
+    var run = auto.run;
+    autoStep(run).catch(function () {}).then(function () { auto.busy = false; });
+  }
+  function autoStart() { autoStop(); autoReset(); auto.blocked = true; auto.timer = setInterval(autoTick, 500); }
+  function autoStop() { if (auto.timer) clearInterval(auto.timer); auto.timer = null; auto.run++; if (window.OCR && window.OCR.stopShared) window.OCR.stopShared(); }
+
   function onShutter() {
     if (cam.busy || cam.mode === "code") return;
     var mode = cam.mode;
+    auto.run++;
     cam.busy = true;
     camMsg("Hold still…");
     clearTimeout(camMsg.t);   // stay up for the whole burst
@@ -1447,21 +1525,52 @@
 
   // Product: try a barcode in the photo first, then read the words printed on the package.
   // If the first (sharpest) frame doesn't give a sure match, read the next-sharpest one too and match on the words of both.
+  // A match sure enough to stop reading: the exact one, or a clear leader (brand read, most of its name read, and well ahead of the second).
+  function isSure(r) {
+    if (!r) return false;
+    if (r.exact) return true;
+    var e0 = r.evidence && r.evidence[0], e1 = r.evidence && r.evidence[1];
+    return !!(e0 && e0.brand && e0.cov >= 0.75 && e0.hits >= 3 && (!e1 || e0.score >= 1.4 * e1.score));
+  }
   function identifyProduct(file, alts) {
     stage("Looking for a barcode");
     return tryBarcodeFile(file).then(function (code) {
       if (code.length >= 8) return { code: code };
-      return window.OCR.readRaw(file, progress).then(function (text) {
-        stage("Matching products");
-        return window.Shop.identify(text).then(function (r) {
-          if (r.exact || !alts || !alts.length) return r;
-          stage("Reading again");
-          return window.OCR.readRaw(alts[0], progress).then(function (text2) {
-            stage("Matching products");
-            return window.Shop.identify(text + "\n" + text2).then(function (r2) {
-              return (r2.matches && r2.matches.length) || !(r.matches && r.matches.length) ? r2 : r;
-            });
-          }, function () { return r; });
+      var text = "";
+      function match() { stage("Matching products"); return window.Shop.identify(text); }
+      function better(r2, r) { return (r2.matches && r2.matches.length) || !(r.matches && r.matches.length) ? r2 : r; }
+      return window.OCR.readRaw(file, progress).then(function (t) {
+        text = t;
+        return match();
+      }).then(function (r) {
+        if (isSure(r)) return r;
+        var best = r, chain = Promise.resolve();
+        // Other sharp frames of the burst: a finger may cover a different part of the label in each one, so the words are pooled.
+        (alts || []).slice(0, 2).forEach(function (alt) {
+          chain = chain.then(function () {
+            if (isSure(best)) return;
+            stage("Reading again");
+            return window.OCR.prepare(alt).then(function (c) { return window.OCR.recognize(c, 3, progress); }).then(function (t2) {
+              text += "\n" + t2;
+              return match().then(function (r2) { best = better(r2, best); });
+            }).catch(function () {});
+          });
+        });
+        // Still not sure: read the best frame again in other ways (scattered words, turned 90 degrees both ways, each side, light letters).
+        return chain.then(function () {
+          if (isSure(best)) return best;
+          return window.OCR.prepare(file).then(function (canvas) {
+            return window.OCR.passes.reduce(function (c2, ps) {
+              return c2.then(function () {
+                if (isSure(best)) return;
+                stage(ps.label);
+                return window.OCR.recognize(ps.make(canvas), ps.psm, progress).then(function (t3) {
+                  text += "\n" + t3;
+                  return match().then(function (r3) { best = better(r3, best); });
+                }).catch(function () {});
+              });
+            }, Promise.resolve());
+          }).then(function () { return best; }, function () { return best; });
         });
       });
     });

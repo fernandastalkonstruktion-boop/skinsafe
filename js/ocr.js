@@ -184,6 +184,95 @@
       .map(function (g) { return { text: g.map(function (w) { return w.text; }).join(" "), words: g.length }; });
   }
 
-  window.OCR = { read: read, readRaw: readRaw, readWords: readWords, groups: groups, clean: clean, sharpness: sharpness, frameScore: frameScore };
+
+
+  // Same preparation as prepare(), for a canvas (a live camera frame): scale to a good reading size, grayscale, stretch the contrast.
+  function prepareCanvas(src) {
+    var longest = Math.max(src.width, src.height);
+    var scale = longest > 1600 ? 1600 / longest : longest < 1200 ? 1200 / longest : 1;
+    var c = document.createElement("canvas");
+    c.width = Math.round(src.width * scale); c.height = Math.round(src.height * scale);
+    var x = c.getContext("2d", { willReadFrequently: true });
+    x.drawImage(src, 0, 0, c.width, c.height);
+    var d = x.getImageData(0, 0, c.width, c.height), p = d.data, i, g, lo = 255, hi = 0;
+    for (i = 0; i < p.length; i += 4) { g = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]; p[i] = g; if (g < lo) lo = g; if (g > hi) hi = g; }
+    var range = Math.max(1, hi - lo);
+    for (i = 0; i < p.length; i += 4) { g = (p[i] - lo) * 255 / range; p[i] = p[i + 1] = p[i + 2] = g; }
+    x.putImageData(d, 0, 0);
+    return c;
+  }
+
+  // ---- One reader kept alive for the camera (auto-scan and the extra passes), so each reading doesn't reload the language data. ----
+  var shared = null, chain = Promise.resolve(), progressCb = function () {};
+  function sharedWorker() {
+    if (!shared) {
+      shared = loadLibrary().then(function () {
+        return window.Tesseract.createWorker("eng", 1, {
+          langPath: LANG_PATH,
+          logger: function (m) { if (m.status === "recognizing text") progressCb(m.progress); }
+        });
+      });
+      shared.catch(function () { shared = null; });
+    }
+    return shared;
+  }
+  // Reads one canvas with the shared reader. psm 3 = a normal block of text, 6 = one block, 11 = words scattered anywhere (stylized logos, curved labels).
+  function recognize(canvas, psm, onProgress) {
+    progressCb = onProgress || function () {};
+    var job = chain.then(function () {
+      return sharedWorker().then(function (w) {
+        return w.setParameters({ tessedit_pageseg_mode: String(psm || 3) }).then(function () { return w.recognize(canvas); });
+      });
+    });
+    chain = job.catch(function () {});
+    return job.then(function (r) { return String((r.data && r.data.text) || ""); });
+  }
+  function stopShared() {
+    var s = shared; shared = null; chain = Promise.resolve();
+    if (s) s.then(function (w) { return w.terminate(); }).catch(function () {});
+  }
+
+  function rotate(canvas, cw) {
+    var r = document.createElement("canvas"), g;
+    r.width = canvas.height; r.height = canvas.width;
+    g = r.getContext("2d", { willReadFrequently: true });
+    if (cw) { g.translate(r.width, 0); g.rotate(Math.PI / 2); } else { g.translate(0, r.height); g.rotate(-Math.PI / 2); }
+    g.drawImage(canvas, 0, 0);
+    return r;
+  }
+  function invert(canvas) {
+    var r = document.createElement("canvas"), g, d, p, i;
+    r.width = canvas.width; r.height = canvas.height;
+    g = r.getContext("2d", { willReadFrequently: true });
+    g.drawImage(canvas, 0, 0);
+    d = g.getImageData(0, 0, r.width, r.height); p = d.data;
+    for (i = 0; i < p.length; i += 4) { p[i] = 255 - p[i]; p[i + 1] = 255 - p[i + 1]; p[i + 2] = 255 - p[i + 2]; }
+    g.putImageData(d, 0, 0);
+    return r;
+  }
+  // One half of the picture (a little more than half, so a word on the seam isn't cut). Reading a half at a time helps when a hand or a
+  // reflection covers part of the label: the text blocks are simpler and the reader doesn't give up on the whole picture.
+  function part(canvas, which) {
+    var w = canvas.width, h = canvas.height, r = document.createElement("canvas"), g, sx = 0, sy = 0, sw = w, sh = h;
+    if (which === "left") sw = Math.round(w * 0.58);
+    else if (which === "right") { sx = Math.round(w * 0.42); sw = w - sx; }
+    else if (which === "top") sh = Math.round(h * 0.58);
+    else { sy = Math.round(h * 0.42); sh = h - sy; }
+    r.width = sw; r.height = sh;
+    g = r.getContext("2d", { willReadFrequently: true });
+    g.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
+    return r;
+  }
+  // Extra readings to try, in order, when the first one doesn't give a sure match. Each makes the picture it reads on demand.
+  var PASSES = [
+    { label: "Reading scattered words", psm: 11, make: function (c) { return c; } },
+    { label: "Reading it sideways", psm: 3, make: function (c) { return rotate(c, true); } },
+    { label: "Reading it sideways", psm: 3, make: function (c) { return rotate(c, false); } },
+    { label: "Reading the left side", psm: 6, make: function (c) { return part(c, "left"); } },
+    { label: "Reading the right side", psm: 6, make: function (c) { return part(c, "right"); } },
+    { label: "Reading light letters", psm: 11, make: function (c) { return invert(c); } }
+  ];
+
+  window.OCR = { recognize: recognize, stopShared: stopShared, passes: PASSES, prepareCanvas: prepareCanvas, rotate: rotate, invert: invert, part: part, prepare: prepare,  read: read, readRaw: readRaw, readWords: readWords, groups: groups, clean: clean, sharpness: sharpness, frameScore: frameScore };
   if (typeof module !== "undefined" && module.exports) module.exports = { sharpness: sharpness };
 })();
