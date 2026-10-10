@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#6fd0d8" id="theme-color">
-  <meta name="app-version" content="20261008142540">
+  <meta name="app-version" content="20261010111346">
   <title>SkinSafe</title>
   <link rel="icon" type="image/png" sizes="32x32" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-fav-10.png">
   <link rel="icon" type="image/png" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-10.png">
@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="SkinSafe">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="styles.css?v=20261008142540">
+  <link rel="stylesheet" href="styles.css?v=20261010111346">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -110,6 +110,7 @@
         <button type="button" role="tab" data-area="hair">Hair</button>
         <button type="button" role="tab" data-area="body">Body</button>
         <button type="button" role="tab" data-area="mouth">Mouth</button>
+        <button type="button" role="tab" data-area="aid">First aid</button>
       </div>
       <div class="cat-chips" id="cats-chips"></div>
       <form class="search" id="cats-form" role="search" autocomplete="off">
@@ -161,6 +162,7 @@
       <form class="search" id="pick-form" autocomplete="off">
         <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
         <input id="pick-q" type="search" enterkeyhint="search" placeholder="Search for the one you own" aria-label="Search for a product">
+        <button type="button" id="pick-scan" aria-label="Scan the product with the camera"><svg class="ic"><use href="#i-camera"/></svg></button>
         <button type="submit" aria-label="Search"><svg class="ic"><use href="#i-arrow-right"/></svg></button>
       </form>
       <div class="result-list" id="pick-list"></div>
@@ -325,6 +327,7 @@
       <p class="cam-title">Scan a barcode, product or shelf</p>
       <button type="button" class="cam-round" id="cam-help" aria-label="How the camera works"><svg class="ic"><use href="#i-info"/></svg></button>
     </div>
+    <p class="cam-for" id="cam-for" hidden></p>
     <p class="cam-hint" id="cam-hint"></p>
     <p class="cam-msg" id="cam-msg" role="status" hidden></p>
     <div class="cam-controls">
@@ -397,19 +400,19 @@
   </div>
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/ingredients.js?v=20261008142540"></script>
-  <script src="js/alerts.js?v=20261008142540"></script>
-  <script src="js/profile.js?v=20261008142540"></script>
-  <script src="js/api.js?v=20261008142540"></script>
-  <script src="js/routine.js?v=20261008142540"></script>
-  <script src="js/hair.js?v=20261008142540"></script>
-  <script src="js/body.js?v=20261008142540"></script>
-  <script src="js/ocr.js?v=20261008142540"></script>
-  <script src="js/imgops.js?v=20261008142540"></script>
-  <script src="js/barcode.js?v=20261008142540"></script>
-  <script src="js/reader.js?v=20261008142540"></script>
-  <script src="js/app.js?v=20261008142540"></script>
-  <script src="js/update.js?v=20261008142540"></script>
-  <script src="js/offline.js?v=20261008142540"></script>
+  <script src="js/ingredients.js?v=20261010111346"></script>
+  <script src="js/alerts.js?v=20261010111346"></script>
+  <script src="js/profile.js?v=20261010111346"></script>
+  <script src="js/api.js?v=20261010111346"></script>
+  <script src="js/routine.js?v=20261010111346"></script>
+  <script src="js/hair.js?v=20261010111346"></script>
+  <script src="js/body.js?v=20261010111346"></script>
+  <script src="js/ocr.js?v=20261010111346"></script>
+  <script src="js/imgops.js?v=20261010111346"></script>
+  <script src="js/barcode.js?v=20261010111346"></script>
+  <script src="js/reader.js?v=20261010111346"></script>
+  <script src="js/app.js?v=20261010111346"></script>
+  <script src="js/update.js?v=20261010111346"></script>
+  <script src="js/offline.js?v=20261010111346"></script>
 </body>
 </html>

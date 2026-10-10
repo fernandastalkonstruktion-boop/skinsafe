@@ -99,15 +99,21 @@
   var ORAL_KINDS = { oral: { label: "Oral hygiene", hint: "Toothpaste and mouthwash" } };
   var ORAL_BRAND = /^(colgate|crest|sensodyne|listerine|oral-b|parodontax|meridol|elmex|therabreath|marvis|curaprox|pepsodent|close-?up|arm & hammer|hello|tom's of maine)$/i;
   var ORAL_WORD = /(toothpaste|tooth paste|dentifrice|pasta dental|pasta de dientes|crema dental|gel dental|mouthwash|mouth rinse|oral rinse|enjuague bucal|enjuague|oral care|\bplax\b|gum (care|protection|detoxify|therapy)|enamel|whitening mint)/i;
+  // First aid (wound antiseptics like Microdacyn): same treatment as oral care (own group, no skin or hair quiz, no routine steps).
+  var AID_KINDS = { aid: { label: "First aid", hint: "Wound care and antiseptics" } };
+  var AID_BRAND = /^(microdacyn)$/i;
+  var AID_WORD = /(microdacyn|antiseptic|antis[eé]ptic|wound (care|wash|spray|gel|cleanser)|herida|hypochlorous|hipocloroso|first aid|primeros auxilios)/i;
   var NOT_ORAL = /(deodorant|desodorante|shampoo|body|soap|jab[oó]n|lotion|cream for|hand)/i;
   function classifyOral(p) {
     var name = (p.name || "").toLowerCase();
+    if (AID_BRAND.test((p.brand || "").trim()) || AID_WORD.test(name)) return "aid";
     if (NOT_ORAL.test(name) && !/(toothpaste|mouthwash|enjuague bucal|pasta dental)/.test(name)) return null;
     if (ORAL_BRAND.test((p.brand || "").trim()) || ORAL_WORD.test(name)) return "oral";
     return null;
   }
   Object.keys(ORAL_KINDS).forEach(function (k) { KINDS[k] = ORAL_KINDS[k]; });
-  window.Oral = { KINDS: ORAL_KINDS, ORDER: ["oral"], classify: classifyOral };
+  Object.keys(AID_KINDS).forEach(function (k) { KINDS[k] = AID_KINDS[k]; });
+  window.Oral = { KINDS: ORAL_KINDS, ORDER: ["oral"], AID: ["aid"], classify: classifyOral };
 
   window.Routine = { KINDS: KINDS, ORDER: ORDER, DEFAULT_STEPS: DEFAULT_STEPS, classify: classify, when: when, load: load, save: save, reset: reset, stepWhen: stepWhen };
 })();

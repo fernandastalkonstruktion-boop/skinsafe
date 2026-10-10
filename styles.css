@@ -845,3 +845,11 @@ body.on-profile #skin .privacy-note { margin-top: 10px; }
 .crop-tool { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 62px; padding: 8px 8px 7px; border-radius: 14px; border: 1px solid var(--glass-line); background: var(--glass); color: var(--text); font: 600 11.5px/1.1 inherit; font-family: inherit; cursor: pointer; }
 .crop-tool .ic { width: 22px; height: 22px; }
 .crop-go { flex: none; background: var(--btn); }
+
+/* camera card: close button, routine scan */
+.cam-card-x { position: absolute; top: -12px; right: -4px; width: 32px; height: 32px; padding: 0; border-radius: 50%; border: 0; background: var(--sheet); color: var(--text); box-shadow: 0 3px 10px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.cam-card-x .ic { width: 16px; height: 16px; color: inherit; }
+.cam-card-btn.static { cursor: default; margin-top: 8px; }
+.cam-card-warn { color: #a02a24; margin: 8px 0 0; }
+.cam-for { position: absolute; left: 24px; right: 24px; top: calc(env(safe-area-inset-top) + 74px); margin: 0 auto; width: fit-content; max-width: calc(100% - 48px); padding: 8px 16px; border-radius: 999px; background: var(--btn); color: var(--on-btn); font-size: 14px; font-weight: 600; text-align: center; z-index: 3; }
+.cam-card .primary.small { margin-top: 10px; }

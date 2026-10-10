@@ -417,8 +417,8 @@
       '<span class="tags">' + tags + "</span></span>" +
       (heart ? '<button type="button" class="fav-heart" data-i="' + i + '" aria-label="Remove from favorites">' + ic("heart") + "</button>" : "") + "</div>";
   }
-  // ----- History: the last 7 products opened (scanned or searched), stored only on this phone -----
-  var HKEY = "skinsafe.history", HMAX = 7;
+  // ----- History: the last 14 products opened (scanned or searched), stored only on this phone -----
+  var HKEY = "skinsafe.history", HMAX = 14;
   function loadHistory() {
     try { var h = JSON.parse(localStorage.getItem(HKEY) || "[]"); return Array.isArray(h) ? h : []; } catch (e) { return []; }
   }
@@ -430,7 +430,7 @@
   }
   function renderHistory() {
     var list = loadHistory(), box = el("history-list");
-    if (!list.length) { box.innerHTML = '<p class="saved-empty">Nothing here yet. The last 7 products you scan or search will show up here, on this phone only.</p>'; return; }
+    if (!list.length) { box.innerHTML = '<p class="saved-empty">Nothing here yet. The last 14 products you scan or search will show up here, on this phone only.</p>'; return; }
     box.innerHTML = list.map(function (p, i) { return cardHtml(p, i, false); }).join("");
     Array.prototype.forEach.call(box.querySelectorAll(".fav-card"), function (card) {
       var p = list[Number(card.getAttribute("data-i"))];
@@ -443,7 +443,7 @@
     var kinds = {};
     all.forEach(function (p) { kinds[kindOf(p)] = true; });
     if (!kinds[favFilter]) favFilter = "all";
-    sel.innerHTML = '<option value="all">All</option>' + window.Routine.ORDER.concat(window.Hair.ORDER, window.Body.ORDER, window.Oral.ORDER, ["other"]).filter(function (k) { return kinds[k]; }).map(function (k) {
+    sel.innerHTML = '<option value="all">All</option>' + window.Routine.ORDER.concat(window.Hair.ORDER, window.Body.ORDER, window.Oral.ORDER, window.Oral.AID, ["other"]).filter(function (k) { return kinds[k]; }).map(function (k) {
       return '<option value="' + k + '">' + kindLabel(k) + "</option>";
     }).join("");
     sel.value = favFilter;
@@ -463,11 +463,11 @@
     });
   }
 
-  // ----- Categories: browse the whole list by type (Face, Hair, Body, Mouth), best-rated first, with a search inside the category -----
+  // ----- Categories: browse the whole list by type (Face, Hair, Body, Mouth, First aid), best-rated first, with a search inside the category -----
   var cats = { area: "face", kind: "all", q: "", shown: 40 }, catsRows = [];
   function catsKinds() {
     var a = cats.area;
-    return a === "hair" ? window.Hair.ORDER : a === "body" ? window.Body.ORDER : a === "mouth" ? window.Oral.ORDER : window.Routine.ORDER;
+    return a === "hair" ? window.Hair.ORDER : a === "body" ? window.Body.ORDER : a === "mouth" ? window.Oral.ORDER : a === "aid" ? window.Oral.AID : window.Routine.ORDER;
   }
   function openCats() {
     window.Shop.load().then(function (list) {
@@ -500,7 +500,7 @@
   }
 
   // ----- Your routine: one list of steps for the morning and one for the night, saved only on this phone -----
-  var catalogList = [], rtPeriod = "face", rtSel = 0, rtSelPeriod = "", rtStripPeriod = "", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {};
+  var catalogList = [], rtPeriod = "face", rtSel = 0, rtSelPeriod = "", rtStripPeriod = "", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {}, scanCtx = null;
   function analysisOf(p) { var c = anCache[p.ingredientsText]; if (!c) { c = window.Ingredients.analyze(p.ingredientsText); anCache[p.ingredientsText] = c; } return c; }
   function routineProd(p) { return { id: productId(p), code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial }; }
   function whenOf(p, kind) { return window.Routine.when(p, kind || kindOf(p), analysisOf(p).items); }
@@ -604,6 +604,7 @@
       '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
       '<span class="tags">' + scorePill(p) + (noTimeKind(kind) ? "" : whenTag(whenOf(p, kind))) + "</span></span>" + ic("chevron-right", "chev-ic") + "</button>";
   }
+  function scanBtn(i) { return '<button type="button" class="secondary small-btn" data-act="scan" data-i="' + i + '">' + ic("camera") + "Scan</button>"; }
   function renderRoutine() {
     var K = window.Routine.KINDS, hairArea = isHairPeriod(rtPeriod), bodyArea = isBodyPeriod(rtPeriod);
     var prof = hairArea ? window.Hair.load() : window.Profile.load();
@@ -646,9 +647,9 @@
       var i = rtSel, st = steps[i], pr = st.product, sg = rtSug[i], sh = pr || sg;
       var w2 = noTimeKind(st.kind) ? { when: "any", why: K[st.kind].tip } : sh ? whenOf(sh, st.kind) : { when: window.Routine.stepWhen(st.kind), why: K[st.kind].hint };
       var acts = pr
-        ? '<button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Change</button><button type="button" class="secondary small-btn" data-act="clear" data-i="' + i + '">Remove</button>'
-        : sg ? '<button type="button" class="primary small" data-act="use" data-i="' + i + '">Use this</button><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Alternatives</button>'
-        : '<button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Pick my own</button>';
+        ? '<button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Change</button>' + scanBtn(i) + '<button type="button" class="secondary small-btn" data-act="clear" data-i="' + i + '">Remove</button>'
+        : sg ? '<button type="button" class="primary small" data-act="use" data-i="' + i + '">Use this</button><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Alternatives</button>' + scanBtn(i)
+        : '<button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Pick my own</button>' + scanBtn(i);
       var timeTag = !sh || noTimeKind(st.kind) ? "" : whenTag(w2);
       panel = '<div class="shelf-panel"><p class="shelf-kind">' + esc(K[st.kind].label) + (pr ? "" : sg ? " · suggested for you" : "") + "</p>" +
         (sh ? '<p class="shelf-pname">' + esc(sh.name) + '</p><p class="shelf-brand">' + esc(sh.brand) + "</p>" : '<p class="shelf-pname">Nothing here yet</p>') +
@@ -763,6 +764,7 @@
     else if (act === "clear") steps[i].product = null;
     else if (act === "use" && rtSug[i]) steps[i].product = routineProd(rtSug[i]);
     else if (act === "pick") { openPick(i); return; }
+    else if (act === "scan") { startRoutineScan(rtPeriod, i); return; }
     else if (act === "open") { cameFrom = "routine"; renderResult(steps[i].product); return; }
     else if (act === "opensug" && rtSug[i]) { cameFrom = "routine"; renderResult(rtSug[i]); return; }
     else return;
@@ -1099,6 +1101,8 @@
     el("cam-guide").hidden = true;
     camMsg("");
     setMode(mode || "code");
+    el("cam-for").hidden = !scanCtx;
+    if (scanCtx) el("cam-for").textContent = "Scanning for: " + window.Routine.KINDS[scanCtx.kind].label;
     startCamera();
     autoStart();
     bcStart();
@@ -1106,6 +1110,7 @@
   }
   function hideCam() {
     cam.open = false; cam.busy = false; cam.job++;
+    scanCtx = null; el("cam-for").hidden = true;
     if (crop && crop.open) closeCrop();
     autoStop();
     bcStop(); bcStopWorker();
@@ -1163,9 +1168,33 @@
 
   function showCard(html) {
     var c = el("cam-card");
-    c.innerHTML = html;
+    c.innerHTML = html + '<button type="button" class="cam-card-x" aria-label="Close this card">' + ic("x") + "</button>";
     c.hidden = false;
     el("cam-hint").hidden = true;
+  }
+  // Scanning for a routine step: the card offers "Use in my routine" instead of opening the product.
+  function startRoutineScan(period, i) {
+    var st = rt && rt[period] && rt[period][i];
+    if (!st) return;
+    scanCtx = { period: period, i: i, kind: st.kind };
+    pending = null; linking = null;
+    openCam("code");
+  }
+  function backToRoutine(ctx) { rtPeriod = ctx.period; rtSel = ctx.i; renderRoutine(); show("routine"); }
+  function useScanned(p) {
+    var ctx = scanCtx;
+    if (!ctx || !rt[ctx.period] || !rt[ctx.period][ctx.i]) return;
+    rt[ctx.period][ctx.i].product = routineProd(p);
+    saveRoutine();
+    closeCam().then(function () { backToRoutine(ctx); });
+  }
+  function showScanCard(p, note) {
+    var ctx = scanCtx, marks = scorePill(p) + markTags(p), kind = kindOf(p), warn = "";
+    if (kind !== ctx.kind) warn = '<p class="cam-card-note cam-card-warn">This looks like a ' + esc(kindLabel(kind).toLowerCase()) + ", not a " + esc(window.Routine.KINDS[ctx.kind].label.toLowerCase()) + ". You can still use it.</p>";
+    showCard('<p class="cam-card-note">' + esc(note) + '</p><div class="cam-card-btn static">' + photoHtml(p) +
+      '<span class="cam-card-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" + (marks ? '<span class="tags">' + marks + "</span>" : "") + "</span></div>" + warn +
+      '<button type="button" class="primary small" id="cam-card-use">Use in my routine</button>');
+    el("cam-card-use").addEventListener("click", function () { useScanned(p); });
   }
   function camLookup(code) {
     cam.shown = code;
@@ -1174,6 +1203,8 @@
       if (!cam.open || cam.shown !== code) return;
       if (r.state === "found") {
         var p = r.product, marks = scorePill(p) + markTags(p);
+        addHistory(p);
+        if (scanCtx) { showScanCard(p, "Found it."); return; }
         showCard('<button type="button" class="cam-card-btn" id="cam-card-open">' +
           photoHtml(p) +
           '<span class="cam-card-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
@@ -1186,9 +1217,9 @@
         cam.shown = "";
       } else {
         showCard('<p class="cam-card-note"><strong>' + esc(code) + "</strong> " +
-          (r.state === "missing" ? "isn't in our database yet." : "is in the database but has no ingredient list yet.") + "</p>" +
-          '<button type="button" class="primary small" id="cam-card-add">' + ic("camera") + "Add it with a photo</button>");
-        el("cam-card-add").addEventListener("click", function () { closeCam(); applyResolved(r, code); });
+          (r.state === "missing" ? "isn't in our database yet." : "is in the database but has no ingredient list yet.") + (scanCtx ? " Try Product mode, or search for it by name." : "") + "</p>" +
+          (scanCtx ? "" : '<button type="button" class="primary small" id="cam-card-add">' + ic("camera") + "Add it with a photo</button>"));
+        if (!scanCtx) el("cam-card-add").addEventListener("click", function () { closeCam(); applyResolved(r, code); });
       }
     });
   }
@@ -1341,6 +1372,8 @@
     var key = p.brand + "|" + p.name;
     if (auto.guess === key) return;
     auto.guess = key;
+    addHistory(p);
+    if (scanCtx) { showScanCard(p, "Looks like this one."); return; }
     var marks = scorePill(p) + markTags(p);
     showCard('<p class="cam-card-note">Looks like this one. Tap it, or keep the product in the frame.</p><button type="button" class="cam-card-btn" id="cam-guess-open">' + photoHtml(p) +
       '<span class="cam-card-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" + (marks ? '<span class="tags">' + marks + "</span>" : "") + "</span>" + ic("arrow-right", "chev-ic") + "</button>");
@@ -1369,6 +1402,7 @@
         R.add(auto.state, ps, res);
         return R.judge(auto.state, window.Shop).then(function (r) {
           if (run !== auto.run || !cam.open || cam.mode !== "product" || cam.busy) return;
+          if (r.exact && r.matches.length && scanCtx) { autoShowGuess(r.matches[0], r); return; }
           if (r.exact && r.matches.length) {
             auto.run++;
             cam.read = { mode: "product", tokens: r.tokens || [] };
@@ -1569,8 +1603,10 @@
     work.then(function (r) {
       if (!cam.open || cam.job !== job) return;
       cam.busy = false; setBusy(false);
+      if (r.code && scanCtx) { camLookup(r.code); return; }
       if (r.code) { closeCam().then(function () { lookupCode(r.code); }); return; }
       cam.read = { mode: mode, tokens: r.tokens || [] };
+      if (r.exact && r.matches.length && scanCtx) { addHistory(r.matches[0]); showScanCard(r.matches[0], "Found it."); return; }
       if (r.exact && r.matches.length) { openFromMatches(r.matches, r.matches[0], "Is it one of these?", { mode: mode, tokens: r.tokens || [] }); return; }
       if (mode === "product" && !(r.matches || []).length) logMissing("unknown", mode, r.tokens, null);
       showSheet(mode, r);
@@ -1618,6 +1654,7 @@
 
   // Open a product from a list of matches; "Back" from it returns to that list.
   function openFromMatches(list, p, title, exactCtx) {
+    if (scanCtx) { useScanned(p); return; }
     lastResults = list;
     el("results-q").value = "";
     el("results-title").textContent = title;
@@ -1957,7 +1994,13 @@
     f.hidden = !f.hidden;
     if (!f.hidden) el("code").focus();
   });
-  el("cam-close").addEventListener("click", function () { goHome(); });
+  el("cam-close").addEventListener("click", function () {
+    var ctx = scanCtx;
+    if (ctx) { closeCam().then(function () { backToRoutine(ctx); }); return; }
+    goHome();
+  });
+  el("cam-card").addEventListener("click", function (e) { if (e.target.closest && e.target.closest(".cam-card-x")) hideCard(); });
+  el("pick-scan").addEventListener("click", function () { if (pickCtx) startRoutineScan(pickCtx.period, pickCtx.i); });
   el("cam-help").addEventListener("click", function () { showGuide(0); });
   el("guide-close").addEventListener("click", endGuide);
   el("guide-next").addEventListener("click", function () { if (guideStep >= GUIDE.length - 1) endGuide(); else showGuide(guideStep + 1); });
