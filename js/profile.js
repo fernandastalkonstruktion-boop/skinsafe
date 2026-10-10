@@ -205,5 +205,15 @@
     return hits;
   }
 
-  window.Profile = { inferType: inferType, inferReactivity: inferReactivity, loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, match: match };
+  // ----- score preferences: subtract points for products without the vegan or cruelty-free marks (off until the person turns it on) -----
+  var PKEY = "skinsafe.prefs";
+  function loadPrefs() {
+    try {
+      var p = JSON.parse(localStorage.getItem(PKEY) || "null") || {};
+      return { on: !!p.on, vegan: !!p.vegan, cf: !!p.cf };
+    } catch (e) { return { on: false, vegan: false, cf: false }; }
+  }
+  function savePrefs(p) { try { localStorage.setItem(PKEY, JSON.stringify({ on: !!p.on, vegan: !!p.vegan, cf: !!p.cf })); } catch (e) {} }
+
+  window.Profile = { loadPrefs: loadPrefs, savePrefs: savePrefs, inferType: inferType, inferReactivity: inferReactivity, loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, match: match };
 })();
