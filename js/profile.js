@@ -210,10 +210,10 @@
   function loadPrefs() {
     try {
       var p = JSON.parse(localStorage.getItem(PKEY) || "null") || {};
-      return { on: !!p.on, vegan: !!p.vegan, cf: !!p.cf };
-    } catch (e) { return { on: false, vegan: false, cf: false }; }
+      return { on: !!p.on, vegan: !!p.vegan, cf: !!p.cf, fit: !!p.fit };
+    } catch (e) { return { on: false, vegan: false, cf: false, fit: false }; }
   }
-  function savePrefs(p) { try { localStorage.setItem(PKEY, JSON.stringify({ on: !!p.on, vegan: !!p.vegan, cf: !!p.cf })); } catch (e) {} }
+  function savePrefs(p) { try { localStorage.setItem(PKEY, JSON.stringify({ on: !!p.on, vegan: !!p.vegan, cf: !!p.cf, fit: !!p.fit })); } catch (e) {} }
 
   window.Profile = { loadPrefs: loadPrefs, savePrefs: savePrefs, inferType: inferType, inferReactivity: inferReactivity, loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, match: match };
 })();

@@ -104,14 +104,22 @@
   }
 
   // Score preferences (Profile): when switched on, products lose points for the marks the person asked for. The safety score from ingredients is the base.
-  var PREF_PEN = { cf: 10, vegan: 5 };
-  function prefsActive() { var pr = window.Profile.loadPrefs(); return pr.on && (pr.vegan || pr.cf); }
+  var PREF_PEN = { cf: 10, vegan: 5, nomatch: 8, maybe: 4 };
+  function prefsActive() { var pr = window.Profile.loadPrefs(); return pr.on && (pr.vegan || pr.cf || pr.fit); }
+  function fitPrefActive() { var pr = window.Profile.loadPrefs(); return pr.on && pr.fit; }
   function scoreInfo(p, a) {
     var base = a.score, pen = [], total = 0;
     if (base !== null && prefsActive()) {
       var pr = window.Profile.loadPrefs(), marks = marksFor(p, a.items), has = function (id) { return marks.some(function (m) { return m.id === id; }); };
       if (pr.cf && !has("lb") && !has("peta")) { pen.push({ pts: PREF_PEN.cf, why: "the brand isn't listed as cruelty-free by Leaping Bunny or PETA" }); total += PREF_PEN.cf; }
       if (pr.vegan && !has("vegan")) { pen.push({ pts: PREF_PEN.vegan, why: "no vegan-friendly mark" }); total += PREF_PEN.vegan; }
+      // Same quiz match that shows "Good for you": not a match costs 8, a possible match 4 (oral care and products without a quiz are left alone)
+      var hk = window.Hair.classify(p), prof = window.Oral.classify(p) ? null : hk ? window.Hair.load() : window.Profile.load();
+      if (pr.fit && prof) {
+        var m = hk ? window.Hair.match(a.items, prof, hk) : window.Profile.match(a.items, prof), area = hk ? "hair" : "skin";
+        if (m.level === "bad") { pen.push({ pts: PREF_PEN.nomatch, why: "not a match for your " + area }); total += PREF_PEN.nomatch; }
+        else if (m.level === "mid") { pen.push({ pts: PREF_PEN.maybe, why: "only a possible match for your " + area }); total += PREF_PEN.maybe; }
+      }
     }
     return { score: base === null ? null : Math.max(0, base - total), base: base, pen: pen, total: total, label: prefsActive() ? "For you" : "Safety" };
   }
@@ -200,12 +208,13 @@
       sw("pref-on", pr.on, "Subtract points from the score", "Off: scores come only from the ingredients. On: products lose points when they miss a mark you ask for below.") +
       (pr.on ? sw("pref-cf", pr.cf, "Cruelty-free", "\u2212" + PREF_PEN.cf + " if the brand isn't listed by Leaping Bunny or PETA") +
         sw("pref-vegan", pr.vegan, "Vegan-friendly", "\u2212" + PREF_PEN.vegan + " if we find animal-derived ingredients") +
-        (pr.cf || pr.vegan ? "" : '<p class="pref-hint">Turn on at least one to change the scores.</p>') : "");
+        sw("pref-fit", pr.fit, "Matches my skin and hair", "\u2212" + PREF_PEN.nomatch + " if it's not a match for your quiz answers, \u2212" + PREF_PEN.maybe + " if only a possible match") +
+        (pr.cf || pr.vegan || pr.fit ? (pr.fit && !window.Profile.load() && !window.Hair.load() ? '<p class="pref-hint">Take the skin or hair quiz so we can check the match.</p>' : "") : '<p class="pref-hint">Turn on at least one to change the scores.</p>') : "");
     function flip(key) {
       return function () { var p = window.Profile.loadPrefs(); p[key] = !p[key]; window.Profile.savePrefs(p); renderPrefCard(); renderSavedList(); renderRoutineCard(); };
     }
     el("pref-on").addEventListener("click", flip("on"));
-    if (pr.on) { el("pref-cf").addEventListener("click", flip("cf")); el("pref-vegan").addEventListener("click", flip("vegan")); }
+    if (pr.on) { el("pref-cf").addEventListener("click", flip("cf")); el("pref-vegan").addEventListener("click", flip("vegan")); el("pref-fit").addEventListener("click", flip("fit")); }
   }
 
   function renderProfileCard() {
@@ -742,7 +751,7 @@
     var clash = area === "face" && retinoid > 0 && acid > 0;
     if (!scores.length) return '<div class="rt-rater">' + head + '<p class="rt-rater-empty">Not enough data to score yet.</p></div>';
     var avg = scores.reduce(function (x, y) { return x + y; }, 0) / scores.length;
-    var total = Math.max(0, Math.min(100, Math.round(avg - 8 * noMatch - 12 * allergy - 12 * alerts - (clash ? 5 : 0)))), b = band(total);
+    var total = Math.max(0, Math.min(100, Math.round(avg - 8 * (fitPrefActive() ? 0 : noMatch) - 12 * allergy - 12 * alerts - (clash ? 5 : 0)))), b = band(total);
     if (allergy) notes.push(plural(allergy, "allergy hit", "allergy hits"));
     if (alerts) notes.push(plural(alerts, "official alert", "official alerts"));
     if (noMatch) notes.push(noMatch + " not for your " + (area === "hair" ? "hair" : "skin"));
@@ -1985,7 +1994,7 @@
     ["ban", "What we can't know", "The list order tells us the biggest ingredients, not the exact amounts. Photos can be misread. Product data comes from a community database that can be out of date. A cosmetic scientist has not reviewed our ratings yet. This is not medical advice."],
     ["package", "Find a product", "One camera does it all. Barcode reads by itself. Product takes a photo of the front (we read its barcode first, then the words on the label). Shelf tries to recognize several products in one photo, and Ingredients reads the ingredient list. You can also search by name. For a round bottle, tap Camera app to use your phone's own camera: you can zoom in (for example 5×) so the list looks flatter, and tap to focus. Reading words from a photo can miss stylized fonts and crowded shelves, so check that each match is your product. Photos are read on your phone and are not uploaded."],
     ["sun", "Your routine", "There is a face routine (one list; each product shows a sun, a moon or both, so you know if it is for the day, the night or both), a hair routine (wash day and styling) and a body routine (shower, from the intimate wash to the body wash and scrub, and body care, from lotion and deodorant to hand cream). The best routine uses mostly the same products day and night; only a few are for one time (sunscreen in the morning, retinol and exfoliating acids at night), and suggestions follow that. Suggested products are the best-rated ones in our list that fit your skin or hair quiz and have no allergy hit or official alert. The hair quiz asks about pattern, strand thickness, scalp, past treatments and goals, with a tip in each question to find out your answer; it is guidance, not a diagnosis. Hair products tend to score lower, so for hair we also suggest a few fair ones (35 or more) after the best ones. The morning or night tip comes from the product name and its ingredients: retinol and exfoliating acids at night, sunscreen and vitamin C in the morning. It is guidance, so follow the package. You can swap any suggestion for the product you really own."],
-    ["leaf", "Vegan and cruelty-free marks", "Profile has an optional switch, off by default, that subtracts points from a product's score when it lacks the cruelty-free mark (10 points) or the vegan-friendly mark (5 points); with it off, scores come only from the ingredients. These small round logos appear only when they are true, and they never change the score. The bunny is Leaping Bunny and PETA is PETA: each shows only when that nonprofit lists the brand as cruelty-free; the leaf means vegan-friendly. They are our own simple drawings, not the official artwork. Vegan-friendly means we found no animal-derived ingredient in the list (honey, beeswax, collagen, lanolin, milk proteins and similar). Some common ingredients, like glycerin or stearic acid, can come from animals or plants and the list does not say which, so this is not a vegan certification. Cruelty-free means the brand is listed by Leaping Bunny or PETA, two independent nonprofits; we do not use the brand's own claim."],
+    ["leaf", "Vegan and cruelty-free marks", "Profile has an optional switch, off by default, that subtracts points from a product's score when it lacks the cruelty-free mark (10 points) or the vegan-friendly mark (5 points), or when the skin or hair quiz says it is not a match (8 points) or only a possible match (4 points); with it off, scores come only from the ingredients. These small round logos appear only when they are true, and they never change the score. The bunny is Leaping Bunny and PETA is PETA: each shows only when that nonprofit lists the brand as cruelty-free; the leaf means vegan-friendly. They are our own simple drawings, not the official artwork. Vegan-friendly means we found no animal-derived ingredient in the list (honey, beeswax, collagen, lanolin, milk proteins and similar). Some common ingredients, like glycerin or stearic acid, can come from animals or plants and the list does not say which, so this is not a vegan certification. Cruelty-free means the brand is listed by Leaping Bunny or PETA, two independent nonprofits; we do not use the brand's own claim."],
     ["camera", "Product photos", "Where we have one, the product photo is the brand's own or a large beauty retailer's studio photo, shown straight from their website. The photos belong to those brands and shops. We never store or sell them, and a photo can disappear if the website changes it."],
     ["lock", "Your data", "Nothing is uploaded. Your skin answers and allergies stay on your device, and there are no accounts."]
   ];
