@@ -1,4 +1,4 @@
-// Skin profile: 4-question quiz, saved only on this device (localStorage), and the "skin match" rules.
+// Skin profile: 6-question quiz, saved only on this device (localStorage), and the "skin match" rules.
 (function () {
   var KEY = "skinsafe.profile";
 
@@ -18,14 +18,24 @@
       ["pigmentation", "Dark spots", ""],
       ["redness", "Redness", ""]
     ] },
-    { id: "reacts", title: "Does your skin sting or turn red easily?", multi: false, options: [
+    { id: "reacts", title: "Does your skin sting, burn or turn red easily?", multi: false, options: [
       ["yes", "Yes", ""], ["unsure", "Sometimes", ""], ["no", "No", ""]
+    ] },
+    { id: "newprod", title: "When you try something new, what happens?", sub: "Pick up to 2. Skip if nothing happens.", multi: true, max: 2, options: [
+      ["sting", "It stings or burns", "Within minutes"],
+      ["rash", "Red, itchy or rashy", "Hours to a couple of days later"],
+      ["bumps", "Small bumps or pimples", "Days to weeks later"]
     ] },
     { id: "pregnant", title: "Pregnant or breastfeeding?", sub: "Optional. Some ingredients need a doctor's OK.", multi: false, options: [
       ["yes", "Yes", ""], ["no", "No", ""], ["skip", "Skip", ""]
     ] },
     { id: "type", result: true, title: "Your skin type", sub: "Our best guess from your answers. Change it if it's wrong.", multi: false, options: [
       ["dry", "Dry", "Tight, may flake"], ["normal", "Normal", "Balanced"], ["combination", "Combination", "Oily T-zone, normal or dry cheeks"], ["oily", "Oily", "Shiny, larger pores"]
+    ] },
+    { id: "reactivity", result: true, title: "How reactive is your skin?", sub: "Separate from your type: any type can be reactive. Our guess from your answers; change it if it's wrong.", multi: false, options: [
+      ["low", "Resistant", "Rarely reacts to new products"],
+      ["sensitive", "Sensitive", "Stings, reddens or itches sometimes"],
+      ["high", "Very reactive", "Reacts to many new products, with stinging, rashes or breakouts"]
     ] }
   ];
 
@@ -40,8 +50,19 @@
     return y;
   }
 
+  // Reactivity is its own axis (sensitive skin is defined by how it reacts, not by oil or dryness). Points: sting/burn/redness answer (yes 2, sometimes 1)
+  // + one per kind of reaction to new products + 1 for redness as a concern. 3 or more, or two kinds of reaction to new products = very reactive; 1 or 2 = sensitive.
+  function inferReactivity(a) {
+    var n = (a.newprod || []).length;
+    var pts = (a.reacts === "yes" ? 2 : a.reacts === "unsure" ? 1 : 0) + n + ((a.concerns || []).indexOf("redness") > -1 ? 1 : 0);
+    return pts >= 3 || n >= 2 ? "high" : pts >= 1 ? "sensitive" : "low";
+  }
+  // Profiles saved before the reactivity question have no value: work it out from the old answers.
+  function reactivityOf(p) { return p.reactivity || inferReactivity(p); }
+
   var LABEL = {
     type: { normal: "Normal skin", dry: "Dry skin", oily: "Oily skin", combination: "Combination skin" },
+    react: { sensitive: "sensitive", high: "very reactive" },
     concerns: { acne: "breakouts", pores: "visible pores", redness: "redness", dryness: "dull or dry skin", pigmentation: "dark spots", lines: "fine lines" }
   };
 
@@ -56,6 +77,7 @@
 
   function summary(p) {
     var parts = [LABEL.type[p.type]];
+    if (LABEL.react[p.reactivity]) parts.push(LABEL.react[p.reactivity]);
     (p.concerns || []).forEach(function (c) { parts.push(LABEL.concerns[c]); });
     return parts.join(" · ");
   }
@@ -63,11 +85,20 @@
   // Which risks matter for this person, and why.
   function avoid(p) {
     var a = {};
-    var concerns = p.concerns || [];
-    if (p.reacts === "yes" || concerns.indexOf("redness") > -1) {
+    var concerns = p.concerns || [], np = p.newprod || [], rx = reactivityOf(p);
+    if (rx === "high") {
+      a.irritation = "your skin reacts to many new products";
+      a.allergy = "your skin reacts to many new products";
+    } else if (rx === "sensitive" || p.reacts === "yes" || concerns.indexOf("redness") > -1) {
       a.irritation = "your skin is sensitive or reacts easily";
       a.allergy = "your skin is sensitive or reacts easily";
     }
+    if (np.indexOf("sting") > -1 && !a.irritation) a.irritation = "new products make your skin sting or burn";
+    if (np.indexOf("rash") > -1) {
+      a.irritation = a.irritation || "new products make your skin red or itchy";
+      a.allergy = a.allergy || "new products make your skin red or itchy";
+    }
+    if (np.indexOf("bumps") > -1) a.comedogenic = a.comedogenic || "new products tend to give you bumps or breakouts";
     if (p.type === "oily" || concerns.indexOf("acne") > -1 || concerns.indexOf("pores") > -1) a.comedogenic = "your skin is oily, acne-prone or has visible pores";
     if (p.type === "dry" || concerns.indexOf("dryness") > -1) a.drying = "your skin is dry";
     if (p.pregnant === "yes") a.pregnancy = "you're pregnant or breastfeeding, so ask your doctor first";
@@ -174,5 +205,5 @@
     return hits;
   }
 
-  window.Profile = { inferType: inferType, loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, match: match };
+  window.Profile = { inferType: inferType, inferReactivity: inferReactivity, loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, match: match };
 })();

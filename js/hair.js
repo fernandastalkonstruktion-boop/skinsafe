@@ -80,7 +80,9 @@
     if (HAIR_BRAND.test((p.brand || "").trim())) return !/(body wash|body lotion|hand cream|deodorant|\bface\b|\bfacial\b|\blash\b|\bbrow\b)/.test(name);
     return HAIR_WORD.test(name) && !NOT_HAIR.test(name.replace(/hair( |-)?care/g, "hair"));
   }
+  // A product can carry a fixed `kind` in catalog.json (set from tools/catalog/kind_overrides.json); when it does, it wins over the name rules below.
   function classify(p) {
+    if (p.kind) return KINDS[p.kind] ? p.kind : null;
     if (!isHair(p)) return null;
     var n = (p.name || "").toLowerCase();
     if (/(dry shampoo|champ[uú] seco)/.test(n)) return null;

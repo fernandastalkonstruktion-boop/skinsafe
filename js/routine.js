@@ -23,7 +23,10 @@
   var NOT_FACE = /(hair|shampoo|conditioner|scalp|body|hand cream|hand |foot|lip |lips|nail|deodorant|bath|shower|soap bar|mascara|lash|brow|foundation|concealer|blush|lipstick|eyeliner|powder pact|cushion|perfume|toothpaste|razor|shav|wax)/i;
   // Brands that only make hair products in our list.
   var HAIR_BRANDS = /^(&honey|k[eé]rastase|narka|revlon|biolage|growus|texture id|herbatint|beyond the zone|mise en sc[eè]ne|k18|head & shoulders|plu|daeng gi meo ri|l'or[eé]al paris elvive|ion|paul mitchell|joico|chi|olaplex|matrix|redken|wella|unove|dr\.forhair|pantene|monday haircare|bondbar|mielle|it's a 10|silk elements|biotera|eva nyc|generic value products|clear men|moroccanoil|amika|living proof|ghd)$/i;
+  var FACE_KINDS = ["cleanser", "toner", "serum", "treatment", "eye", "moisturizer", "sunscreen", "mask"];
+  // A product can carry a fixed `kind` in catalog.json (set from tools/catalog/kind_overrides.json); when it does, it wins over the name rules below.
   function classify(p) {
+    if (p.kind) return FACE_KINDS.indexOf(p.kind) >= 0 ? p.kind : null;
     var name = p.name.toLowerCase();
     // Supplements you swallow (tablets, softgels, chewables) are not skincare: they belong in no routine step or category.
     if (/\b(tablets?|softgels?|chewables?)\b/.test(name)) return null;
@@ -105,6 +108,7 @@
   var AID_WORD = /(microdacyn|antiseptic|antis[eé]ptic|wound (care|wash|spray|gel|cleanser)|herida|hypochlorous|hipocloroso|first aid|primeros auxilios)/i;
   var NOT_ORAL = /(deodorant|desodorante|shampoo|body|soap|jab[oó]n|lotion|cream for|hand)/i;
   function classifyOral(p) {
+    if (p.kind) return (p.kind === "oral" || p.kind === "aid") ? p.kind : null;
     var name = (p.name || "").toLowerCase();
     if (AID_BRAND.test((p.brand || "").trim()) || AID_WORD.test(name)) return "aid";
     if (NOT_ORAL.test(name) && !/(toothpaste|mouthwash|enjuague bucal|pasta dental)/.test(name)) return null;

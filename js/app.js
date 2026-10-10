@@ -70,15 +70,27 @@
   function marksFor(product, items) {
     var marks = [];
     var v = window.Ingredients.veganCheck(items);
-    if (v.ok && !product.partial) marks.push({ id: "vegan", label: "Vegan-friendly", icon: "leaf", note: "No animal-derived ingredients spotted in the list." });
     var cf = window.Brands && window.Brands.get(product.brand);
-    if (cf) marks.push({ id: "cf", label: "Cruelty-free", icon: "paw", note: "The brand is " + (cf.status === "both" ? "certified by Leaping Bunny and PETA" : cf.status === "peta" ? "listed by PETA as cruelty-free" : "certified by Leaping Bunny") + "." });
+    if (cf && (cf.status === "both" || cf.status === "leaping_bunny")) marks.push({ id: "lb", label: "Leaping Bunny", note: "the brand is certified cruelty-free by Leaping Bunny." });
+    if (cf && (cf.status === "both" || cf.status === "peta")) marks.push({ id: "peta", label: "PETA", note: "the brand is listed by PETA as cruelty-free." });
+    if (v.ok && !product.partial) marks.push({ id: "vegan", label: "Vegan-friendly", note: "no animal-derived ingredients spotted in the list." });
     return marks;
+  }
+  // Small round logos (our own simple drawings, not the official artwork), one per mark the product has.
+  var LOGO = {
+    vegan: ["#2f8f4e", '<path d="M9.5 22.5C9.5 14 14 9.5 22.5 9.5c0 8.5-4.5 13-13 13z" fill="#fff"/><path d="M9.5 22.5 17 15" stroke="#2f8f4e" stroke-width="1.4" fill="none" stroke-linecap="round"/>'],
+    lb: ["#1d3557", '<ellipse cx="12.6" cy="10.5" rx="2" ry="5.6" transform="rotate(-10 12.6 10.5)" fill="#fff"/><ellipse cx="19.4" cy="10.5" rx="2" ry="5.6" transform="rotate(10 19.4 10.5)" fill="#fff"/><ellipse cx="16" cy="20.5" rx="5.6" ry="5" fill="#fff"/>'],
+    peta: ["#1b1b1b", '<text x="16" y="19.4" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="9.5" fill="#fff">PETA</text>']
+  };
+  function logoHtml(m) {
+    var l = LOGO[m.id];
+    return '<svg class="mlogo" viewBox="0 0 32 32" role="img" aria-label="' + esc(m.label) + '"><title>' + esc(m.label) + '</title><circle cx="16" cy="16" r="15" fill="' + l[0] + '" stroke="#fff" stroke-width="1.5"/>' + l[1] + "</svg>";
   }
   function markTags(product) {
     var items;
     try { items = window.Ingredients.analyze(product.ingredientsText).items; } catch (e) { return ""; }
-    return marksFor(product, items).map(function (m) { return '<span class="tag ok">' + ic(m.icon) + m.label + "</span>"; }).join("");
+    var marks = marksFor(product, items);
+    return marks.length ? '<span class="mlogos">' + marks.map(logoHtml).join("") + "</span>" : "";
   }
   function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
 
@@ -179,7 +191,7 @@
     } else {
       box.innerHTML =
         '<p class="profile-label">' + ic("droplet") + 'My skin</p>' +
-        '<p class="profile-text">4 quick questions for a personal match.</p>' +
+        '<p class="profile-text">6 quick questions for a personal match.</p>' +
         '<div class="profile-actions"><button type="button" class="secondary small-btn" id="profile-start">Start</button></div>';
       el("profile-start").addEventListener("click", function () { startQuiz(null); });
     }
@@ -307,7 +319,7 @@
   function renderQuiz() {
     var qs = quizQs();
     var q = qs[quiz.step];
-    el("quiz-step").textContent = q.result ? "Your result" : "Question " + (quiz.step + 1) + " of " + (qs.length - (qs[qs.length - 1].result ? 1 : 0));
+    el("quiz-step").textContent = q.result ? "Your result" : "Question " + (quiz.step + 1) + " of " + qs.filter(function (x) { return !x.result; }).length;
     el("quiz-title").textContent = q.title;
     el("quiz-sub").textContent = q.sub || "";
     el("quiz-next").innerHTML = (quiz.step === qs.length - 1 ? ic("check") + "Finish" : "Next" + ic("arrow-right"));
@@ -348,7 +360,10 @@
     if (quiz.step < qs.length - 1) {
       quiz.step++;
       // The last skin step shows the type worked out from the first two answers.
-      if (qs[quiz.step].result && quiz.kind !== "hair") { var guess = window.Profile.inferType(quiz.answers); if (guess) quiz.answers.type = guess; }
+      if (qs[quiz.step].result && quiz.kind !== "hair") {
+        if (qs[quiz.step].id === "type") { var guess = window.Profile.inferType(quiz.answers); if (guess) quiz.answers.type = guess; }
+        else if (qs[quiz.step].id === "reactivity") quiz.answers.reactivity = window.Profile.inferReactivity(quiz.answers);
+      }
       renderQuiz(); return;
     }
     if (quiz.kind === "hair") {
@@ -791,7 +806,7 @@
     if (!p) {
       box.className = "match prompt";
       box.innerHTML = '<p class="match-title">' + ic(hk ? "hair" : "droplet") + (hk ? "Does this suit your hair?" : "Does this suit your skin?") + "</p>" +
-        '<button type="button" class="secondary small-btn" id="match-quiz">' + (hk ? "Take the 5-question hair quiz" : "Take the 5-question quiz") + "</button>";
+        '<button type="button" class="secondary small-btn" id="match-quiz">' + (hk ? "Take the 5-question hair quiz" : "Take the 6-question quiz") + "</button>";
       el("match-quiz").addEventListener("click", function () { startQuiz(null, hk ? "hair" : "skin"); });
       return;
     }
@@ -815,18 +830,13 @@
     var words = window.Profile.loadWords();
     if (!ids.length && !words.length) { box.hidden = true; return; }
     var hits = window.Profile.allergyHits(items, ids, words);
+    if (!hits.length) { box.hidden = true; box.innerHTML = ""; return; }
     box.hidden = false;
-    if (hits.length) {
-      box.className = "match bad allergy-box";
-      box.innerHTML = '<p class="match-title">' + ic("alert") + "Has something you're allergic to</p>" +
-        '<ul class="match-list">' + hits.map(function (h) {
-          return "<li><strong>" + esc(h.name) + "</strong> (" + esc(h.labels.join(", ")) + ")</li>";
-        }).join("") + "</ul>";
-    } else {
-      box.className = "match good allergy-box";
-      box.innerHTML = fold(ic("check") + "Nothing from your allergy list",
-        '<p class="match-text">We only check the ingredients we can read, so look at the label if your allergy is serious.</p>', false);
-    }
+    box.className = "match bad allergy-box";
+    box.innerHTML = '<p class="match-title">' + ic("alert") + "Has something you're allergic to</p>" +
+      '<ul class="match-list">' + hits.map(function (h) {
+        return "<li><strong>" + esc(h.name) + "</strong> (" + esc(h.labels.join(", ")) + ")</li>";
+      }).join("") + "</ul>";
   }
 
   var ALERT_LABEL = { recall: "Official recall or alert", litigation: "Lawsuits, not proven" };
@@ -935,8 +945,8 @@
     var marks = marksFor(product, a.items), badges = el("badges");
     badges.hidden = marks.length === 0;
     badges.innerHTML = marks.length
-      ? marks.map(function (m) { return '<span class="pill ok">' + ic(m.icon) + m.label + "</span>"; }).join("") +
-        '<p class="badge-note">' + marks.map(function (m) { return esc(m.note); }).join(" ") + " These marks don't change the score, and they aren't a certification of this exact package.</p>"
+      ? '<span class="mlogos big">' + marks.map(logoHtml).join("") + "</span>" +
+        '<p class="badge-note">' + marks.map(function (m) { return "<strong>" + esc(m.label) + "</strong>: " + esc(m.note); }).join(" ") + " These marks don't change the score, and they aren't a certification of this exact package.</p>"
       : "";
     var note = el("catalog-note");
     if (product.shop) {
@@ -1936,7 +1946,7 @@
     ["ban", "What we can't know", "The list order tells us the biggest ingredients, not the exact amounts. Photos can be misread. Product data comes from a community database that can be out of date. A cosmetic scientist has not reviewed our ratings yet. This is not medical advice."],
     ["package", "Find a product", "One camera does it all. Barcode reads by itself. Product takes a photo of the front (we read its barcode first, then the words on the label). Shelf tries to recognize several products in one photo, and Ingredients reads the ingredient list. You can also search by name. For a round bottle, tap Camera app to use your phone's own camera: you can zoom in (for example 5×) so the list looks flatter, and tap to focus. Reading words from a photo can miss stylized fonts and crowded shelves, so check that each match is your product. Photos are read on your phone and are not uploaded."],
     ["sun", "Your routine", "There is a face routine (one list; each product shows a sun, a moon or both, so you know if it is for the day, the night or both), a hair routine (wash day and styling) and a body routine (shower, from the intimate wash to the body wash and scrub, and body care, from lotion and deodorant to hand cream). The best routine uses mostly the same products day and night; only a few are for one time (sunscreen in the morning, retinol and exfoliating acids at night), and suggestions follow that. Suggested products are the best-rated ones in our list that fit your skin or hair quiz and have no allergy hit or official alert. The hair quiz asks about pattern, strand thickness, scalp, past treatments and goals, with a tip in each question to find out your answer; it is guidance, not a diagnosis. Hair products tend to score lower, so for hair we also suggest a few fair ones (35 or more) after the best ones. The morning or night tip comes from the product name and its ingredients: retinol and exfoliating acids at night, sunscreen and vitamin C in the morning. It is guidance, so follow the package. You can swap any suggestion for the product you really own."],
-    ["leaf", "Vegan and cruelty-free marks", "These small marks appear only when they are true, and they never change the score. Vegan-friendly means we found no animal-derived ingredient in the list (honey, beeswax, collagen, lanolin, milk proteins and similar). Some common ingredients, like glycerin or stearic acid, can come from animals or plants and the list does not say which, so this is not a vegan certification. Cruelty-free means the brand is listed by Leaping Bunny or PETA, two independent nonprofits; we do not use the brand's own claim."],
+    ["leaf", "Vegan and cruelty-free marks", "These small round logos appear only when they are true, and they never change the score. The bunny is Leaping Bunny and PETA is PETA: each shows only when that nonprofit lists the brand as cruelty-free; the leaf means vegan-friendly. They are our own simple drawings, not the official artwork. Vegan-friendly means we found no animal-derived ingredient in the list (honey, beeswax, collagen, lanolin, milk proteins and similar). Some common ingredients, like glycerin or stearic acid, can come from animals or plants and the list does not say which, so this is not a vegan certification. Cruelty-free means the brand is listed by Leaping Bunny or PETA, two independent nonprofits; we do not use the brand's own claim."],
     ["camera", "Product photos", "Where we have one, the product photo is the brand's own or a large beauty retailer's studio photo, shown straight from their website. The photos belong to those brands and shops. We never store or sell them, and a photo can disappear if the website changes it."],
     ["lock", "Your data", "Nothing is uploaded. Your skin answers and allergies stay on your device, and there are no accounts."]
   ];

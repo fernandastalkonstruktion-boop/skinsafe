@@ -33,7 +33,9 @@
   // Soap for the hands only, and hand sanitizer, are not body wash or hand cream.
   var HAND_ONLY = /(\bhand (wash|soap)\b|liquid hand|sanitizer)/;
 
+  // A product can carry a fixed `kind` in catalog.json (set from tools/catalog/kind_overrides.json); when it does, it wins over the name rules below.
   function classify(p) {
+    if (p.kind) return KINDS[p.kind] ? p.kind : null;
     var n = (p.name || "").toLowerCase().replace(/&/g, " and ").replace(/\s+/g, " ");
     // The intimate step is for washes: wipes, sprays, lubricants, moisturizers and leave-on gels are not washes.
     if (INTIMATE.test(n) || INTIMATE_BRAND.test(p.brand || "")) return NOT_WASH.test(n) ? null : "intimate";

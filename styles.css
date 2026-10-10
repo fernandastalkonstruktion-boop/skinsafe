@@ -853,3 +853,9 @@ body.on-profile #skin .privacy-note { margin-top: 10px; }
 .cam-card-warn { color: #a02a24; margin: 8px 0 0; }
 .cam-for { position: absolute; left: 24px; right: 24px; top: calc(env(safe-area-inset-top) + 74px); margin: 0 auto; width: fit-content; max-width: calc(100% - 48px); padding: 8px 16px; border-radius: 999px; background: var(--btn); color: var(--on-btn); font-size: 14px; font-weight: 600; text-align: center; z-index: 3; }
 .cam-card .primary.small { margin-top: 10px; }
+
+/* certification logos */
+.mlogos { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
+.mlogo { width: 22px; height: 22px; flex: none; display: block; }
+.mlogos.big { gap: 7px; }
+.mlogos.big .mlogo { width: 30px; height: 30px; }
