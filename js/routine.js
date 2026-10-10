@@ -100,12 +100,12 @@
 
   // Oral hygiene (toothpaste, mouthwash): its own group, apart from skin and hair. It has no routine steps and no skin or hair quiz.
   var ORAL_KINDS = { oral: { label: "Oral hygiene", hint: "Toothpaste and mouthwash" } };
-  var ORAL_BRAND = /^(colgate|crest|sensodyne|listerine|oral-b|parodontax|meridol|elmex|therabreath|marvis|curaprox|pepsodent|close-?up|arm & hammer|hello|tom's of maine)$/i;
+  var ORAL_BRAND = /^(colgate|crest|sensodyne|listerine|oral-b|parodontax|meridol|elmex|therabreath|marvis|curaprox|pepsodent|close-?up|arm & hammer|hello|tom's of maine|mitch)$/i;
   var ORAL_WORD = /(toothpaste|tooth paste|dentifrice|pasta dental|pasta de dientes|crema dental|gel dental|mouthwash|mouth rinse|oral rinse|enjuague bucal|enjuague|oral care|\bplax\b|gum (care|protection|detoxify|therapy)|enamel|whitening mint)/i;
   // First aid (wound antiseptics like Microdacyn): same treatment as oral care (own group, no skin or hair quiz, no routine steps).
   var AID_KINDS = { aid: { label: "First aid", hint: "Wound care and antiseptics" } };
   var AID_BRAND = /^(microdacyn)$/i;
-  var AID_WORD = /(microdacyn|antiseptic|antis[eé]ptic|wound (care|wash|spray|gel|cleanser)|herida|hypochlorous|hipocloroso|first aid|primeros auxilios)/i;
+  var AID_WORD = /(microdacyn|wound (care|wash|spray|gel|cleanser)|\bheridas?\b|first aid|primeros auxilios)/i;
   var NOT_ORAL = /(deodorant|desodorante|shampoo|body|soap|jab[oó]n|lotion|cream for|hand)/i;
   function classifyOral(p) {
     if (p.kind) return (p.kind === "oral" || p.kind === "aid") ? p.kind : null;
