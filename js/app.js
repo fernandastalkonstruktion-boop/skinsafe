@@ -981,9 +981,11 @@
   function evidenceHtml(i) {
     var out = "", ev = i.ev, k = ev && ev[0];
     var rule = i.danger ? "banned in EU cosmetics" : i.level === "bad" ? "restricted, or a declared allergen, in the EU or Korea" : i.level === "mid" ? "not banned, but worth watching" : "";
+    // Primary sources behind the evidence line (studies, regulator opinions), when we have checked them
+    var links = ev && ev[2] && ev[2].length ? '<span class="ev-links"> ' + ev[2].map(function (x) { return '<a href="' + esc(x[1]) + '" target="_blank" rel="noopener">' + esc(x[0]) + "</a>"; }).join(" · ") + "</span>" : "";
     if (rule) out += '<p class="ing-ev"><b>Rule:</b> ' + esc(rule) + ".</p>";
-    if (EV_WORD[k]) out += '<p class="ing-ev"><b>Evidence in people:</b> <span class="evtag">' + EV_WORD[k] + "</span> for " + esc(ev[1]) + ".</p>";
-    else if (k === "U") out += '<p class="ing-ev"><b>Evidence in people:</b> <span class="evtag none">Not verified</span> The only source we found is the EU ingredient database (CosIng), which lists names and functions, not studies.</p>';
+    if (EV_WORD[k]) out += '<p class="ing-ev"><b>Evidence in people:</b> <span class="evtag">' + EV_WORD[k] + "</span> " + esc(ev[1]) + "." + links + "</p>";
+    else if (k === "U") out += '<p class="ing-ev"><b>Evidence in people:</b> <span class="evtag none">Not verified</span> ' + (ev[1] ? "We looked: " + esc(ev[1]) + "." : "The only source we found is the EU ingredient database (CosIng), which lists names and functions, not studies.") + links + "</p>";
     else if (k === "T") out += '<p class="ing-ev"><b>Evidence in people:</b> <span class="evtag none">Rated by type</span> No study of its own.</p>';
     else if (k === "R") out += '<p class="ing-ev"><b>Evidence in people:</b> <span class="evtag none">Not rated</span> Only a legal limit, not a health claim.</p>';
     else if (k === "E") out += '<p class="ing-ev"><b>Evidence in people:</b> <span class="evtag none">Not rated</span> An environmental rule, not a health claim.</p>';

@@ -927,3 +927,4 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .shelf-sp { flex: 1; }
 .shelf-actrow .shelf-trash { padding: 8px 9px; }
 .shelf-actrow .shelf-trash .ic { width: 16px; height: 16px; }
+.ev-links a { color: var(--accent-2, #1c5f98); }
