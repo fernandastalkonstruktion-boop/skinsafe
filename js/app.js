@@ -1096,6 +1096,60 @@
     var box = el(id), on = box && box.querySelector(".cat-chip.on");
     if (on) box.scrollLeft = on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2;
   }
+  // ----- Better options: when a scanned or opened product scores 50 or less, three better products of the same kind (12 Oct 2026) -----
+  var altList = [];
+  // Same kind AND same form: a dry shampoo is not matched with a regular shampoo, a lash serum not with eye patches, a mouthwash not with a toothpaste
+  function altGroup(p) {
+    var k = kindOf(p), n = String(p.name || ""), t = [];
+    if (/dry shampoo|champ[u\u00fa] seco/i.test(n)) t.push("dry");
+    if (/\b(patch|patches|pad|pads|tape|sheet|wipes?|toallitas|parches)\b/i.test(n)) t.push("sheet");
+    if (/\b(lash|lashes|brow|brows|pesta[n\u00f1]as?|cejas?)\b/i.test(n)) t.push("lash");
+    if (/\b(spray|mist|bruma)\b/i.test(n)) t.push("spray");
+    if (/\b(stick|barra)\b/i.test(n)) t.push("stick");
+    if (k === "oral" && /rinse|mouthwash|enjuague|wash/i.test(n)) t.push("rinse");
+    return k + "|" + t.join(",");
+  }
+  function groupCached(c) { return c.__g || (c.__g = altGroup(c)); }
+  function alternatives(p, cur) {
+    var k = kindOf(p), grp = altGroup(p);
+    if (k === "other") return [];
+    var hair = isHairKind(k), prof = hair ? window.Hair.load() : window.Profile.load(), ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), me = sameKey(p), out = [];
+    var floor = Math.max(hair ? 45 : 51, cur + 8);
+    var face = !hair && !isBodyKind(k) && k !== "oral" && k !== "aid", wp = face ? window.Routine.when(p, k, analysisOf(p).items).when : "";
+    catalogList.forEach(function (c) {
+      if (c.partial || sameKey(c) === me || groupCached(c) !== grp) return;
+      var a = analysisOf(c), sc = scoreInfo(c, a).score;
+      if (sc === null || sc < floor) return;
+      // Face products keep their time of day: a night cream is not offered in place of a day cream
+      if (face) { var wc = window.Routine.when(c, k, a.items).when; if (wc !== "any" && wc !== wp) return; }
+      if (window.Alerts && window.Alerts.match(c).length) return;
+      if ((ids.length || words.length) && window.Profile.allergyHits(a.items, ids, words).length) return;
+      var m = prof && k !== "oral" && k !== "aid" ? (hair ? window.Hair.match(a.items, prof, k) : window.Profile.match(a.items, prof)) : { level: "good" };
+      if (m.level === "bad") return;
+      out.push({ p: c, score: sc, brand: String(c.brand || "").toLowerCase(), img: c.image ? 1 : 0 });
+    });
+    out.sort(function (x, y) { return y.score - x.score || y.img - x.img; });
+    var picked = [], seen = {};
+    out.forEach(function (x) { if (!seen[x.brand] && picked.length < 3) { seen[x.brand] = 1; picked.push(x); } });
+    return picked.map(function (x) { return x.p; });
+  }
+  function renderAlternatives(product, score) {
+    var box = el("alt-box");
+    box.hidden = true; box.innerHTML = ""; altList = [];
+    if (score === null || score > 50) return;
+    window.Shop.load().then(function (list) {
+      if (lastProduct !== product || !list.length) return;
+      catalogList = list;
+      altList = alternatives(product, score);
+      if (!altList.length) return;
+      box.innerHTML = '<p class="alt-title">' + ic("shield-check") + "Better options</p>" + '<div class="alt-strip">' + altList.map(function (c, i) {
+        var s = scoreInfo(c, analysisOf(c)).score, b = band(s);
+        return '<button type="button" class="alt-slot" data-i="' + i + '"><span class="shelf-img">' + photoHtml(c) + '<span class="tag sc ' + b.cls + '">' + s + "</span></span>" +
+          '<span class="shelf-name">' + esc(c.name) + '</span><span class="shelf-brand">' + esc(c.brand) + "</span></button>";
+      }).join("") + "</div>";
+      box.hidden = false;
+    });
+  }
   // One short line on how to use each kind of product (shown under the name on the product page)
   var USE_LINE = {
     cleanser: "Massage on damp skin, then rinse.", toner: "Press into clean skin, before serum.", serum: "A few drops on clean skin, before cream.",
@@ -1211,6 +1265,7 @@
       : "";
     // The packaging explanation lives only in "How we rate" (the plastic switch in Profile still takes points off; see packOf)
     el("pack-box").hidden = true;
+    renderAlternatives(product, si.score);
     var note = el("catalog-note");
     if (product.shop) {
       var host = "";
@@ -2379,6 +2434,10 @@
   });
   el("rt-reset").addEventListener("click", function () { window.Routine.reset(); rt = window.Routine.load(); renderRoutineCard(); renderRoutine(); });
   el("pick-back").addEventListener("click", function () { show("routine"); });
+  el("alt-box").addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("button[data-i]") : null;
+    if (b && altList[Number(b.getAttribute("data-i"))]) renderResult(altList[Number(b.getAttribute("data-i"))]);
+  });
   el("pick-form").addEventListener("submit", function (e) { e.preventDefault(); pickSearch(el("pick-q").value); });
   el("pick-q").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); pickSearch(el("pick-q").value); el("pick-q").blur(); } });
   el("pick-list").addEventListener("click", function (e) {

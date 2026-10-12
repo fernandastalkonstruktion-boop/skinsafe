@@ -954,3 +954,14 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .tag.when.both { background: #FFE9A8; color: #E08A00; }
 .tag.when.both .n { background: #9bd3ee; color: #0e3a5c; }
 .tag.when.both .n .ic { color: #1d6fa5; }
+
+/* Better options (12 Oct 2026): three alternatives for a product that scores 50 or less */
+.alt-box { margin: 12px 0 0; padding: 12px 10px 8px; border-radius: 20px; border: 1px solid var(--glass-line); background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.alt-title { display: flex; align-items: center; gap: 6px; margin: 0 0 6px 6px; font-size: 14px; font-weight: 700; }
+.alt-title .ic { width: 16px; height: 16px; color: var(--accent); }
+.alt-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.alt-slot { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px 8px; border: 0; background: transparent; color: var(--text); font: inherit; text-align: center; cursor: pointer; min-width: 0; }
+.alt-slot .shelf-img { width: 84px; height: 84px; margin-bottom: 8px; }
+.alt-slot .tag.sc { position: absolute; bottom: -8px; right: -2px; padding: 2px 8px; font-size: 12px; }
+.alt-slot .shelf-name { font-size: 13px; -webkit-line-clamp: 2; }
+.alt-slot .shelf-brand { font-size: 12px; }
