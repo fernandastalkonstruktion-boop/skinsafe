@@ -625,9 +625,29 @@
         var c = map[sameKey(s.product)];
         if (!c) return;
         var fresh = routineProd(c);
-        if (fresh.image !== s.product.image || fresh.ingredientsText !== s.product.ingredientsText || fresh.name !== s.product.name || fresh.brand !== s.product.brand || fresh.partial !== s.product.partial || fresh.kind !== (s.product.kind || "")) { s.product = fresh; changed = true; }
+        if (fresh.image !== s.product.image || fresh.ingredientsText !== s.product.ingredientsText || fresh.name !== s.product.name || fresh.brand !== s.product.brand || fresh.partial !== s.product.partial || fresh.form !== (s.product.form || "") || fresh.kind !== (s.product.kind || "")) { s.product = fresh; changed = true; }
       });
     });
+    return changed;
+  }
+  // Saved, History and the routine keep a COPY of each product. When the catalog learns more (a corrected list, the product form for the purity check), the copy goes stale
+  // and the same product would show another score on another page. This brings every copy of a catalog product up to date, so one product has one score everywhere.
+  function syncStored(list, key) {
+    var map = {}, changed = false;
+    catalogList.forEach(function (c) { map[sameKey(c)] = c; });
+    var out = list.map(function (x) {
+      if (!x.shop) return x;
+      var c = map[sameKey(x)];
+      if (!c) return x;
+      if (c.ingredientsText === x.ingredientsText && c.name === x.name && c.brand === x.brand && !!c.partial === !!x.partial && (c.form || "") === (x.form || "") && (c.kind || "") === (x.kind || "") && (c.image || "") === (x.image || "")) return x;
+      changed = true;
+      var n = Object.assign({}, x, { name: c.name, brand: c.brand, image: c.image || "", ingredientsText: c.ingredientsText, partial: !!c.partial, form: c.form || "", kind: c.kind || "" });
+      n.id = productId(n);
+      return n;
+    });
+    var seen = {};
+    out = out.filter(function (x) { if (seen[x.id]) { changed = true; return false; } seen[x.id] = 1; return true; });
+    if (changed) { try { localStorage.setItem(key, JSON.stringify(out)); } catch (e) {} }
     return changed;
   }
   // Home card: three areas (Face, Hair, Body), each with the first three products of its steps (chosen, or our suggestion).
@@ -654,6 +674,8 @@
       catalogList = list;
       var r = window.Routine.load();
       if (refreshRoutine(r)) window.Routine.save(r);
+      var ch1 = syncStored(loadSaved(), SKEY), ch2 = syncStored(loadHistory(), HKEY);
+      if (ch1 || ch2) { renderSavedList(); renderHistory(); }
       draw(r);
     });
   }
@@ -685,8 +707,17 @@
       if (m.level === "bad") return;
       out.push({ p: p, score: sc, lv: m.level === "good" ? 0 : 1, helps: m.helps.length, low: hair && sc < 51 ? 1 : 0 });
     });
-    out.sort(function (x, y) { return x.low - y.low || x.lv - y.lv || y.helps - x.helps || y.score - x.score || (y.p.image ? 1 : 0) - (x.p.image ? 1 : 0); });
-    return out.slice(0, limit).map(function (x) { return x.p; });
+    // Highest score first. The score is the one shown everywhere, so it already has every subtraction the person turned on (purity, health, cruelty-free, vegan, skin and hair match).
+    out.sort(function (x, y) { return y.score - x.score || x.lv - y.lv || y.helps - x.helps || (y.p.image ? 1 : 0) - (x.p.image ? 1 : 0); });
+    var picked = [];
+    if (limit > 1) {
+      // Several suggestions come from different brands (at least 4 when the catalog has them): best of each brand first, then the rest by score
+      var brands = {};
+      out.forEach(function (x) { var b = String(x.p.brand || "").toLowerCase(); if (!brands[b] && picked.length < limit) { brands[b] = 1; x.used = 1; picked.push(x); } });
+      out.forEach(function (x) { if (!x.used && picked.length < limit) picked.push(x); });
+      picked.sort(function (x, y) { return y.score - x.score; });
+    } else picked = out.slice(0, limit);
+    return picked.map(function (x) { return x.p; });
   }
   // Same card as History and Favorites, with the time-of-day tag at the end of the row.
   function rtRow(p, kind, act, i) {
@@ -823,9 +854,9 @@
     var favs = loadSaved().slice().sort(function (a, b) { return (kindOf(b) === s.kind ? 1 : 0) - (kindOf(a) === s.kind ? 1 : 0); });
     var used = rt[rtPeriod].filter(function (x, k) { return k !== i && x.product; }).map(function (x) { return productId(x.product); });
     var sugs = suggest(s.kind, rtPeriod, used, 8);
-    pickList = favs.concat(sugs);
-    el("pick-list").innerHTML = (favs.length ? '<p class="pick-head">Your favorites</p>' + pickRows(favs) : "") +
-      '<p class="pick-head">Suggested for you</p>' + (sugs.length ? sugs.map(function (p, k) { return rtRow(p, s.kind, "choose", favs.length + k); }).join("") : '<p class="rt-empty">No suggestions for this step yet. Search for yours above.</p>');
+    pickList = sugs.concat(favs);
+    el("pick-list").innerHTML = '<p class="pick-head">Suggested for you</p>' + (sugs.length ? sugs.map(function (p, k) { return rtRow(p, s.kind, "choose", k); }).join("") : '<p class="rt-empty">No suggestions for this step yet. Search for yours above.</p>') +
+      (favs.length ? '<p class="pick-head">Your favorites</p>' + favs.map(function (p, k) { return rtRow(p, s.kind, "choose", sugs.length + k); }).join("") : "");
     show("pick");
   }
   function pickSearch(q) {
