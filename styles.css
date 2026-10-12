@@ -1039,7 +1039,7 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .store-row.best { background: var(--good-bg); }
 .store-row.out .store-price { opacity: 0.55; }
 .store-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 14px; font-weight: 700; }
-.store-name .tag { align-self: flex-start; margin-top: 2px; }
+.store-nm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .store-sub { font-size: 11px; font-weight: 500; color: var(--text-2); line-height: 1.35; }
 .store-price { display: flex; flex-direction: column; align-items: flex-end; font-size: 16px; }
 .store-price s { font-size: 11px; color: var(--text-2); }
@@ -1050,3 +1050,6 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .store-row.amz .store-go { background: var(--soft); color: var(--text); border: 1px solid var(--glass-line); }
 #shop-sub:empty { display: none; }
 #shop-addfavs { margin-top: 12px; }
+.store-row.amz { flex-direction: column; align-items: flex-start; gap: 8px; }
+.store-more { display: flex; flex-wrap: wrap; gap: 6px; }
+.store-row.amz .store-go { padding: 6px 11px; font-size: 12.5px; }

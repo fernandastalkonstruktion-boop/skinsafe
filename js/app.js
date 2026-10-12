@@ -701,29 +701,38 @@
   // The two stores that publish a price: row = [price, regular price if on sale (else 0), in stock (1/0), store id, size text]
   function storeEntries(p, data) {
     var e = (data && data.p && data.p[priceKey(p)]) || {};
-    // Cheapest first. We do not label one as "the lowest": Sephora does not publish the size, and the same product can come in different sizes at each store.
+    // Cheapest first. "Lowest" is only shown when both stores publish the size and it is the same.
     return [
       { name: "Sephora México", row: e.s, url: e.s ? "https://www.sephora.com.mx/products-" + e.s[3] + ".html" : "" },
       { name: "Euphoria", row: e.e, url: e.e ? "https://euphoria.com.mx/products/" + e.e[3] : "" }
     ].sort(function (a, b) { return (a.row ? a.row[0] : 1e9) - (b.row ? b.row[0] : 1e9); });
   }
-  function storeRowHtml(x, hasData) {
+  function lowestOf(entries) {
+    var a = entries[0], b = entries[1];
+    if (!a.row || !b.row || !a.row[2] || !b.row[2] || !a.row[4] || !b.row[4]) return null;
+    if (String(a.row[4]).toLowerCase().replace(/\s/g, "") !== String(b.row[4]).toLowerCase().replace(/\s/g, "")) return null;
+    return a.row[0] < b.row[0] ? a : b.row[0] < a.row[0] ? b : null;
+  }
+  function storeRowHtml(x, hasData, best) {
     var link = function (url, label) { return '<a class="store-go" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' + label + ic("external") + "</a>"; };
     if (!x.row) return '<div class="store-row none"><span class="store-name">' + x.name + '</span><span class="store-none">' + (hasData ? "We didn’t find it here" : "Prices didn’t load") + "</span></div>";
     var r = x.row, sub = (r[2] ? "In stock" : "Out of stock") + (r[4] ? " · " + esc(r[4]) : "");
-    return '<div class="store-row' + "" + (r[2] ? "" : " out") + '">' +
-      '<span class="store-name">' + x.name + '<span class="store-sub">' + sub + "</span></span>" +
+    return '<div class="store-row' + "" + (r[2] ? "" : " out") + (best === x ? " best" : "") + '">' +
+      '<span class="store-name">' + '<span class="store-nm">' + x.name + (best === x ? '<span class="tag ok">Lowest</span>' : "") + '</span><span class="store-sub">' + sub + "</span></span>" +
       '<span class="store-price"><b>' + money(r[0]) + "</b>" + (r[1] ? "<s>" + money(r[1]) + "</s>" : "") + "</span>" + link(x.url, "View") + "</div>";
   }
   function shopCardHtml(p, i, data) {
-    var en = storeEntries(p, data), amazon = "https://www.amazon.com.mx/s?k=" + encodeURIComponent(((p.brand || "") + " " + (p.name || "")).trim());
+    var en = storeEntries(p, data), best = lowestOf(en), q = encodeURIComponent(((p.brand || "") + " " + (p.name || "")).trim());
     var an = window.Ingredients.analyze(p.ingredientsText), si = scoreInfo(p, an);
     return '<div class="shop-card"><div class="fav-card shop-top has-heart" role="button" tabindex="0" data-i="' + i + '">' + photoHtml(p) +
       '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
       '<span class="tags">' + (si.score === null ? "" : scoreTag(si.score, true)) + "</span></span>" +
       '<button type="button" class="shop-del" data-i="' + i + '" aria-label="Remove from wishlist">' + ic("trash") + "</button></div>" +
-      '<div class="store-list">' + en.map(function (x) { return storeRowHtml(x, !!data); }).join("") +
-      '<div class="store-row amz"><span class="store-name">Amazon México<span class="store-sub">The price changes by seller: check it there</span></span><span class="store-price"></span><a class="store-go" href="' + esc(amazon) + '" target="_blank" rel="noopener noreferrer">Search' + ic("external") + "</a></div></div></div>";
+      '<div class="store-list">' + en.map(function (x) { return storeRowHtml(x, !!data, best); }).join("") +
+      '<div class="store-row amz"><span class="store-name">Also look at<span class="store-sub">We do not read these prices: tap to search</span></span>' +
+      '<span class="store-more"><a class="store-go" href="https://www.amazon.com.mx/s?k=' + q + '" target="_blank" rel="noopener noreferrer">Amazon' + ic("external") + '</a>' +
+      '<a class="store-go" href="https://www.walmart.com.mx/search?q=' + q + '" target="_blank" rel="noopener noreferrer">Walmart' + ic("external") + '</a>' +
+      '<a class="store-go" href="https://www.liverpool.com.mx/tienda?s=' + q + '" target="_blank" rel="noopener noreferrer">Liverpool' + ic("external") + "</a></span></div></div></div>";
   }
   function renderShop() {
     var list = loadWish(), box = el("shop-list"), favs = loadSaved();
