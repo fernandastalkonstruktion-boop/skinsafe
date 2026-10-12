@@ -1018,3 +1018,11 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .cam .cam-h { width: 48px; height: 48px; margin: 0; }
 .cam .cam-h.tl { left: 0; top: 0; } .cam .cam-h.tr { right: 0; top: 0; } .cam .cam-h.bl { left: 0; bottom: 0; } .cam .cam-h.br { right: 0; bottom: 0; }
 .cam .cam-h.tl::after { left: -1px; top: -1px; } .cam .cam-h.tr::after { right: -1px; top: -1px; } .cam .cam-h.bl::after { left: -1px; bottom: -1px; } .cam .cam-h.br::after { right: -1px; bottom: -1px; }
+
+/* Camera buttons together in the middle (12 Oct 2026): Gallery, shutter and Camera app side by side with a modest gap */
+.cam-controls, .cam:not(.m-code) .cam-controls, .cam.m-code .cam-controls { display: flex; justify-content: center; align-items: center; gap: 26px; padding: 0; }
+.cam-controls .cam-side, .cam-controls .cam-side.end { justify-self: auto; }
+.cam.m-code .cam-controls { gap: 26px; }
+.cam-controls .cam-side { width: 66px; align-items: center; }
+.cam-controls { gap: 14px; }
+.cam.m-code .cam-controls, .cam:not(.m-code) .cam-controls { gap: 14px; }
