@@ -970,15 +970,10 @@ body.on-profile #skin .profile-card.pref { display: block; }
    Barcode: a thin wide window (about 2:1, the shape of a code) in the middle of the screen. Product, shelf and ingredients: a much bigger window
    (82% of the width, 66% of the height) with the shutter INSIDE it at the bottom. The product capture is cropped to this frame (cropFrame in app.js), so a bigger
    frame is a bigger area read. */
-.cam { --ft: 17%; --fb: max(17%, 156px); --fl: 9%; --fr: 9%; }
+.cam { --ft: 17%; --fb: max(17%, 176px); --fl: 9%; --fr: 9%; }
 .cam.m-code { --ft: calc(50% - 62px); --fb: calc(50% - 62px); --fl: 18%; --fr: 18%; }
 .cam-frame, .cam.m-code .cam-frame { left: var(--fl); right: var(--fr); top: var(--ft); bottom: var(--fb); border-width: 3px; border-radius: 26px; box-shadow: none; }
 .cam-snapbox { left: var(--fl); right: var(--fr); top: var(--ft); bottom: var(--fb); }
-.cam-veil { position: absolute; pointer-events: none; background: rgba(0, 0, 0, 0.14); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
-.cam-veil.t { top: 0; left: 0; right: 0; height: var(--ft); }
-.cam-veil.b { bottom: 0; left: 0; right: 0; height: var(--fb); }
-.cam-veil.l { top: var(--ft); bottom: var(--fb); left: 0; width: var(--fl); }
-.cam-veil.r { top: var(--ft); bottom: var(--fb); right: 0; width: var(--fr); }
 .cam:not(.m-code) .cam-controls { bottom: calc(env(safe-area-inset-bottom) + 17% + 14px); }
 .cam:not(.m-code) .cam-hint { top: calc(17% + 12px); bottom: auto; }
 .cam.m-code .cam-hint { top: calc(50% + 78px); bottom: auto; }
@@ -1016,3 +1011,10 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .cam .cam-h.br { right: -6px; bottom: -6px; left: auto; top: auto; } .cam .cam-h.br::after { right: 6px; bottom: 6px; border-bottom-width: 5px; border-right-width: 5px; border-bottom-right-radius: 22px; }
 .cam:not(.m-code) .cam-hint { top: calc(var(--ft) + 16px); left: calc(var(--fl) + 40px); right: calc(var(--fr) + 40px); max-width: none; width: auto; font-size: 14px; padding: 8px 14px; }
 .cam.tiny .cam-hint { display: none; }
+
+/* Camera, third pass (12 Oct 2026): ONE soft dim outside the frame (a single rounded cut-out, no separate panels), and the corner handles sit INSIDE the frame corners,
+   clear of the Gallery and Camera app buttons. */
+.cam-frame, .cam.m-code .cam-frame { box-shadow: 0 0 0 100vmax rgba(6, 18, 28, 0.42); }
+.cam .cam-h { width: 48px; height: 48px; margin: 0; }
+.cam .cam-h.tl { left: 0; top: 0; } .cam .cam-h.tr { right: 0; top: 0; } .cam .cam-h.bl { left: 0; bottom: 0; } .cam .cam-h.br { right: 0; bottom: 0; }
+.cam .cam-h.tl::after { left: -1px; top: -1px; } .cam .cam-h.tr::after { right: -1px; top: -1px; } .cam .cam-h.bl::after { left: -1px; bottom: -1px; } .cam .cam-h.br::after { right: -1px; bottom: -1px; }

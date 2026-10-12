@@ -1462,7 +1462,7 @@
     }
   }
   // ----- Adjustable frame: drag the corners to fit the product, drag inside to move it. Remembered per mode (product, shelf, ingredients); barcode keeps its fixed window. -----
-  var BUTTON_ZONE = 156, FKEY = "skinsafe.camframe", FDEF = { t: 0.17, b: 0.17, l: 0.09, r: 0.09 }, FVAR = { t: "--ft", b: "--fb", l: "--fl", r: "--fr" };
+  var BUTTON_ZONE = 176, FKEY = "skinsafe.camframe", FDEF = { t: 0.17, b: 0.17, l: 0.09, r: 0.09 }, FVAR = { t: "--ft", b: "--fb", l: "--fl", r: "--fr" };
   function loadFrames() { try { var f = JSON.parse(localStorage.getItem(FKEY) || "{}"); return f && typeof f === "object" ? f : {}; } catch (e) { return {}; } }
   function frameOf(mode) { var f = loadFrames()[mode]; return f && ["t", "b", "l", "r"].every(function (k) { return typeof f[k] === "number"; }) ? f : { t: FDEF.t, b: FDEF.b, l: FDEF.l, r: FDEF.r }; }
   function putFrame(mode, f) {
