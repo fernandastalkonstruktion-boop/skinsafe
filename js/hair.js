@@ -59,6 +59,8 @@
 
   // Hair steps. "tip" is shown on the routine so the step makes sense.
   var KINDS = {
+    prewash:     { label: "Pre-shampoo",         hint: "Before washing", tip: "On dry hair or scalp before you shampoo. Leave it on as the package says, then shampoo as usual." },
+    clarify:     { label: "Clarifying shampoo",  hint: "Deep cleaning, detox or purifying", tip: "Removes build-up from the scalp and hair. Use it in place of your regular shampoo when hair feels heavy, about once a week or less, and follow with conditioner." },
     shampoo:     { label: "Shampoo",             hint: "Cleans the scalp", tip: "Massage it into the scalp, not the lengths, and rinse well." },
     conditioner: { label: "Conditioner",         hint: "Softens the lengths", tip: "Use it from mid-lengths to ends, after shampoo." },
     hmask:       { label: "Hair mask",           hint: "Deep care, once or twice a week", tip: "Once or twice a week, instead of conditioner." },
@@ -67,7 +69,8 @@
     hoil:        { label: "Hair oil or serum",   hint: "Finishing touch", tip: "A few drops on the ends, on dry or damp hair." },
     scalp:       { label: "Scalp treatment",     hint: "Targets the scalp", tip: "Apply on the scalp, as the package says." }
   };
-  var ORDER = ["shampoo", "conditioner", "hmask", "leavein", "heat", "hoil", "scalp"];
+  var ORDER = ["prewash", "shampoo", "clarify", "conditioner", "hmask", "leavein", "heat", "hoil", "scalp"];
+  var WASH = ["prewash", "shampoo", "clarify", "conditioner", "hmask"];      // steps that belong to wash day (the rest are styling and care)
   var DEFAULT_STEPS = { hw: ["shampoo", "conditioner", "hmask"], hs: ["leavein", "heat", "hoil"] };
 
   // Which products are hair products, and which step each one is for. Guessed from brand and name.
@@ -87,8 +90,11 @@
     var n = (p.name || "").toLowerCase();
     if (/(dry shampoo|champ[uú] seco)/.test(n)) return null;
     if (/(heat protect|thermal|t[eé]rmic|blow ?dry|protector de calor)/.test(n)) return "heat";
-    if (/(pre-shampoo|pre shampoo|mask|masque|mascarilla|\bpack\b|deep (treatment|conditioner)|hair treatment|treatment mask|perfector|bond (repair )?(treatment|perfector))/.test(n)) return "hmask";
+    if (/(pre[- ]?shampoo|pre[- ]?wash|pre[- ]?cleans|pre[- ]?poo|pr[eé][- ]?lavado|antes del (shampoo|champ[uú]))/.test(n)) return "prewash";
+    if (/(mask|masque|mascarilla|\bpack\b|deep (treatment|conditioner)|hair treatment|treatment mask|perfector|bond (repair )?(treatment|perfector))/.test(n)) return "hmask";
     if (/(leave-in|leave in|sin enjuague|no[- ]rinse|curl (cream|defining|milk)|detangl|cream for hair|hair cream|hair milk|hair mist|keratin mist|\bbalm\b)/.test(n)) return "leavein";
+    // Deep cleaning, detox and purifying shampoos and scalp scrubs: only when the name is a cleanser (a "detox hair oil" is not).
+    if (/(clarif|detox|purif|deep[- ]?clean|build[- ]?up|buildup|desintox|chelat|scalp (scrub|scaler|scaling|exfoliat|peel))/.test(n) && /(shampoo|champ[uú]|shampooing|bain|cleans|wash|scrub|scaler|scaling|exfoliat|peel|jelly|clarifier|purifier)/.test(n)) return "clarify";
     if (/(shampoo|champ[uú]|shampooing|cleansing|wash)/.test(n) && !/(conditioning cream)/.test(n)) return "shampoo";
     if (/(conditioner|acondicionador|co-wash|cowash|conditioning)/.test(n)) return "conditioner";
     if (/(scalp|tonic|t[oó]nico|hair ?loss|hair growth|growth|ca[ií]da|root|density|densif)/.test(n)) return "scalp";
@@ -117,7 +123,7 @@
     var reasons = [], st = h.state || [], goals = h.goals || [];
     var dryOrSens = h.scalp === "dry" || h.scalp === "sensitive";
     var sulf = has(items, SULFATE), sil = has(items, SILICONE), heavy = has(items, HEAVY), alc = has(items, DRYING);
-    if (kind === "shampoo" || kind === "scalp" || !kind) {
+    if (kind === "shampoo" || kind === "clarify" || kind === "scalp" || !kind) {
       if (sulf.length && (st.indexOf("colored") > -1 || dryOrSens || h.pattern === "curly" || h.pattern === "coily"))
         reasons.push(sulf[0] + ": strong cleanser, hard on " + (st.indexOf("colored") > -1 ? "colored hair" : dryOrSens ? "a dry or sensitive scalp" : "curly hair"));
     }
@@ -132,7 +138,7 @@
       var f = HELPS[g] && has(items, HELPS[g]);
       if (f && f.length) helps.push("Helps with " + HELP_TEXT[g] + ": " + f.slice(0, 3).join(", "));
     });
-    if (h.scalp === "dry" && kind === "shampoo") {
+    if (h.scalp === "dry" && (kind === "shampoo" || kind === "clarify")) {
       var act = has(items, SCALP_ACTIVE);
       if (act.length) helps.push("For a flaky scalp: " + act[0]);
     }
@@ -144,5 +150,5 @@
   // The routine screen reads step labels from Routine.KINDS, so hair steps are added there too.
   if (window.Routine) Object.keys(KINDS).forEach(function (k) { window.Routine.KINDS[k] = KINDS[k]; });
 
-  window.Hair = { isHair: isHair, QUESTIONS: QUESTIONS, KINDS: KINDS, ORDER: ORDER, DEFAULT_STEPS: DEFAULT_STEPS, load: load, save: save, clear: clear, summary: summary, typeLabel: function (h) { return (LABEL.pattern[h.pattern] || "") + " hair"; }, classify: classify, match: match };
+  window.Hair = { isHair: isHair, QUESTIONS: QUESTIONS, KINDS: KINDS, ORDER: ORDER, WASH: WASH, DEFAULT_STEPS: DEFAULT_STEPS, load: load, save: save, clear: clear, summary: summary, typeLabel: function (h) { return (LABEL.pattern[h.pattern] || "") + " hair"; }, classify: classify, match: match };
 })();

@@ -147,7 +147,7 @@
   // Rinse-off products (shampoo, wash, toothpaste) count half for the health check: less time on the skin.
   function isRinseOff(p) {
     var hk = window.Hair.classify(p), bk = window.Body && window.Body.classify(p);
-    return !!(window.Oral.classify(p) || hk === "shampoo" || hk === "conditioner" || hk === "hmask" || bk === "intimate" || bk === "bodywash" || bk === "bscrub" || window.Routine.classify(p) === "cleanser");
+    return !!(window.Oral.classify(p) || hk === "prewash" || hk === "shampoo" || hk === "clarify" || hk === "conditioner" || hk === "hmask" || bk === "intimate" || bk === "bodywash" || bk === "bscrub" || window.Routine.classify(p) === "cleanser");
   }
   // A face skincare product (not hair, body, mouth, first aid or makeup of unknown kind)
   function faceSkinKind(p) {
@@ -821,7 +821,7 @@
   }
   // ----- Add a suggested product to the routine (12 Oct 2026) -----
   function periodForKind(k) {
-    if (isHairKind(k)) return window.Hair.DEFAULT_STEPS.hw.indexOf(k) >= 0 ? "hw" : "hs";
+    if (isHairKind(k)) return window.Hair.WASH.indexOf(k) >= 0 ? "hw" : "hs";
     if (isBodyKind(k)) return window.Body.DEFAULT_STEPS.bs.indexOf(k) >= 0 ? "bs" : "bc";
     return window.Routine.ORDER.indexOf(k) >= 0 ? "face" : "";
   }
