@@ -108,8 +108,16 @@
   var PREF_PEN = { cf: 10, vegan: 5, nomatch: 8, maybe: 4 };
   // Fragrance on delicate skin (12 Oct 2026; docs/investigacion-12oct/investigacion_fragancia_piel_delicada.md): [leave-on, rinse-off] x [light, with several allergens]. Everything "Matches my skin" subtracts is capped at 11,
   // so a band-64 product never ends below a band-52 one because of this switch.
+  var PACK_PEN = 4;
+  // pack = "format|material|confidence", read from the product photo by a vision model (tools/catalog/pack_overrides.json). Plastic counts only when the confidence is medium or high.
+  var PACK_FORMAT = { tube: "tube", jar: "jar", pump_bottle: "pump bottle", dropper_bottle: "dropper bottle", bottle: "bottle", spray: "spray", stick: "stick", compact: "compact", sachet_or_sheet: "sachet or sheet" };
+  function packOf(p) {
+    if (!p || !p.pack) return null;
+    var x = String(p.pack).split("|"), mat = x[1], conf = x[2];
+    return { format: PACK_FORMAT[x[0]] || "", material: mat, conf: conf, plastic: mat === "plastic" && conf !== "low" };
+  }
   var FRAG_PTS = { sensitive: [[4, 6], [1, 2]], high: [[6, 9], [2, 4]] }, FIT_CAP = 11;
-  function prefsActive() { var pr = window.Profile.loadPrefs(); return pr.on && (pr.vegan || pr.cf || pr.fit || pr.pure || pr.endo || pr.horm); }
+  function prefsActive() { var pr = window.Profile.loadPrefs(); return pr.on && (pr.vegan || pr.cf || pr.fit || pr.pure || pr.pk || pr.endo || pr.horm); }
   function fitPrefActive() { var pr = window.Profile.loadPrefs(); return pr.on && pr.fit; }
   // Rinse-off products (shampoo, wash, toothpaste) count half for the health check: less time on the skin.
   function isRinseOff(p) {
@@ -149,6 +157,8 @@
         if (lp > 0) pen.push({ pts: lp, why: (m.level === "bad" ? "not a match for your " : "only a possible match for your ") + area }), total += lp;
         if (fpp > 0) pen.push({ pts: fpp, why: fragWhy }), total += fpp;
       }
+      // Plastic packaging: only when the photo clearly shows plastic (see packOf); an unknown packaging never subtracts
+      if (pr.pk) { var pk = packOf(p); if (pk && pk.plastic) { pen.push({ pts: PACK_PEN, why: "plastic packaging (read from the photo)" }); total += PACK_PEN; } }
       if (pr.pure || pr.endo || pr.horm) {
         var x = pureOf(p, a);
         if (pr.pure) x.pure.forEach(function (h) { pen.push({ pts: h.pts, why: h.why }); total += h.pts; });
@@ -247,7 +257,8 @@
     }
     box.innerHTML = '<p class="profile-label">' + ic("leaf") + 'My score preferences</p>' +
       sw("pref-on", pr.on, "Subtract points from the score", "") +
-      (pr.on ? sw("pref-pure", pr.pure, "Purity checks", "up to \u221210") +
+      (pr.on ? sw("pref-pure", pr.pure, "Contaminant risks", "up to \u221210") +
+        sw("pref-pk", pr.pk, "Plastic packaging", "\u22124") +
         sw("pref-fit", pr.fit, "Matches my skin and hair", "\u2212" + PREF_PEN.nomatch + " or \u2212" + PREF_PEN.maybe) +
         sw("pref-cf", pr.cf, "Cruelty-free", "\u2212" + PREF_PEN.cf) +
         sw("pref-vegan", pr.vegan, "Vegan-friendly", "\u2212" + PREF_PEN.vegan) +
@@ -258,7 +269,7 @@
       return function () { var p = window.Profile.loadPrefs(); p[key] = !p[key]; window.Profile.savePrefs(p); renderPrefCard(); renderSavedList(); renderRoutineCard(); };
     }
     el("pref-on").addEventListener("click", flip("on"));
-    if (pr.on) ["pure", "fit", "cf", "vegan", "endo", "horm"].forEach(function (k) { el("pref-" + k).addEventListener("click", flip(k)); });
+    if (pr.on) ["pure", "pk", "fit", "cf", "vegan", "endo", "horm"].forEach(function (k) { el("pref-" + k).addEventListener("click", flip(k)); });
   }
 
   function renderProfileCard() {
@@ -497,7 +508,7 @@
     var id = productId(p), list = loadSaved(), at = -1;
     list.forEach(function (x, i) { if (x.id === id) at = i; });
     if (at > -1) list.splice(at, 1);
-    else list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", kind: p.kind || "", savedAt: Date.now() });
+    else list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", pack: p.pack || "", kind: p.kind || "", savedAt: Date.now() });
     storeSaved(list);
   }
   function renderHeart(p) {
@@ -552,7 +563,7 @@
   function addHistory(p) {
     var id = productId(p);
     var list = loadHistory().filter(function (x) { return x.id !== id; });
-    list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", kind: p.kind || "", seenAt: Date.now() });
+    list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", pack: p.pack || "", kind: p.kind || "", seenAt: Date.now() });
     try { localStorage.setItem(HKEY, JSON.stringify(list.slice(0, HMAX))); } catch (e) {}
   }
   function renderHistory() {
@@ -629,7 +640,7 @@
   // ----- Your routine: one list of steps for the morning and one for the night, saved only on this phone -----
   var catalogList = [], rtPeriod = "face", rtSel = 0, rtSelPeriod = "", rtStripPeriod = "", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {}, scanCtx = null;
   function analysisOf(p) { var c = anCache[p.ingredientsText]; if (!c) { c = window.Ingredients.analyze(p.ingredientsText); anCache[p.ingredientsText] = c; } return c; }
-  function routineProd(p) { return { id: productId(p), code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", kind: p.kind || "" }; }
+  function routineProd(p) { return { id: productId(p), code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", pack: p.pack || "", kind: p.kind || "" }; }
   function whenOf(p, kind) { return window.Routine.when(p, kind || kindOf(p), analysisOf(p).items); }
   function isHairKind(k) { return !!(window.Hair.KINDS[k]); }
   function isHairPeriod(pd) { return pd === "hw" || pd === "hs"; }
@@ -664,7 +675,7 @@
         var c = map[sameKey(s.product)];
         if (!c) return;
         var fresh = routineProd(c);
-        if (fresh.image !== s.product.image || fresh.ingredientsText !== s.product.ingredientsText || fresh.name !== s.product.name || fresh.brand !== s.product.brand || fresh.partial !== s.product.partial || fresh.form !== (s.product.form || "") || fresh.kind !== (s.product.kind || "")) { s.product = fresh; changed = true; }
+        if (fresh.image !== s.product.image || fresh.ingredientsText !== s.product.ingredientsText || fresh.name !== s.product.name || fresh.brand !== s.product.brand || fresh.partial !== s.product.partial || fresh.form !== (s.product.form || "") || fresh.pack !== (s.product.pack || "") || fresh.kind !== (s.product.kind || "")) { s.product = fresh; changed = true; }
       });
     });
     return changed;
@@ -678,9 +689,9 @@
       if (!x.shop) return x;
       var c = map[sameKey(x)];
       if (!c) return x;
-      if (c.ingredientsText === x.ingredientsText && c.name === x.name && c.brand === x.brand && !!c.partial === !!x.partial && (c.form || "") === (x.form || "") && (c.kind || "") === (x.kind || "") && (c.image || "") === (x.image || "")) return x;
+      if (c.ingredientsText === x.ingredientsText && c.name === x.name && c.brand === x.brand && !!c.partial === !!x.partial && (c.form || "") === (x.form || "") && (c.pack || "") === (x.pack || "") && (c.kind || "") === (x.kind || "") && (c.image || "") === (x.image || "")) return x;
       changed = true;
-      var n = Object.assign({}, x, { name: c.name, brand: c.brand, image: c.image || "", ingredientsText: c.ingredientsText, partial: !!c.partial, form: c.form || "", kind: c.kind || "" });
+      var n = Object.assign({}, x, { name: c.name, brand: c.brand, image: c.image || "", ingredientsText: c.ingredientsText, partial: !!c.partial, form: c.form || "", pack: c.pack || "", kind: c.kind || "" });
       n.id = productId(n);
       return n;
     });
@@ -1116,6 +1127,20 @@
       ? '<span class="mlogos big">' + marks.map(logoHtml).join("") + "</span>" +
         '<p class="badge-note">' + marks.map(function (m) { return "<strong>" + esc(m.label) + "</strong>: " + esc(m.note); }).join(" ") + " These marks don't change the score, and they aren't a certification of this exact package.</p>"
       : "";
+    // Packaging: a short section, only when we read the packaging from the photo. Health and environment are kept apart on purpose.
+    var pbox = el("pack-box"), pk = packOf(product);
+    if (pk && (pk.format || pk.material !== "unknown")) {
+      var MAT = { plastic: "Plastic", glass: "Glass", metal: "Metal", paper: "Paper", mixed: "Mixed materials" }, sure = pk.conf !== "low";
+      var ptitle = (sure && MAT[pk.material] ? MAT[pk.material] + " " + pk.format : pk.format ? pk.format.charAt(0).toUpperCase() + pk.format.slice(1) + ", material not clear" : "Material not clear").trim();
+      var prefOn = window.Profile.loadPrefs(), costs = pk.plastic && prefOn.on && prefOn.pk;
+      pbox.hidden = false;
+      pbox.innerHTML = '<details class="ing"><summary><span class="ing-main"><span class="ing-name">Packaging: ' + esc(ptitle) + "</span>" +
+        '<span class="ing-level"><b class="lv ' + (pk.plastic ? "mid" : "good") + '">' + (costs ? "\u2212" + PACK_PEN + " points" : pk.plastic ? "Plastic" : "No points") + '</b><span class="ing-note">Read from the photo</span></span></span><span class="chev" aria-hidden="true"></span></summary>' +
+        '<div class="ing-body"><p class="ing-detail">We read this from the product photo with a computer vision model, so it can be wrong. When the photo does not show the material clearly, we say nothing and subtract nothing. Glass is often hard to tell from plastic.</p>' +
+        '<p class="ing-ev"><b>Health:</b> <span class="evtag">Very early</span> Lab tests on cosmetic containers found small amounts of substances nobody added (some were phthalates) moving into test liquids; no one has tested real cosmetics, and the EU sets no numeric limits for cosmetic packaging. A tub that gets opened and touched is harder to keep clean than a pump, but this only matters for formulas without preservatives.</p>' +
+        '<p class="ing-ev"><b>Environment:</b> plastic is harder to reuse than glass or metal. This is a preference, not a health effect.</p>' +
+        '<p class="ing-evnote">The plastic switch in Profile subtracts ' + PACK_PEN + " points as a precaution and for the environment. Unknown packaging never subtracts.</p></div></details>";
+    } else { pbox.hidden = true; pbox.innerHTML = ""; }
     var note = el("catalog-note");
     if (product.shop) {
       var host = "";
@@ -2119,7 +2144,7 @@
     ["ban", "What we can't know", "The list order tells us the biggest ingredients, not the exact amounts. Photos can be misread. Product data comes from a community database that can be out of date. A cosmetic scientist has not reviewed our ratings yet. This is not medical advice."],
     ["package", "Find a product", "One camera does it all. Barcode reads by itself. Product takes a photo of the front (we read its barcode first, then the words on the label). Shelf tries to recognize several products in one photo, and Ingredients reads the ingredient list. You can also search by name. For a round bottle, tap Camera app to use your phone's own camera: you can zoom in (for example 5×) so the list looks flatter, and tap to focus. Reading words from a photo can miss stylized fonts and crowded shelves, so check that each match is your product. Photos are read on your phone and are not uploaded."],
     ["sun", "Your routine", "There is a face routine (one list; each product shows a sun, a moon or both, so you know if it is for the day, the night or both), a hair routine (wash day and styling) and a body routine (shower, from the intimate wash to the body wash and scrub, and body care, from lotion and deodorant to hand cream). The best routine uses mostly the same products day and night; only a few are for one time (sunscreen in the morning, retinol and exfoliating acids at night), and suggestions follow that. Suggested products are the best-rated ones in our list that fit your skin or hair quiz and have no allergy hit or official alert. The hair quiz asks about pattern, strand thickness, scalp, past treatments and goals, with a tip in each question to find out your answer; it is guidance, not a diagnosis. Hair products tend to score lower, so for hair we also suggest a few fair ones (35 or more) after the best ones. The morning or night tip comes from the product name and its ingredients: retinol and exfoliating acids at night, sunscreen and vitamin C in the morning. It is guidance, so follow the package. You can swap any suggestion for the product you really own."],
-    ["leaf", "Score preferences", "In Profile, Subtract points from the score takes points off the ingredient score. Purity checks and Matches my skin and hair start on; cruelty-free, vegan and the health conditions start off. Purity subtracts up to 10 when the list shows a PFAS ingredient (4 for polymers like PTFE, 8 for the small molecules), an amine that can form nitrosamines (3, or 8 together with bronopol), an aerosol with propane or butane (3, benzene has been found in some recalled lots) or talc in a loose powder (3). Heavy metals like lead and arsenic cannot be seen on a label, so they subtract nothing. Cruelty-free subtracts 10 and vegan 5. Matches my skin and hair subtracts 8 or 4. Endometriosis and Hormone sensitivity subtract up to 8 and 6 for ingredients that regulators watch for hormone activity; the evidence in people is limited, so the points are small and never change the band. Those two stay on your phone only, and rinse-off products count half."],
+    ["leaf", "Score preferences", "In Profile, Subtract points from the score takes points off the ingredient score. APPLIED NOW AND ON AT FIRST: Contaminant risks (up to 10 points: a PFAS ingredient, an amine that can form nitrosamines, an aerosol with propane or butane, talc in a loose powder), Plastic packaging (4 points, only when the photo clearly shows plastic; glass, metal or an unclear photo subtract nothing) and Matches my skin and hair (8 or 4 points, plus fragrance on sensitive or very reactive skin; never more than 11 points together). APPLIED WHEN YOU TURN THEM ON: Cruelty-free (10), Vegan-friendly (5), Endometriosis (up to 8) and Hormone sensitivity (up to 6, for ingredients that regulators watch for hormone activity; rinse-off products count half; these two stay on your phone only). NOT APPLIED YET: mental health (the evidence in cosmetics is too early), a dose estimate (a label shows the order of ingredients, not the amounts) and heavy metals (a label cannot show lead or arsenic)."],
     ["info", "Evidence in people", "Each ingredient shows two lines: the rule (what the EU or Korea does) and the evidence in people (High, Moderate, Low or Very early). They can disagree: a ban made from animal studies is a firm rule with very early evidence. Not verified means we only found the ingredient in the EU database, not in a study. The label says how firm the evidence is, not how serious it is."],
     ["package", "Buying safely", "A label cannot tell a fake from the real product. Buy from the brand's store or an authorised seller, be wary of prices far below normal, check that the lot number is printed and matches on the box and the bottle, and compare the ingredient list with the one here. If you react, stop using it and report it to Profeco or Cofepris. Fakes and lots never change the score."],
     ["camera", "Product photos", "Where we have one, the product photo is the brand's own or a large beauty retailer's studio photo, shown straight from their website. The photos belong to those brands and shops. We never store or sell them, and a photo can disappear if the website changes it."],

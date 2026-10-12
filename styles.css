@@ -928,3 +928,6 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .shelf-actrow .shelf-trash { padding: 8px 9px; }
 .shelf-actrow .shelf-trash .ic { width: 16px; height: 16px; }
 .ev-links a { color: var(--accent-2, #1c5f98); }
+
+.pack-box { margin: 10px 0 0; border: 1px solid var(--glass-line); border-radius: 18px; padding: 2px 14px; background: rgba(255,255,255,0.28); }
+.pack-box .ing { border-top: 0; }

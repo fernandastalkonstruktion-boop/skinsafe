@@ -289,7 +289,7 @@
           return (j.products || []).map(function (p) {
             return {
               code: p.barcode || "", brand: p.brand, name: p.name, image: p.image || "", ingredientsText: p.ingredients,
-              shop: true, partial: !!p.partial, form: p.form || "", kind: p.kind || "", note: p.note || "", source: p.source,
+              shop: true, partial: !!p.partial, form: p.form || "", pack: p.pack || "", kind: p.kind || "", note: p.note || "", source: p.source,
               hay: flat(p.brand + " " + p.name + " " + (p.aliases || []).join(" "))
             };
           });
