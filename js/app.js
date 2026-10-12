@@ -460,7 +460,13 @@
   // ----- My products (favorites), stored only on this phone -----
   var SKEY = "skinsafe.saved";
   function loadSaved() {
-    try { var s = JSON.parse(localStorage.getItem(SKEY) || "[]"); return Array.isArray(s) ? s : []; } catch (e) { return []; }
+    try {
+      var s = JSON.parse(localStorage.getItem(SKEY) || "[]");
+      if (!Array.isArray(s)) return [];
+      var clean = s.filter(function (p) { return !window.isJunkProduct(p); });
+      if (clean.length !== s.length) { try { localStorage.setItem(SKEY, JSON.stringify(clean)); } catch (e) {} }
+      return clean;
+    } catch (e) { return []; }
   }
   function storeSaved(list) { try { localStorage.setItem(SKEY, JSON.stringify(list.slice(0, 100))); } catch (e) {} }
   function productId(p) {
@@ -518,7 +524,13 @@
   // ----- History: the last 14 products opened (scanned or searched), stored only on this phone -----
   var HKEY = "skinsafe.history", HMAX = 14;
   function loadHistory() {
-    try { var h = JSON.parse(localStorage.getItem(HKEY) || "[]"); return Array.isArray(h) ? h : []; } catch (e) { return []; }
+    try {
+      var h = JSON.parse(localStorage.getItem(HKEY) || "[]");
+      if (!Array.isArray(h)) return [];
+      var clean = h.filter(function (p) { return !window.isJunkProduct(p); });
+      if (clean.length !== h.length) { try { localStorage.setItem(HKEY, JSON.stringify(clean)); } catch (e) {} }
+      return clean;
+    } catch (e) { return []; }
   }
   function addHistory(p) {
     var id = productId(p);

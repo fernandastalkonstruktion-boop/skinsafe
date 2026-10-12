@@ -164,6 +164,12 @@
     if (/^(none|unknown|unavailable|n\/?a|null|tbd|todo|sin datos|no data)\.?$/i.test(t)) return "";
     return /[A-Za-zÀ-ɏ]{4,}/.test(t) ? t : "";
   }
+  // Products saved on this phone before the empty-record fix (an Open Beauty Facts entry with "???" and no name) stay stored as
+  // "Unnamed product" with no list. They are not products: drop them wherever the phone keeps products.
+  function isJunkProduct(p) {
+    return !p || ((!p.name || p.name === "Unnamed product") && !realIngredients(p.ingredientsText));
+  }
+  window.isJunkProduct = isJunkProduct;
   function toProduct(p, fallbackCode) {
     var ing = realIngredients(p.ingredients_text_en) || realIngredients(p.ingredients_text);
     return {
@@ -227,7 +233,10 @@
   function loadCatalog() {
     try {
       var o = JSON.parse(localStorage.getItem(CKEY) || "{}");
-      return o && typeof o === "object" && !Array.isArray(o) ? o : {};
+      if (!o || typeof o !== "object" || Array.isArray(o)) return {};
+      var junk = Object.keys(o).filter(function (k) { return isJunkProduct(o[k]); });
+      if (junk.length) { junk.forEach(function (k) { delete o[k]; }); try { localStorage.setItem(CKEY, JSON.stringify(o)); } catch (e) {} }
+      return o;
     } catch (e) { return {}; }
   }
   var Catalog = {
