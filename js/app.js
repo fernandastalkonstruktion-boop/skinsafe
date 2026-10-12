@@ -731,21 +731,16 @@
       '<div class="store-list">' + en.map(function (x) { return storeRowHtml(x, !!data, best); }).join("") +
       '<div class="store-row amz"><span class="store-name">Also look at<span class="store-sub">We do not read these prices: tap to search</span></span>' +
       '<span class="store-more"><a class="store-go" href="https://www.amazon.com.mx/s?k=' + q + '" target="_blank" rel="noopener noreferrer">Amazon' + ic("external") + '</a>' +
-      '<a class="store-go" href="https://www.walmart.com.mx/search?q=' + q + '" target="_blank" rel="noopener noreferrer">Walmart' + ic("external") + '</a>' +
-      '<a class="store-go" href="https://www.liverpool.com.mx/tienda?s=' + q + '" target="_blank" rel="noopener noreferrer">Liverpool' + ic("external") + "</a></span></div></div></div>";
+      '<a class="store-go" href="https://www.walmart.com.mx/search?q=' + q + '" target="_blank" rel="noopener noreferrer">Walmart' + ic("external") + '</a></span></div></div></div>';
   }
   function renderShop() {
     var list = loadWish(), box = el("shop-list"), favs = loadSaved();
     loadPrices().then(function (data) {
       if (!list.length) {
         box.innerHTML = '<p class="saved-empty">Nothing here yet. Open a product and tap the cart to add it to your wishlist. We will show where to buy it in Mexico and what each store charges.</p>';
-        el("shop-sub").textContent = "";
       } else {
         box.innerHTML = list.map(function (p, i) { return shopCardHtml(p, i, data); }).join("");
         upgradePhotos(box);
-        var priced = list.filter(function (p) { return storeEntries(p, data).some(function (x) { return x.row; }); }).length;
-        el("shop-sub").textContent = list.length + (list.length === 1 ? " product" : " products") + " on your wishlist" +
-          (priced ? ": " + (priced === list.length ? "all have" : priced + " have") + " a price at Sephora México or Euphoria." : ". None is listed with a price at Sephora México or Euphoria that we found.");
       }
       var have = {}; list.forEach(function (x) { have[x.id] = 1; });
       var more = favs.filter(function (x) { return !have[x.id]; }).length, b = el("shop-addfavs");

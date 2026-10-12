@@ -1048,7 +1048,6 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .store-go { flex: none; display: inline-flex; align-items: center; gap: 3px; padding: 7px 12px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; text-decoration: none; }
 .store-go .ic { width: 14px; height: 14px; }
 .store-row.amz .store-go { background: var(--soft); color: var(--text); border: 1px solid var(--glass-line); }
-#shop-sub:empty { display: none; }
 #shop-addfavs { margin-top: 12px; }
 .store-row.amz { flex-direction: column; align-items: flex-start; gap: 8px; }
 .store-more { display: flex; flex-wrap: wrap; gap: 6px; }
