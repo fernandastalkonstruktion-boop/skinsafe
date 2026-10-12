@@ -474,7 +474,7 @@
     var id = productId(p), list = loadSaved(), at = -1;
     list.forEach(function (x, i) { if (x.id === id) at = i; });
     if (at > -1) list.splice(at, 1);
-    else list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", savedAt: Date.now() });
+    else list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", kind: p.kind || "", savedAt: Date.now() });
     storeSaved(list);
   }
   function renderHeart(p) {
@@ -514,7 +514,7 @@
   function addHistory(p) {
     var id = productId(p);
     var list = loadHistory().filter(function (x) { return x.id !== id; });
-    list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", seenAt: Date.now() });
+    list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", kind: p.kind || "", seenAt: Date.now() });
     try { localStorage.setItem(HKEY, JSON.stringify(list.slice(0, HMAX))); } catch (e) {}
   }
   function renderHistory() {
@@ -591,7 +591,7 @@
   // ----- Your routine: one list of steps for the morning and one for the night, saved only on this phone -----
   var catalogList = [], rtPeriod = "face", rtSel = 0, rtSelPeriod = "", rtStripPeriod = "", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {}, scanCtx = null;
   function analysisOf(p) { var c = anCache[p.ingredientsText]; if (!c) { c = window.Ingredients.analyze(p.ingredientsText); anCache[p.ingredientsText] = c; } return c; }
-  function routineProd(p) { return { id: productId(p), code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "" }; }
+  function routineProd(p) { return { id: productId(p), code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", kind: p.kind || "" }; }
   function whenOf(p, kind) { return window.Routine.when(p, kind || kindOf(p), analysisOf(p).items); }
   function isHairKind(k) { return !!(window.Hair.KINDS[k]); }
   function isHairPeriod(pd) { return pd === "hw" || pd === "hs"; }
@@ -625,7 +625,7 @@
         var c = map[sameKey(s.product)];
         if (!c) return;
         var fresh = routineProd(c);
-        if (fresh.image !== s.product.image || fresh.ingredientsText !== s.product.ingredientsText || fresh.name !== s.product.name || fresh.brand !== s.product.brand || fresh.partial !== s.product.partial) { s.product = fresh; changed = true; }
+        if (fresh.image !== s.product.image || fresh.ingredientsText !== s.product.ingredientsText || fresh.name !== s.product.name || fresh.brand !== s.product.brand || fresh.partial !== s.product.partial || fresh.kind !== (s.product.kind || "")) { s.product = fresh; changed = true; }
       });
     });
     return changed;
@@ -1987,7 +1987,7 @@
     var code = linking && linking.code;
     linking = null;
     if (!code) return;
-    var product = { code: code, brand: p.brand, name: p.name, image: "", ingredientsText: p.ingredientsText, local: true, shop: true, linked: true, partial: p.partial, note: p.note, source: p.source };
+    var product = { code: code, brand: p.brand, name: p.name, image: "", ingredientsText: p.ingredientsText, local: true, shop: true, linked: true, partial: p.partial, kind: p.kind || "", note: p.note, source: p.source };
     window.Catalog.put(product);
     pending = null;
     cameFrom = "home";
