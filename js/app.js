@@ -1431,7 +1431,7 @@
   // ----- one camera for everything: barcode (live), product, shelf and ingredient list (photo) -----
   var MODE_HINT = {
     code: "Point the camera at a barcode",
-    product: "Fit the product in the frame (drag its corners to resize). It reads on its own; you can also tap the button",
+    product: "Fit the product in the frame. Drag the corners to resize it",
     shelf: "Fit the shelf in the frame, tap the button, then hold still for a second",
     ingredients: "Fill the frame with the list, then tap the button. Round bottle? Use Camera app and zoom in (5×)"
   };
@@ -1462,12 +1462,14 @@
     }
   }
   // ----- Adjustable frame: drag the corners to fit the product, drag inside to move it. Remembered per mode (product, shelf, ingredients); barcode keeps its fixed window. -----
-  var FKEY = "skinsafe.camframe", FDEF = { t: 0.17, b: 0.17, l: 0.09, r: 0.09 }, FVAR = { t: "--ft", b: "--fb", l: "--fl", r: "--fr" };
+  var BUTTON_ZONE = 156, FKEY = "skinsafe.camframe", FDEF = { t: 0.17, b: 0.17, l: 0.09, r: 0.09 }, FVAR = { t: "--ft", b: "--fb", l: "--fl", r: "--fr" };
   function loadFrames() { try { var f = JSON.parse(localStorage.getItem(FKEY) || "{}"); return f && typeof f === "object" ? f : {}; } catch (e) { return {}; } }
   function frameOf(mode) { var f = loadFrames()[mode]; return f && ["t", "b", "l", "r"].every(function (k) { return typeof f[k] === "number"; }) ? f : { t: FDEF.t, b: FDEF.b, l: FDEF.l, r: FDEF.r }; }
   function putFrame(mode, f) {
     var camEl = el("cam");
-    Object.keys(FVAR).forEach(function (k) { camEl.style.setProperty(FVAR[k], (f[k] * 100).toFixed(2) + "%"); });
+    // a frame narrower than 260 px has no room for the hint, so it hides
+    camEl.classList.toggle("tiny", camEl.clientWidth * (1 - f.l - f.r) < 260);
+    Object.keys(FVAR).forEach(function (k) { var v = (f[k] * 100).toFixed(2) + "%"; camEl.style.setProperty(FVAR[k], k === "b" ? "max(" + v + ", " + BUTTON_ZONE + "px)" : v); });
   }
   function applyFrame(mode) {
     var camEl = el("cam");
@@ -1476,7 +1478,7 @@
   }
   var fdrag = null, ftap = 0;
   function clampFrame(f, W, H, move, d) {
-    var minTop = 112 / H, minBot = 100 / H, minSide = 6 / W, minW = 140 / W, minH = 170 / H;
+    var minTop = 112 / H, minBot = BUTTON_ZONE / H, minSide = 6 / W, minW = 140 / W, minH = 170 / H;
     if (move) {
       var dy = Math.max(minTop - d.f.t, Math.min(d.f.b - minBot, d.dyf)), dx = Math.max(minSide - d.f.l, Math.min(d.f.r - minSide, d.dxf));
       return { t: d.f.t + dy, b: d.f.b - dy, l: d.f.l + dx, r: d.f.r - dx };
@@ -1508,11 +1510,11 @@
   function endFrameDrag() {
     if (!fdrag) return;
     var d = fdrag; fdrag = null;
-    if (d.cur) { var all = loadFrames(); all[cam.mode] = d.cur; try { localStorage.setItem(FKEY, JSON.stringify(all)); } catch (e) {} return; }
+    if (d.cur) { var all = loadFrames(); all[cam.mode] = d.cur; try { localStorage.setItem(FKEY, JSON.stringify(all)); } catch (e) {} keepFocus(); return; }
     // a double tap inside the frame (no drag) puts the frame back to its first size
     if (d.c === "move" && !d.moved) {
       var now = Date.now();
-      if (now - ftap < 400) { var all2 = loadFrames(); delete all2[cam.mode]; try { localStorage.setItem(FKEY, JSON.stringify(all2)); } catch (e) {} putFrame(cam.mode, FDEF); ftap = 0; } else ftap = now;
+      if (now - ftap < 400) { var all2 = loadFrames(); delete all2[cam.mode]; try { localStorage.setItem(FKEY, JSON.stringify(all2)); } catch (e) {} putFrame(cam.mode, FDEF); ftap = 0; keepFocus(); } else ftap = now;
     }
   }
   el("cam-frame").addEventListener("pointerup", endFrameDrag);
@@ -1522,6 +1524,7 @@
     cam.mode = mode;
     el("cam").className = "cam m-" + mode;
     applyFrame(mode);
+    setTimeout(keepFocus, 60);
     el("cam-hint").textContent = MODE_HINT[mode];
     el("cam-hint").hidden = false;
     bc.since = Date.now();
@@ -1677,8 +1680,25 @@
       var cap = t.getCapabilities(), adv = {};
       if (cap.focusMode && cap.focusMode.indexOf("continuous") >= 0) adv.focusMode = "continuous";
       if (cap.exposureMode && cap.exposureMode.indexOf("continuous") >= 0) adv.exposureMode = "continuous";
-      if (Object.keys(adv).length) t.applyConstraints({ advanced: [adv] }).catch(function () {});
+      // Focus and expose for the middle of the white frame, wherever the person put it (where the browser supports a focus point; others keep their own auto-focus)
+      var c = frameCenterInVideo();
+      if (c) adv.pointsOfInterest = [c];
+      if (Object.keys(adv).length) t.applyConstraints({ advanced: [adv] }).catch(function () {
+        // some browsers refuse the focus point: keep at least the continuous modes
+        delete adv.pointsOfInterest;
+        if (Object.keys(adv).length) t.applyConstraints({ advanced: [adv] }).catch(function () {});
+      });
     } catch (e) {}
+  }
+  // The middle of the white frame as a point of the camera picture (0 to 1 from the top left; the video is shown "cover")
+  function frameCenterInVideo() {
+    var v = document.querySelector("#cam-reader video");
+    if (!v || !v.videoWidth) return null;
+    var vr = v.getBoundingClientRect(), fr = el("cam-frame").getBoundingClientRect();
+    var k = Math.max(vr.width / v.videoWidth, vr.height / v.videoHeight);
+    var offX = (vr.width - v.videoWidth * k) / 2, offY = (vr.height - v.videoHeight * k) / 2;
+    var x = (fr.left + fr.width / 2 - vr.left - offX) / k / v.videoWidth, y = (fr.top + fr.height / 2 - vr.top - offY) / k / v.videoHeight;
+    return { x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) };
   }
 
   // Crop the live picture to what is inside the white frame (the video is shown "cover", so map screen to video pixels).

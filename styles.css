@@ -970,7 +970,7 @@ body.on-profile #skin .profile-card.pref { display: block; }
    Barcode: a thin wide window (about 2:1, the shape of a code) in the middle of the screen. Product, shelf and ingredients: a much bigger window
    (82% of the width, 66% of the height) with the shutter INSIDE it at the bottom. The product capture is cropped to this frame (cropFrame in app.js), so a bigger
    frame is a bigger area read. */
-.cam { --ft: 17%; --fb: 17%; --fl: 9%; --fr: 9%; }
+.cam { --ft: 17%; --fb: max(17%, 156px); --fl: 9%; --fr: 9%; }
 .cam.m-code { --ft: calc(50% - 62px); --fb: calc(50% - 62px); --fl: 18%; --fr: 18%; }
 .cam-frame, .cam.m-code .cam-frame { left: var(--fl); right: var(--fr); top: var(--ft); bottom: var(--fb); border-width: 3px; border-radius: 26px; box-shadow: none; }
 .cam-snapbox { left: var(--fl); right: var(--fr); top: var(--ft); bottom: var(--fb); }
@@ -1000,3 +1000,19 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .sug-in { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: var(--text-2); }
 .sug-in .ic { width: 16px; height: 16px; color: var(--accent); }
 .sug-add .ic { width: 16px; height: 16px; }
+
+/* Camera, second pass (12 Oct 2026): the buttons stay FIXED at the bottom (right above the mode bar) while the frame is resized; the shutter is only a little bigger than
+   Gallery and Camera app; the frame is a thin line with corner brackets instead of big dots; the hint keeps clear of the corners. */
+.cam:not(.m-code) .cam-controls, .cam.m-code .cam-controls { bottom: calc(env(safe-area-inset-bottom) + 84px); padding: 0 30px; }
+.cam .cam-round { width: 46px; height: 46px; }
+.cam-shutter { width: 58px; height: 58px; border-width: 4px; }
+.cam-side > span { font-size: 11px; margin-top: 2px; }
+.cam-frame, .cam.m-code .cam-frame { border: 1.5px solid rgba(255, 255, 255, 0.6); border-radius: 22px; }
+.cam .cam-h { width: 52px; height: 52px; margin: 0; }
+.cam .cam-h::after { width: 30px; height: 30px; border: 0; border-radius: 0; background: transparent; box-shadow: none; position: absolute; border-color: #fff; border-style: solid; border-width: 0; }
+.cam .cam-h.tl { left: -6px; top: -6px; right: auto; bottom: auto; } .cam .cam-h.tl::after { left: 6px; top: 6px; border-top-width: 5px; border-left-width: 5px; border-top-left-radius: 22px; }
+.cam .cam-h.tr { right: -6px; top: -6px; left: auto; bottom: auto; } .cam .cam-h.tr::after { right: 6px; top: 6px; border-top-width: 5px; border-right-width: 5px; border-top-right-radius: 22px; }
+.cam .cam-h.bl { left: -6px; bottom: -6px; right: auto; top: auto; } .cam .cam-h.bl::after { left: 6px; bottom: 6px; border-bottom-width: 5px; border-left-width: 5px; border-bottom-left-radius: 22px; }
+.cam .cam-h.br { right: -6px; bottom: -6px; left: auto; top: auto; } .cam .cam-h.br::after { right: 6px; bottom: 6px; border-bottom-width: 5px; border-right-width: 5px; border-bottom-right-radius: 22px; }
+.cam:not(.m-code) .cam-hint { top: calc(var(--ft) + 16px); left: calc(var(--fl) + 40px); right: calc(var(--fr) + 40px); max-width: none; width: auto; font-size: 14px; padding: 8px 14px; }
+.cam.tiny .cam-hint { display: none; }
