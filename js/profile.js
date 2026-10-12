@@ -114,6 +114,12 @@
     if (rx === "sensitive" || (!p.reactivity && (p.reacts === "yes" || concerns.indexOf("redness") > -1))) return "sensitive";
     return "";
   }
+  // How prone to clogged pores the skin is: "acne" (acne or visible pores as a concern, or new products giving bumps), "oily" (oily type only) or "" (neither)
+  function poreLevel(p) {
+    var c = p.concerns || [], np = p.newprod || [];
+    if (c.indexOf("acne") > -1 || c.indexOf("pores") > -1 || np.indexOf("bumps") > -1) return "acne";
+    return p.type === "oily" ? "oily" : "";
+  }
   function match(items, p) {
     var av = avoid(p);
     var reasons = [];
@@ -230,5 +236,5 @@
   }
   function savePrefs(p) { try { localStorage.setItem(PKEY, JSON.stringify({ v: 2, on: !!p.on, pure: !!p.pure, pk: !!p.pk, fit: !!p.fit, vegan: !!p.vegan, cf: !!p.cf, endo: !!p.endo, horm: !!p.horm })); } catch (e) {} }
 
-  window.Profile = { loadPrefs: loadPrefs, savePrefs: savePrefs, inferType: inferType, inferReactivity: inferReactivity, loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, sensitivityOf: sensitivityOf, typeLabel: function (p) { return LABEL.type[p.type] || ""; }, match: match };
+  window.Profile = { loadPrefs: loadPrefs, savePrefs: savePrefs, inferType: inferType, inferReactivity: inferReactivity, loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, sensitivityOf: sensitivityOf, poreLevel: poreLevel, typeLabel: function (p) { return LABEL.type[p.type] || ""; }, match: match };
 })();

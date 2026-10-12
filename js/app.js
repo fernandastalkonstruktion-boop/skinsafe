@@ -67,6 +67,8 @@
     show("status");
   }
   // Small "yes" marks shown on products. They never change the score. Only shown when true.
+  // Skin care of the face or the body (not hair, mouth care, first aid or makeup of unknown kind)
+  function skinKind(p) { var k = kindOf(p); return !!k && k !== "other" && !isHairKind(k) && k !== "oral" && k !== "aid"; }
   function marksFor(product, items) {
     var marks = [];
     var v = window.Ingredients.veganCheck(items);
@@ -74,12 +76,15 @@
     if (cf && (cf.status === "both" || cf.status === "leaping_bunny")) marks.push({ id: "lb", label: "Leaping Bunny", note: "the brand is certified" });
     if (cf && (cf.status === "both" || cf.status === "peta")) marks.push({ id: "peta", label: "PETA", note: "the brand is listed" });
     if (v.ok && !product.partial) marks.push({ id: "vegan", label: "Vegan-friendly", note: "no animal-derived ingredients in the list" });
+    // Pore-friendly: a complete list with none of the pore-clogging watch-list ingredients (skin products only). Not a test of the product.
+    if (window.Pores && skinKind(product) && window.Pores.friendly(items, product.partial)) marks.push({ id: "pore", label: "Pore-friendly", note: "none of our pore-clogging watch-list ingredients found" });
     return marks;
   }
   // Small round logos (our own simple drawings, not the official artwork), one per mark the product has.
   var LOGO = {
     vegan: ["#2f8f4e", '<path d="M9.5 22.5C9.5 14 14 9.5 22.5 9.5c0 8.5-4.5 13-13 13z" fill="#fff"/><path d="M9.5 22.5 17 15" stroke="#2f8f4e" stroke-width="1.4" fill="none" stroke-linecap="round"/>'],
     lb: ["#1d3557", '<ellipse cx="12.6" cy="10.5" rx="2" ry="5.6" transform="rotate(-10 12.6 10.5)" fill="#fff"/><ellipse cx="19.4" cy="10.5" rx="2" ry="5.6" transform="rotate(10 19.4 10.5)" fill="#fff"/><ellipse cx="16" cy="20.5" rx="5.6" ry="5" fill="#fff"/>'],
+    pore: ["#2a9d8f", '<path d="M16 8c3 4 5 6.4 5 9.2a5 5 0 0 1-10 0C11 14.4 13 12 16 8z" fill="#fff"/>'],
     peta: ["#1b1b1b", '<text x="16" y="19.4" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="9.5" fill="#fff">PETA</text>']
   };
   function logoHtml(m) {
@@ -124,6 +129,11 @@
     var hk = window.Hair.classify(p), bk = window.Body && window.Body.classify(p);
     return !!(window.Oral.classify(p) || hk === "shampoo" || hk === "conditioner" || hk === "hmask" || bk === "intimate" || bk === "bodywash" || bk === "bscrub" || window.Routine.classify(p) === "cleanser");
   }
+  // A face skincare product (not hair, body, mouth, first aid or makeup of unknown kind)
+  function faceSkinKind(p) {
+    var k = kindOf(p);
+    return !!k && k !== "other" && !isHairKind(k) && !isBodyKind(k) && k !== "oral" && k !== "aid" && window.Routine.ORDER.indexOf(k) >= 0;
+  }
   var pureCache = {};
   function pureOf(p, a) {
     var key = (p.name || "") + "|" + (p.form || "") + "|" + (p.shop ? 1 : 0) + "|" + (p.ingredientsText || "").length + "|" + (a.items.length ? a.items[0].name : ""), c = pureCache[key];
@@ -139,12 +149,20 @@
       // Same quiz match that shows "Good for you": not a match costs 8, a possible match 4 (oral care and products without a quiz are left alone)
       var hk = window.Hair.classify(p), prof = window.Oral.classify(p) ? null : hk ? window.Hair.load() : window.Profile.load();
       if (pr.fit && prof) {
-        var area = hk ? "hair" : "skin", m, fp = 0, fragWhy = "";
+        var area = hk ? "hair" : "skin", m, fp = 0, fragWhy = "", pp = 0, poreWhy = "";
         if (hk) m = window.Hair.match(a.items, prof, hk);
         else {
           // Skin: parfum and its declared allergens are ONE family. The quiz ladder (8 / 4) runs on the rest; a delicate skin pays for the fragrance once, by the table below
           var fr = window.Ingredients.fragrance(a.items, { lip: window.Body && window.Body.classify(p) === "lip" }), sens = window.Profile.sensitivityOf(prof);
-          m = window.Profile.match(fr.rest, prof);
+          // Face products: the pore-clogging ingredients are charged ONCE by their own table (js/pores.js), so they leave the quiz ladder (no double counting)
+          var face = faceSkinKind(p), restM = face ? fr.rest.filter(function (i) { return (i.risks || []).indexOf("comedogenic") < 0; }) : fr.rest;
+          m = window.Profile.match(restM, prof);
+          var plevel = window.Profile.poreLevel(prof);
+          if (face && plevel && window.Pores) {
+            var pr2 = window.Pores.points(a.items, { level: plevel, face: true, rinse: isRinseOff(p) });
+            pp = pr2.pts;
+            poreWhy = "an ingredient that clogged pores in lab tests (" + pr2.names.join(", ") + "), and your skin " + (plevel === "acne" ? "gets acne or clogged pores" : "is oily");
+          }
           if (fr.any && sens) {
             var rinse = isRinseOff(p), heavy = fr.nal >= 2;
             fp = FRAG_PTS[sens][rinse ? 1 : 0][heavy ? 1 : 0];
@@ -153,7 +171,9 @@
         }
         var ladder = m.level === "bad" ? PREF_PEN.nomatch : m.level === "mid" ? PREF_PEN.maybe : 0, room = FIT_CAP;
         var lp = Math.min(ladder, room); room -= lp;
-        var fpp = Math.min(fp, room);
+        var fpp = Math.min(fp, room); room -= fpp;
+        var ppp = Math.min(pp, room);
+        if (ppp > 0) pen.push({ pts: ppp, why: poreWhy }), total += ppp;
         if (lp > 0) pen.push({ pts: lp, why: (m.level === "bad" ? "not a match for your " : "only a possible match for your ") + area }), total += lp;
         if (fpp > 0) pen.push({ pts: fpp, why: fragWhy }), total += fpp;
       }
@@ -1103,7 +1123,9 @@
   // is a firm rule with very early evidence), so they are never merged. Codes and method: docs/investigacion-12oct/.
   var EV_WORD = { A: "High", M: "Moderate", L: "Low", V: "Very early" };
   function evidenceHtml(i) {
-    var out = "", ev = i.ev, k = ev && ev[0];
+    var out = "", ev = i.ev, ph = window.Pores && window.Pores.hit(i);
+    if (ph && ph.t !== "l" && (!ev || "UNT".indexOf(ev[0]) >= 0)) ev = [ph.e, ph.c, ph.s];   // the pore-clogging list has its own checked sources
+    var k = ev && ev[0];
     var rule = i.danger ? "banned in EU cosmetics" : i.level === "bad" ? "restricted, or a declared allergen, in the EU or Korea" : i.level === "mid" ? "not banned, but worth watching" : "";
     // Primary sources behind the evidence line (studies, regulator opinions), when we have checked them
     var links = ev && ev[2] && ev[2].length ? '<span class="ev-links"> ' + ev[2].map(function (x) { return '<a href="' + esc(x[1]) + '" target="_blank" rel="noopener">' + esc(x[0]) + "</a>"; }).join(" · ") + "</span>" : "";
@@ -1208,6 +1230,11 @@
     }).join("");
     var hints = "";
     if (i.risks.indexOf("allergy") > -1) hints += '<p class="ing-hint">' + ic("info") + "Can cause allergy: some people become allergic after repeated contact, and it usually stays. Not everyone reacts.</p>";
+    var pore = window.Pores && window.Pores.hit(i);
+    if (pore && pore.t !== "l") {
+      if (i.risks.indexOf("comedogenic") < 0) chips += '<span class="risk">' + ic("circle-dot") + "May clog pores</span>";
+      hints += '<p class="ing-hint">' + ic("info") + "May clog pores: this ingredient clogged pores in lab tests (mostly on rabbits)" + (pore.e === "L" ? " and in a small human test" : "") + ". Whole products often don't, and the amount matters. Worth watching if you get clogged pores or acne.</p>";
+    }
     if (i.risks.indexOf("irritation") > -1) hints += '<p class="ing-hint">' + ic("info") + "Irritation is not an allergy. It depends on the amount and on your skin, and it usually goes away when you stop.</p>";
     var helps = i.helps.length ? '<p class="ing-helps">Often used for: ' + esc(i.helps.join(", ")) + "</p>" : "";
     var links = i.src.map(function (s) {
@@ -2360,6 +2387,7 @@
     ["sun", "Your routine", "There is a face routine (one list; each product shows a sun, a moon or both, so you know if it is for the day, the night or both), a hair routine (wash day and styling) and a body routine (shower, from the intimate wash to the body wash and scrub, and body care, from lotion and deodorant to hand cream). The best routine uses mostly the same products day and night; only a few are for one time (sunscreen in the morning, retinol and exfoliating acids at night), and suggestions follow that. Suggested products are the best-rated ones in our list that fit your skin or hair quiz and have no allergy hit or official alert. The hair quiz asks about pattern, strand thickness, scalp, past treatments and goals, with a tip in each question to find out your answer; it is guidance, not a diagnosis. Hair products tend to score lower, so for hair we also suggest a few fair ones (35 or more) after the best ones. The morning or night tip comes from the product name and its ingredients: retinol and exfoliating acids at night, sunscreen and vitamin C in the morning. It is guidance, so follow the package. You can swap any suggestion for the product you really own."],
     ["leaf", "Score preferences", "In Profile, Subtract points from the score takes points off the ingredient score. APPLIED NOW AND ON AT FIRST: Contaminant risks (up to 10 points: a PFAS ingredient, an amine that can form nitrosamines, an aerosol with propane or butane, talc in a loose powder), Plastic packaging (4 points, only when the photo clearly shows plastic; glass, metal or an unclear photo subtract nothing) and Matches my skin and hair (8 or 4 points, plus fragrance on sensitive or very reactive skin; never more than 11 points together). APPLIED WHEN YOU TURN THEM ON: Cruelty-free (10), Vegan-friendly (5), Endometriosis (up to 8) and Hormone sensitivity (up to 6, for ingredients that regulators watch for hormone activity; rinse-off products count half; these two stay on your phone only). NOT APPLIED YET: mental health (the evidence in cosmetics is too early), heavy metals (a label cannot show lead or arsenic)."],
     ["package", "Packaging", "Plastic packaging takes 4 points off (switch in Profile), only when the product photo clearly shows plastic. We read the material from the photo with a computer vision model, so it can be wrong, and glass is often hard to tell from plastic: then we say nothing and take nothing off. The health evidence is very early: lab tests on 11 cosmetic containers found small amounts of substances nobody added (some were phthalates) moving into test liquids; nobody has tested real cosmetics, and the EU sets no numeric limits for cosmetic packaging. A tub that gets opened and touched is harder to keep clean than a pump, but that only matters for formulas without preservatives. That plastic is harder to reuse than glass or metal is an environmental preference, not a health effect."],
+    ["droplet", "Pores and acne", "Pore-friendly means the list is complete and has none of the ingredients on our pore-clogging watch-list. It is not a test of the product and it cannot promise you will not break out; the words \u201cnon-comedogenic\u201d and \u201coil-free\u201d on a pack are not regulated. The list comes from rabbit-ear tests (Fulton 1984 and 1989, Nguyen 2007), which over-predict what happens in people (Draelos 2006), plus a few small human tests, so the evidence is very early or low. If your quiz says you get acne or visible pores, the worst pore-clogging ingredient of a face product takes 1 to 5 points off (half in a rinse-off face product or when it is far down the list), instead of the old extra match points. If your skin is only oily it is 1 or 2. Hair, body and mouth care get 0. It is always inside the 11-point cap of Matches my skin and hair."],
     ["info", "Evidence in people", "Each ingredient shows two lines: the rule (what the EU or Korea does) and the evidence in people (High, Moderate, Low or Very early). They can disagree: a ban made from animal studies is a firm rule with very early evidence. Not verified means we only found the ingredient in the EU database, not in a study. The label says how firm the evidence is, not how serious it is."],
     ["package", "Buying safely", "A label cannot tell a fake from the real product. Buy from the brand's store or an authorised seller, be wary of prices far below normal, check that the lot number is printed and matches on the box and the bottle, and compare the ingredient list with the one here. If you react, stop using it and report it to Profeco or Cofepris. Fakes and lots never change the score."],
     ["camera", "Product photos", "Where we have one, the product photo is the brand's own or a large beauty retailer's studio photo, shown straight from their website. The photos belong to those brands and shops. We never store or sell them, and a photo can disappear if the website changes it."],
@@ -2634,6 +2662,7 @@
   })();
   ["gesturestart", "gesturechange", "gestureend"].forEach(function (t) { document.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false }); });
   document.addEventListener("touchmove", function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  window.SkinSafe = { scoreInfo: scoreInfo, analysisOf: analysisOf, kindOf: kindOf, faceSkinKind: faceSkinKind, isRinseOff: isRinseOff };   // small hook for checks in the browser console
   importSetup();
   renderGreeting(false);
   renderProfileCard();
