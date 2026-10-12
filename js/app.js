@@ -1096,7 +1096,7 @@
     var box = el(id), on = box && box.querySelector(".cat-chip.on");
     if (on) box.scrollLeft = on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2;
   }
-  // ----- Better options: when a scanned or opened product scores 50 or less, three better products of the same kind (12 Oct 2026) -----
+  // ----- Better options: when a scanned or opened product is Good or below (75 or less), three better products of the same kind (12 Oct 2026) -----
   var altList = [];
   // Same kind AND same form: a dry shampoo is not matched with a regular shampoo, a lash serum not with eye patches, a mouthwash not with a toothpaste
   function altGroup(p) {
@@ -1136,7 +1136,7 @@
   function renderAlternatives(product, score) {
     var box = el("alt-box");
     box.hidden = true; box.innerHTML = ""; altList = [];
-    if (score === null || score > 50) return;
+    if (score === null || score > 75) return;   // Good (51 to 75), Not great and Bad get better options; Excellent does not
     window.Shop.load().then(function (list) {
       if (lastProduct !== product || !list.length) return;
       catalogList = list;
@@ -1378,7 +1378,7 @@
   // ----- one camera for everything: barcode (live), product, shelf and ingredient list (photo) -----
   var MODE_HINT = {
     code: "Point the camera at a barcode",
-    product: "Show the front of the product inside the frame. It reads on its own; you can also tap the button",
+    product: "Fit the product in the frame (drag its corners to resize). It reads on its own; you can also tap the button",
     shelf: "Fit the shelf in the frame, tap the button, then hold still for a second",
     ingredients: "Fill the frame with the list, then tap the button. Round bottle? Use Camera app and zoom in (5×)"
   };
@@ -1408,9 +1408,67 @@
       camMsg.t = setTimeout(function () { m.hidden = true; }, 5000);
     }
   }
+  // ----- Adjustable frame: drag the corners to fit the product, drag inside to move it. Remembered per mode (product, shelf, ingredients); barcode keeps its fixed window. -----
+  var FKEY = "skinsafe.camframe", FDEF = { t: 0.17, b: 0.17, l: 0.09, r: 0.09 }, FVAR = { t: "--ft", b: "--fb", l: "--fl", r: "--fr" };
+  function loadFrames() { try { var f = JSON.parse(localStorage.getItem(FKEY) || "{}"); return f && typeof f === "object" ? f : {}; } catch (e) { return {}; } }
+  function frameOf(mode) { var f = loadFrames()[mode]; return f && ["t", "b", "l", "r"].every(function (k) { return typeof f[k] === "number"; }) ? f : { t: FDEF.t, b: FDEF.b, l: FDEF.l, r: FDEF.r }; }
+  function putFrame(mode, f) {
+    var camEl = el("cam");
+    Object.keys(FVAR).forEach(function (k) { camEl.style.setProperty(FVAR[k], (f[k] * 100).toFixed(2) + "%"); });
+  }
+  function applyFrame(mode) {
+    var camEl = el("cam");
+    if (mode === "code") { Object.keys(FVAR).forEach(function (k) { camEl.style.removeProperty(FVAR[k]); }); return; }
+    putFrame(mode, frameOf(mode));
+  }
+  var fdrag = null, ftap = 0;
+  function clampFrame(f, W, H, move, d) {
+    var minTop = 112 / H, minBot = 100 / H, minSide = 6 / W, minW = 140 / W, minH = 170 / H;
+    if (move) {
+      var dy = Math.max(minTop - d.f.t, Math.min(d.f.b - minBot, d.dyf)), dx = Math.max(minSide - d.f.l, Math.min(d.f.r - minSide, d.dxf));
+      return { t: d.f.t + dy, b: d.f.b - dy, l: d.f.l + dx, r: d.f.r - dx };
+    }
+    f.t = Math.max(minTop, Math.min(1 - f.b - minH, f.t)); f.b = Math.max(minBot, Math.min(1 - f.t - minH, f.b));
+    f.l = Math.max(minSide, Math.min(1 - f.r - minW, f.l)); f.r = Math.max(minSide, Math.min(1 - f.l - minW, f.r));
+    return f;
+  }
+  el("cam-frame").addEventListener("pointerdown", function (e) {
+    var h = e.target.closest ? e.target.closest("[data-c]") : null;
+    if (!h || cam.mode === "code" || cam.busy) return;
+    var r = el("cam").getBoundingClientRect(), f = frameOf(cam.mode);
+    fdrag = { c: h.getAttribute("data-c"), x: e.clientX, y: e.clientY, f: { t: f.t, b: f.b, l: f.l, r: f.r }, W: r.width, H: r.height, moved: false };
+    try { h.setPointerCapture(e.pointerId); } catch (x) {}
+    e.preventDefault();
+  });
+  el("cam-frame").addEventListener("pointermove", function (e) {
+    if (!fdrag) return;
+    var dxf = (e.clientX - fdrag.x) / fdrag.W, dyf = (e.clientY - fdrag.y) / fdrag.H, f = { t: fdrag.f.t, b: fdrag.f.b, l: fdrag.f.l, r: fdrag.f.r }, c = fdrag.c;
+    if (Math.abs(e.clientX - fdrag.x) + Math.abs(e.clientY - fdrag.y) > 4) fdrag.moved = true;
+    if (c === "move") f = clampFrame(f, fdrag.W, fdrag.H, true, { f: fdrag.f, dxf: dxf, dyf: dyf });
+    else {
+      if (c === "tl" || c === "tr") f.t += dyf; else f.b -= dyf;
+      if (c === "tl" || c === "bl") f.l += dxf; else f.r -= dxf;
+      f = clampFrame(f, fdrag.W, fdrag.H, false);
+    }
+    putFrame(cam.mode, f); fdrag.cur = f;
+  });
+  function endFrameDrag() {
+    if (!fdrag) return;
+    var d = fdrag; fdrag = null;
+    if (d.cur) { var all = loadFrames(); all[cam.mode] = d.cur; try { localStorage.setItem(FKEY, JSON.stringify(all)); } catch (e) {} return; }
+    // a double tap inside the frame (no drag) puts the frame back to its first size
+    if (d.c === "move" && !d.moved) {
+      var now = Date.now();
+      if (now - ftap < 400) { var all2 = loadFrames(); delete all2[cam.mode]; try { localStorage.setItem(FKEY, JSON.stringify(all2)); } catch (e) {} putFrame(cam.mode, FDEF); ftap = 0; } else ftap = now;
+    }
+  }
+  el("cam-frame").addEventListener("pointerup", endFrameDrag);
+  el("cam-frame").addEventListener("pointercancel", endFrameDrag);
+
   function setMode(mode) {
     cam.mode = mode;
     el("cam").className = "cam m-" + mode;
+    applyFrame(mode);
     el("cam-hint").textContent = MODE_HINT[mode];
     el("cam-hint").hidden = false;
     bc.since = Date.now();

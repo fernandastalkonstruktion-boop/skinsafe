@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#6fd0d8" id="theme-color">
-  <meta name="app-version" content="20261012153608">
+  <meta name="app-version" content="20261012154536">
   <title>SkinSafe</title>
   <link rel="icon" type="image/png" sizes="32x32" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-fav-10.png">
   <link rel="icon" type="image/png" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-10.png">
@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="SkinSafe">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="styles.css?v=20261012153608">
+  <link rel="stylesheet" href="styles.css?v=20261012154536">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -342,7 +342,11 @@
   <div class="cam m-code" id="cam" hidden role="dialog" aria-label="Camera">
     <div id="cam-reader"></div>
     <i class="cam-veil t" aria-hidden="true"></i><i class="cam-veil b" aria-hidden="true"></i><i class="cam-veil l" aria-hidden="true"></i><i class="cam-veil r" aria-hidden="true"></i>
-    <div class="cam-frame" id="cam-frame" aria-hidden="true"></div>
+    <div class="cam-frame" id="cam-frame">
+      <span class="cam-move" data-c="move" aria-hidden="true"></span>
+      <span class="cam-h tl" data-c="tl" aria-label="Resize the frame from the top left"></span><span class="cam-h tr" data-c="tr" aria-label="Resize the frame from the top right"></span>
+      <span class="cam-h bl" data-c="bl" aria-label="Resize the frame from the bottom left"></span><span class="cam-h br" data-c="br" aria-label="Resize the frame from the bottom right"></span>
+    </div>
     <div class="cam-top">
       <button type="button" class="cam-round" id="cam-close" aria-label="Close the camera"><svg class="ic"><use href="#i-x"/></svg></button>
       <p class="cam-title">Scan a barcode, product or shelf</p>
@@ -425,20 +429,20 @@
     <div class="pv-stage" id="pv-stage"><img id="pv-img" alt="" draggable="false"></div>
   </div>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/dose.js?v=20261012153608"></script>
-  <script src="js/ingredients.js?v=20261012153608"></script>
-  <script src="js/alerts.js?v=20261012153608"></script>
-  <script src="js/profile.js?v=20261012153608"></script>
-  <script src="js/api.js?v=20261012153608"></script>
-  <script src="js/routine.js?v=20261012153608"></script>
-  <script src="js/hair.js?v=20261012153608"></script>
-  <script src="js/body.js?v=20261012153608"></script>
-  <script src="js/ocr.js?v=20261012153608"></script>
-  <script src="js/imgops.js?v=20261012153608"></script>
-  <script src="js/barcode.js?v=20261012153608"></script>
-  <script src="js/reader.js?v=20261012153608"></script>
-  <script src="js/app.js?v=20261012153608"></script>
-  <script src="js/update.js?v=20261012153608"></script>
-  <script src="js/offline.js?v=20261012153608"></script>
+  <script src="js/dose.js?v=20261012154536"></script>
+  <script src="js/ingredients.js?v=20261012154536"></script>
+  <script src="js/alerts.js?v=20261012154536"></script>
+  <script src="js/profile.js?v=20261012154536"></script>
+  <script src="js/api.js?v=20261012154536"></script>
+  <script src="js/routine.js?v=20261012154536"></script>
+  <script src="js/hair.js?v=20261012154536"></script>
+  <script src="js/body.js?v=20261012154536"></script>
+  <script src="js/ocr.js?v=20261012154536"></script>
+  <script src="js/imgops.js?v=20261012154536"></script>
+  <script src="js/barcode.js?v=20261012154536"></script>
+  <script src="js/reader.js?v=20261012154536"></script>
+  <script src="js/app.js?v=20261012154536"></script>
+  <script src="js/update.js?v=20261012154536"></script>
+  <script src="js/offline.js?v=20261012154536"></script>
 </body>
 </html>

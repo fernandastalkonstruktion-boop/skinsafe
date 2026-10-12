@@ -982,3 +982,13 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .cam:not(.m-code) .cam-controls { bottom: calc(env(safe-area-inset-bottom) + 17% + 14px); }
 .cam:not(.m-code) .cam-hint { top: calc(17% + 12px); bottom: auto; }
 .cam.m-code .cam-hint { top: calc(50% + 78px); bottom: auto; }
+
+/* Adjustable frame (12 Oct 2026): in Product, Shelf and Ingredients the white frame can be dragged by its corners to fit the product, and moved by dragging inside it.
+   The size is remembered per mode. The shutter and the hint follow the frame. */
+.cam:not(.m-code) .cam-controls { bottom: calc(env(safe-area-inset-bottom) + var(--fb) + 14px); }
+.cam:not(.m-code) .cam-hint { top: calc(var(--ft) + 12px); bottom: auto; }
+.cam-move { position: absolute; inset: 0; pointer-events: auto; touch-action: none; border-radius: inherit; }
+.cam-h { position: absolute; width: 46px; height: 46px; margin: -23px; pointer-events: auto; touch-action: none; display: flex; align-items: center; justify-content: center; }
+.cam-h::after { content: ""; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 3px solid var(--accent); box-shadow: 0 1px 6px rgba(0,0,0,0.35); }
+.cam-h.tl { left: 0; top: 0; } .cam-h.tr { right: 0; top: 0; margin-right: -23px; margin-left: 0; } .cam-h.bl { left: 0; bottom: 0; margin-bottom: -23px; margin-top: 0; } .cam-h.br { right: 0; bottom: 0; margin-right: -23px; margin-bottom: -23px; margin-left: 0; margin-top: 0; }
+.cam.m-code .cam-move, .cam.m-code .cam-h { display: none; }
