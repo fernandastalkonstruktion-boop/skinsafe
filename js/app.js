@@ -488,13 +488,22 @@
   function faceAndBody(p) { return /\b(face|facial)\b/i.test(p.name || ""); }
   function kindOf(p) { return window.Oral.classify(p) || window.Hair.classify(p) || (faceAndBody(p) && window.Routine.classify(p)) || window.Body.classify(p) || window.Routine.classify(p) || "other"; }
   function kindLabel(k) { return k === "other" ? "Other" : window.Routine.KINDS[k].label; }
+  // "For you" heart: the product is a good match for the saved skin or hair quiz and doesn't trip an allergy.
+  function youTag(p) {
+    var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), hk = window.Hair.classify(p), prof = window.Oral.classify(p) ? null : hk ? window.Hair.load() : window.Profile.load();
+    if (!prof) return "";
+    var an = window.Ingredients.analyze(p.ingredientsText);
+    if (an.score === null) return "";
+    if ((ids.length || words.length) && window.Profile.allergyHits(an.items, ids, words).length) return "";
+    return (hk ? window.Hair.match(an.items, prof, hk) : window.Profile.match(an.items, prof)).level === "good" ? '<span class="tag big you">' + ic("heart") + "For you</span>" : "";
+  }
   // One tag row for every product card: band word + number, "For you" heart, certification logos, alerts.
   function cardTags(p) {
-    var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), hk = window.Hair.classify(p), prof = window.Oral.classify(p) ? null : hk ? window.Hair.load() : window.Profile.load();
+    var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords();
     var an = window.Ingredients.analyze(p.ingredientsText), si = scoreInfo(p, an), tags = "";
     var hit = (ids.length || words.length) && window.Profile.allergyHits(an.items, ids, words).length;
     tags += si.score === null ? '<span class="tag big sc none">Not enough data</span>' : scoreTag(si.score, true);
-    if (prof && an.score !== null && !hit && (hk ? window.Hair.match(an.items, prof, hk) : window.Profile.match(an.items, prof)).level === "good") tags += '<span class="tag big you">' + ic("heart") + "For you</span>";
+    tags += youTag(p);
     tags += markTags(p);
     if (window.Alerts && window.Alerts.match(p).length) tags += '<span class="tag bad">' + ic("alert") + "Official alert</span>";
     if (hit) tags += '<span class="tag bad">' + ic("alert") + "Your allergy</span>";
@@ -601,7 +610,8 @@
   function noTimeKind(k) { return isHairKind(k) || isBodyKind(k); }
   var PERIOD_NAME = { face: "Face routine", hw: "Wash day", hs: "Styling and care", bs: "Shower", bc: "Body care" };
   function whenTag(w) {
-    return w.when === "am" ? '<span class="tag am">' + ic("sun") + "Morning</span>" : w.when === "pm" ? '<span class="tag pm">' + ic("moon") + "Night</span>" : '<span class="tag any">' + ic("sun") + ic("moon") + "Day and night</span>";
+    return w.when === "am" ? '<span class="tag when am">' + ic("sun") + "Morning</span>" : w.when === "pm" ? '<span class="tag when pm">' + ic("moon") + "Night</span>" :
+      '<span class="tag when both"><span class="d">' + ic("sun") + '</span><span class="n">' + ic("moon") + "Day/night</span></span>";
   }
   // The preview shows the product the person chose for each step, or our suggestion until they choose one.
   function previewProducts(steps, period) {
@@ -725,7 +735,7 @@
       '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
       '<span class="tags">' + cardTags(p) + (noTimeKind(kind) ? "" : whenTag(whenOf(p, kind))) + "</span></span></button>";
   }
-  function scanBtn(i) { return '<button type="button" class="secondary small-btn" data-act="scan" data-i="' + i + '">' + ic("camera") + "Scan</button>"; }
+  function scanBtn(i) { return '<button type="button" class="secondary small-btn" data-act="scan" data-i="' + i + '">' + ic("camera") + "Add</button>"; }
   function renderRoutine() {
     var K = window.Routine.KINDS, hairArea = isHairPeriod(rtPeriod), bodyArea = isBodyPeriod(rtPeriod);
     var prof = hairArea ? window.Hair.load() : window.Profile.load();
@@ -772,12 +782,13 @@
         : sg ? '<button type="button" class="primary small" data-act="use" data-i="' + i + '">Use this</button><button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Alternatives</button>' + scanBtn(i)
         : '<button type="button" class="secondary small-btn" data-act="pick" data-i="' + i + '">Pick my own</button>' + scanBtn(i);
       var timeTag = !sh || noTimeKind(st.kind) ? "" : whenTag(w2);
-      panel = '<div class="shelf-panel"><p class="shelf-kind">' + esc(K[st.kind].label) + (pr ? "" : sg ? " · suggested for you" : "") + "</p>" +
+      var chips = sh ? scorePill(sh) + youTag(sh) + timeTag : "";
+      panel = '<div class="shelf-panel"><div class="shelf-hd"><p class="shelf-kind">' + esc(K[st.kind].label) + (pr ? "" : sg ? ' · <span class="shelf-sug">Suggested for you</span>' : "") + "</p>" +
+        (sh ? '<button type="button" class="shelf-more" data-act="' + (pr ? "open" : "opensug") + '" data-i="' + i + '">Details' + ic("chevron-right") + "</button>" : "") + "</div>" +
         (sh ? '<p class="shelf-pname">' + esc(sh.name) + '</p><p class="shelf-brand">' + esc(sh.brand) + "</p>" : '<p class="shelf-pname">Nothing here yet</p>') +
-        '<div class="shelf-actrow">' + (sh ? scorePill(sh) : "") + acts + "</div>" +
-        '<p class="rt-tip">' + timeTag + " " + esc(w2.why) + "</p>" +
-        '<div class="shelf-footrow">' + (sh ? '<button type="button" class="secondary small-btn" data-act="' + (pr ? "open" : "opensug") + '" data-i="' + i + '">Details</button>' : "<span></span>") +
-        '<button type="button" class="link shelf-del" data-act="del" data-i="' + i + '">Delete this step</button></div></div>';
+        (chips ? '<div class="tags shelf-chips">' + chips + "</div>" : "") +
+        '<div class="shelf-actrow">' + acts + '<span class="shelf-sp"></span><button type="button" class="secondary small-btn shelf-trash" data-act="del" data-i="' + i + '" aria-label="Delete this step">' + ic("trash") + "</button></div>" +
+        (!sh || noTimeKind(st.kind) ? '<p class="rt-tip">' + esc(w2.why) + "</p>" : "") + "</div>";
     }
     var oldStrip = document.querySelector("#rt-steps .shelf-scroll"), keepX = oldStrip && rtStripPeriod === rtPeriod ? oldStrip.scrollLeft : 0;
     el("rt-steps").innerHTML = steps.length ? routineRater(routineAreaOf(rtPeriod)) + panel + shelves : '<p class="rt-empty">No steps yet. Add one below.</p>';
