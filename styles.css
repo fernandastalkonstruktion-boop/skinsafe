@@ -965,3 +965,20 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .alt-slot .tag.sc { position: absolute; bottom: -8px; right: -2px; padding: 2px 8px; font-size: 12px; }
 .alt-slot .shelf-name { font-size: 13px; -webkit-line-clamp: 2; }
 .alt-slot .shelf-brand { font-size: 12px; }
+
+/* Camera framing like OnSkin (12 Oct 2026, from Fernanda's screenshots). Everything outside the frame is blurred so the eye goes to the frame.
+   Barcode: a thin wide window (about 2:1, the shape of a code) in the middle of the screen. Product, shelf and ingredients: a much bigger window
+   (82% of the width, 66% of the height) with the shutter INSIDE it at the bottom. The product capture is cropped to this frame (cropFrame in app.js), so a bigger
+   frame is a bigger area read. */
+.cam { --ft: 17%; --fb: 17%; --fl: 9%; --fr: 9%; }
+.cam.m-code { --ft: calc(50% - 62px); --fb: calc(50% - 62px); --fl: 18%; --fr: 18%; }
+.cam-frame, .cam.m-code .cam-frame { left: var(--fl); right: var(--fr); top: var(--ft); bottom: var(--fb); border-width: 3px; border-radius: 26px; box-shadow: none; }
+.cam-snapbox { left: var(--fl); right: var(--fr); top: var(--ft); bottom: var(--fb); }
+.cam-veil { position: absolute; pointer-events: none; background: rgba(0, 0, 0, 0.14); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.cam-veil.t { top: 0; left: 0; right: 0; height: var(--ft); }
+.cam-veil.b { bottom: 0; left: 0; right: 0; height: var(--fb); }
+.cam-veil.l { top: var(--ft); bottom: var(--fb); left: 0; width: var(--fl); }
+.cam-veil.r { top: var(--ft); bottom: var(--fb); right: 0; width: var(--fr); }
+.cam:not(.m-code) .cam-controls { bottom: calc(env(safe-area-inset-bottom) + 17% + 14px); }
+.cam:not(.m-code) .cam-hint { top: calc(17% + 12px); bottom: auto; }
+.cam.m-code .cam-hint { top: calc(50% + 78px); bottom: auto; }
