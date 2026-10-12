@@ -89,7 +89,7 @@
     if (rx === "high") {
       a.irritation = "your skin reacts to many new products";
       a.allergy = "your skin reacts to many new products";
-    } else if (rx === "sensitive" || p.reacts === "yes" || concerns.indexOf("redness") > -1) {
+    } else if (rx === "sensitive" || (!p.reactivity && (p.reacts === "yes" || concerns.indexOf("redness") > -1))) {
       a.irritation = "your skin is sensitive or reacts easily";
       a.allergy = "your skin is sensitive or reacts easily";
     }
@@ -110,7 +110,8 @@
   function sensitivityOf(p) {
     var rx = reactivityOf(p), concerns = p.concerns || [];
     if (rx === "high") return "high";
-    if (rx === "sensitive" || p.reacts === "yes" || concerns.indexOf("redness") > -1) return "sensitive";
+    // An explicit choice at the end of the quiz ("Resistant", "Sensitive", "Very reactive") wins over the earlier answers it was guessed from
+    if (rx === "sensitive" || (!p.reactivity && (p.reacts === "yes" || concerns.indexOf("redness") > -1))) return "sensitive";
     return "";
   }
   function match(items, p) {

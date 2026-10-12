@@ -71,9 +71,9 @@
     var marks = [];
     var v = window.Ingredients.veganCheck(items);
     var cf = window.Brands && window.Brands.get(product.brand);
-    if (cf && (cf.status === "both" || cf.status === "leaping_bunny")) marks.push({ id: "lb", label: "Leaping Bunny", note: "the brand is certified cruelty-free by Leaping Bunny." });
-    if (cf && (cf.status === "both" || cf.status === "peta")) marks.push({ id: "peta", label: "PETA", note: "the brand is listed by PETA as cruelty-free." });
-    if (v.ok && !product.partial) marks.push({ id: "vegan", label: "Vegan-friendly", note: "no animal-derived ingredients spotted in the list." });
+    if (cf && (cf.status === "both" || cf.status === "leaping_bunny")) marks.push({ id: "lb", label: "Leaping Bunny", note: "the brand is certified" });
+    if (cf && (cf.status === "both" || cf.status === "peta")) marks.push({ id: "peta", label: "PETA", note: "the brand is listed" });
+    if (v.ok && !product.partial) marks.push({ id: "vegan", label: "Vegan-friendly", note: "no animal-derived ingredients in the list" });
     return marks;
   }
   // Small round logos (our own simple drawings, not the official artwork), one per mark the product has.
@@ -485,7 +485,7 @@
     renderQuiz();
   }
 
-  // ----- My products (favorites), stored only on this phone -----
+  // ----- Favorites, stored only on this phone -----
   var SKEY = "skinsafe.saved";
   function loadSaved() {
     try {
@@ -514,7 +514,7 @@
   function renderHeart(p) {
     var b = el("heart"), on = isSaved(p);
     b.setAttribute("aria-pressed", String(on));
-    b.setAttribute("aria-label", on ? "Remove from My products" : "Save to My products");
+    b.setAttribute("aria-label", on ? "Remove from Favorites" : "Save to Favorites");
     b.classList.toggle("on", on);
   }
   var favFilter = "all";
@@ -1089,6 +1089,24 @@
     return out;
   }
 
+  // One short line on how to use each kind of product (shown under the name on the product page)
+  var USE_LINE = {
+    cleanser: "Massage on damp skin, then rinse.", toner: "Press into clean skin, before serum.", serum: "A few drops on clean skin, before cream.",
+    treatment: "At night, on clean dry skin. Start slowly.", eye: "Dab a little around the eye with a fingertip.", moisturizer: "After serum, morning and night.",
+    sunscreen: "Last step in the morning; reapply outdoors.", mask: "Leave on as the pack says, then rinse.",
+    shampoo: "Massage into the scalp, not the ends, then rinse.", conditioner: "Mid-lengths to ends, leave 2 minutes, rinse.", hmask: "After shampoo, leave on as the pack says.",
+    leavein: "On damp hair after washing, mid-lengths to ends.", heat: "Spray before any heat tool.", hoil: "A few drops on the ends, dry or damp hair.", scalp: "On the scalp, as the pack says.",
+    intimate: "Outside only, then rinse well.", bodywash: "Lather on damp skin, rinse well.", bscrub: "Once or twice a week on damp skin.", blotion: "On damp skin right after the shower.",
+    boil: "A few drops on damp skin after the shower.", bsun: "Generous amount; reapply every 2 hours outdoors.", deo: "On clean, dry underarms.", hand: "Whenever hands feel dry, and after washing.",
+    foot: "On clean, dry feet, especially heels.", lip: "Whenever lips feel dry, and before bed.", btreat: "On clean, dry skin, as the pack says.", bmist: "Spray on the body, away from the eyes.",
+    aid: "Use as the pack says."
+  };
+  function useLine(p) {
+    var k = kindOf(p);
+    if (/dry shampoo|champ[u\u00fa] seco/i.test(p.name || "")) return "Spray on the roots, wait a minute, brush out.";
+    if (k === "oral") return /rinse|mouthwash|enjuague|wash/i.test(p.name || "") ? "Swish 30 seconds, spit, don't swallow." : "Brush two minutes, spit, don't rinse after.";
+    return USE_LINE[k] || "";
+  }
   // Probable amount, only for flagged or to-watch ingredients (see js/dose.js)
   function doseHtml(i) {
     var s = window.Dose && (i.declared != null || (i.level && i.level !== "good")) ? window.Dose.describe(i) : "";
@@ -1168,14 +1186,10 @@
     var score = el("score");
     score.className = "score-pill " + b.cls;
     score.innerHTML = ic(b.icon) + esc(b.label) + (si.score === null ? "" : ": " + si.score + "/100");
-    var adj = el("score-adj");
-    adj.hidden = !si.total;
-    adj.textContent = si.total ? "Safety score from ingredients: " + si.base + ". Minus " + si.pen.map(function (x) { return x.pts + " (" + x.why + ")"; }).join(", minus ") + ". You can turn this off in Profile." : "";
-    el("sub").textContent =
-      a.score === null ? "We don't know enough of these ingredients yet" :
-      n.bad > 0 ? plural(n.bad, "ingredient flagged", "ingredients flagged") :
-      n.mid > 0 ? plural(n.mid, "ingredient to watch", "ingredients to watch") :
-      "No flagged ingredients";
+    // No explanation of the points taken off or of the flag counts: the score pill, the icons and the preferences in Profile already say it.
+    // One short line on how to use this kind of product instead.
+    el("score-adj").hidden = true;
+    el("sub").textContent = a.score === null ? "We don't know enough of these ingredients yet" : useLine(product);
 
     el("counts").innerHTML =
       '<span class="pill good">' + ic("check") + n.good + " good</span>" +
@@ -1186,7 +1200,7 @@
     badges.hidden = marks.length === 0;
     badges.innerHTML = marks.length
       ? '<span class="mlogos big">' + marks.map(logoHtml).join("") + "</span>" +
-        '<p class="badge-note">' + marks.map(function (m) { return "<strong>" + esc(m.label) + "</strong>: " + esc(m.note); }).join(" ") + " These marks don't change the score, and they aren't a certification of this exact package.</p>"
+        '<p class="badge-note">' + marks.map(function (m) { return "<strong>" + esc(m.label) + "</strong>: " + esc(m.note); }).join(" \u00b7 ") + "</p>"
       : "";
     // Packaging: a short section, only when we read the packaging from the photo. Health and environment are kept apart on purpose.
     var pbox = el("pack-box"), pk = packOf(product);
