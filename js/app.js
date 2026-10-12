@@ -669,6 +669,32 @@
     });
     return { picked: picked, hasProf: !!prof };
   }
+  // ----- Add a suggested product to the routine (12 Oct 2026) -----
+  function periodForKind(k) {
+    if (isHairKind(k)) return window.Hair.DEFAULT_STEPS.hw.indexOf(k) >= 0 ? "hw" : "hs";
+    if (isBodyKind(k)) return window.Body.DEFAULT_STEPS.bs.indexOf(k) >= 0 ? "bs" : "bc";
+    return window.Routine.ORDER.indexOf(k) >= 0 ? "face" : "";
+  }
+  function inRoutine(p) {
+    var r = window.Routine.load(), id = productId(p);
+    return ["face", "hw", "hs", "bs", "bc"].some(function (pd) { return (r[pd] || []).some(function (s) { return s.product && productId(s.product) === id; }); });
+  }
+  // Fills the first empty step of that kind; if there is none, adds a step of that kind. Returns the period it went into ("" when the product has no routine step, like toothpaste or makeup).
+  function addToRoutine(p) {
+    var k = kindOf(p), pd = periodForKind(k);
+    if (!pd) return "";
+    var r = window.Routine.load(), steps = r[pd] || (r[pd] = []), order = isHairPeriod(pd) ? window.Hair.ORDER : isBodyPeriod(pd) ? window.Body.ORDER : window.Routine.ORDER, done = false;
+    steps.forEach(function (s) { if (!done && s.kind === k && !s.product) { s.product = routineProd(p); done = true; } });
+    if (!done) { steps.push({ kind: k, product: routineProd(p) }); steps.sort(function (x, y) { return order.indexOf(x.kind) - order.indexOf(y.kind); }); }
+    window.Routine.save(r); rt = r; renderRoutineCard();
+    return pd;
+  }
+  function sugActHtml(p, i) {
+    if (!periodForKind(kindOf(p))) return "";
+    return '<div class="sug-act">' + (inRoutine(p)
+      ? '<span class="sug-in">' + ic("check") + 'In your routine</span><button type="button" class="link sug-view" data-i="' + i + '">View</button>'
+      : '<button type="button" class="secondary small-btn sug-add" data-i="' + i + '">' + ic("plus") + "Add to routine</button>") + "</div>";
+  }
   function renderSug() {
     if (!sugCount) { sugCount = {}; catalogList.forEach(function (p) { if (!p.partial) { var k = kindOf(p); sugCount[k] = (sugCount[k] || 0) + 1; } }); }
     Array.prototype.forEach.call(el("sug-areas").querySelectorAll("button"), function (b) { var on = b.getAttribute("data-area") === sug.area; b.classList.toggle("on", on); b.setAttribute("aria-selected", String(on)); });
@@ -688,7 +714,7 @@
     var line2 = !n ? "" : !r.hasProf ? (window.Oral.KINDS[sug.kind] ? "" : " Take the " + (hair ? "hair" : "skin") + " quiz and these will be picked for you.") :
       you === n ? " All are For you." : " " + you + " of " + n + " are For you; the rest are only a possible match.";
     el("sug-note").textContent = line1 + line2;
-    el("sug-list").innerHTML = sug.rows.map(function (p, i) { return cardHtml(p, i, false); }).join("");
+    el("sug-list").innerHTML = sug.rows.map(function (p, i) { return '<div class="sug-item">' + cardHtml(p, i, false) + sugActHtml(p, i) + "</div>"; }).join("");
     el("sug-foot").textContent = n ? "Matches for your quiz first, then ranked by ingredient safety" + (prefsActive() ? " with your score preferences" : "") + ", at most 2 per brand. Products with a partial ingredient list, an alert, or one of your allergies are left out. It doesn't measure how well a product works." : "";
   }
   function openSug() {
@@ -2446,6 +2472,14 @@
   el("sug-areas").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-area]") : null; if (b) { sug.area = b.getAttribute("data-area"); sug.kind = ""; renderSug(); } });
   el("sug-chips").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-k]") : null; if (b) { sug.kind = b.getAttribute("data-k"); renderSug(); } });
   el("sug-list").addEventListener("click", function (e) {
+    var ab = e.target.closest ? e.target.closest(".sug-add, .sug-view") : null;
+    if (ab) {
+      var sp = sug.rows[Number(ab.getAttribute("data-i"))];
+      if (!sp) return;
+      if (ab.classList.contains("sug-add")) { addToRoutine(sp); renderSug(); }
+      else { rtPeriod = periodForKind(kindOf(sp)); openRoutine(); }
+      return;
+    }
     var c = e.target.closest ? e.target.closest(".fav-card") : null;
     var p = c && sug.rows[Number(c.getAttribute("data-i"))];
     if (p) { cameFrom = "sug"; renderResult(p); }

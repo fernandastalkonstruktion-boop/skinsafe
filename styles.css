@@ -992,3 +992,11 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .cam-h::after { content: ""; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 3px solid var(--accent); box-shadow: 0 1px 6px rgba(0,0,0,0.35); }
 .cam-h.tl { left: 0; top: 0; } .cam-h.tr { right: 0; top: 0; margin-right: -23px; margin-left: 0; } .cam-h.bl { left: 0; bottom: 0; margin-bottom: -23px; margin-top: 0; } .cam-h.br { right: 0; bottom: 0; margin-right: -23px; margin-bottom: -23px; margin-left: 0; margin-top: 0; }
 .cam.m-code .cam-move, .cam.m-code .cam-h { display: none; }
+
+/* Suggested: add to routine (12 Oct 2026) */
+.sug-item { margin: 0; }
+.sug-item .fav-card { margin-bottom: 4px; }
+.sug-act { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 0 6px 2px; min-height: 36px; }
+.sug-in { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.sug-in .ic { width: 16px; height: 16px; color: var(--accent); }
+.sug-add .ic { width: 16px; height: 16px; }
