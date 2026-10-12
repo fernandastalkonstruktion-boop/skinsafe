@@ -638,7 +638,7 @@
   }
 
   // ----- Suggested: the 10 best products of one category. "Best" = highest score shown everywhere (with the person's own subtractions), never a partial list,
-  // no alert, no allergy hit, not a bad match for the quiz; ties go to "good for you", then to the list with fewer unrated ingredients, then to one with a photo.
+  // no alert, no allergy hit, not a bad match for the quiz. Order: Excellent (76+) before the rest; inside each, "For you" first, then score, then fewer unrated ingredients, then a photo.
   // At most 2 per brand so the top 10 is not one brand's whole line. If a category has fewer than 10 at 90+, the rest are the best available and the page says so.
   var sug = { area: "face", kind: "", rows: [] }, SUG_N = 10, SUG_PER_BRAND = 2, SUG_HIGH = 90;
   function sugKinds(area) {
@@ -657,16 +657,16 @@
       if ((ids.length || words.length) && window.Profile.allergyHits(a.items, ids, words).length) return;
       var m = prof ? (hair ? window.Hair.match(a.items, prof, kind) : window.Profile.match(a.items, prof)) : { level: "good", helps: [] };
       if (m.level === "bad") return;
-      out.push({ p: p, score: sc, lv: m.level === "good" ? 0 : 1, helps: m.helps.length, unr: a.items.length ? a.counts.none / a.items.length : 1 });
+      out.push({ p: p, score: sc, ex: sc >= 76 ? 0 : 1, lv: m.level === "good" ? 0 : 1, helps: m.helps.length, unr: a.items.length ? a.counts.none / a.items.length : 1 });
     });
-    out.sort(function (x, y) { return y.score - x.score || x.lv - y.lv || x.unr - y.unr || y.helps - x.helps || (y.p.image ? 1 : 0) - (x.p.image ? 1 : 0); });
+    out.sort(function (x, y) { return x.ex - y.ex || x.lv - y.lv || y.score - x.score || x.unr - y.unr || y.helps - x.helps || (y.p.image ? 1 : 0) - (x.p.image ? 1 : 0); });
     var perBrand = {}, picked = [];
     out.forEach(function (x) {
       var b = String(x.p.brand || "").toLowerCase();
       if (picked.length >= SUG_N || (perBrand[b] || 0) >= SUG_PER_BRAND) return;
       perBrand[b] = (perBrand[b] || 0) + 1; picked.push(x);
     });
-    return { picked: picked, total: out.length, high: out.filter(function (x) { return x.score >= SUG_HIGH; }).length };
+    return { picked: picked, hasProf: !!prof };
   }
   function renderSug() {
     if (!sugCount) { sugCount = {}; catalogList.forEach(function (p) { if (!p.partial) { var k = kindOf(p); sugCount[k] = (sugCount[k] || 0) + 1; } }); }
@@ -674,15 +674,20 @@
     var kinds = sugKinds(sug.area);
     if (kinds.indexOf(sug.kind) < 0) sug.kind = kinds[0] || "";
     el("sug-chips").innerHTML = kinds.map(function (k) { return '<button type="button" class="cat-chip' + (sug.kind === k ? " on" : "") + '" data-k="' + k + '">' + esc(kindLabel(k)) + "</button>"; }).join("");
-    var r = sug.kind ? topFor(sug.kind) : { picked: [], total: 0, high: 0 };
+    var r = sug.kind ? topFor(sug.kind) : { picked: [], hasProf: false };
     sug.rows = r.picked.map(function (x) { return x.p; });
     var n = sug.rows.length, top = r.picked.filter(function (x) { return x.score >= SUG_HIGH; }).length;
-    el("sug-note").textContent = !n ? "Nothing to suggest here yet." :
+    var you = r.picked.filter(function (x) { return x.lv === 0; }).length, hair = isHairKind(sug.kind);
+    var line1 = !n ? "Nothing to suggest here yet." :
       top === n ? (n === SUG_N ? "Top 10, all scoring " + SUG_HIGH + " or more." : "Only " + n + " products here, all scoring " + SUG_HIGH + " or more.") :
       top === 0 ? "No product in this category reaches " + SUG_HIGH + " yet. These are the best we have." :
       "Only " + top + " in this category reach " + SUG_HIGH + " or more. The rest are the best available.";
+    // Products that match the person's quiz come first. Without a quiz, nothing can be "For you", so the page says how to get that.
+    var line2 = !n ? "" : !r.hasProf ? (window.Oral.KINDS[sug.kind] ? "" : " Take the " + (hair ? "hair" : "skin") + " quiz and these will be picked for you.") :
+      you === n ? " All are For you." : " " + you + " of " + n + " are For you; the rest are only a possible match.";
+    el("sug-note").textContent = line1 + line2;
     el("sug-list").innerHTML = sug.rows.map(function (p, i) { return cardHtml(p, i, false); }).join("");
-    el("sug-foot").textContent = n ? "Ranked by ingredient safety" + (prefsActive() ? " with your score preferences" : "") + ", at most 2 per brand. Products with a partial ingredient list, an alert, or one of your allergies are left out. It doesn't measure how well a product works." : "";
+    el("sug-foot").textContent = n ? "Matches for your quiz first, then ranked by ingredient safety" + (prefsActive() ? " with your score preferences" : "") + ", at most 2 per brand. Products with a partial ingredient list, an alert, or one of your allergies are left out. It doesn't measure how well a product works." : "";
   }
   function openSug() {
     window.Shop.load().then(function (list) { catalogList = list; sugCount = null; renderSug(); show("sug"); });
