@@ -465,12 +465,12 @@
     var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), hk = window.Hair.classify(p), prof = window.Oral.classify(p) ? null : hk ? window.Hair.load() : window.Profile.load();
     var an = window.Ingredients.analyze(p.ingredientsText), si = scoreInfo(p, an), b = band(si.score), tags = "";
     var hit = (ids.length || words.length) && window.Profile.allergyHits(an.items, ids, words).length;
-    tags += '<span class="tag big sc ' + b.cls + '">' + (si.score === null ? "Not enough data" : si.label + ": " + si.score + "/100") + "</span>";
-    if (prof && an.score !== null && !hit && (hk ? window.Hair.match(an.items, prof, hk) : window.Profile.match(an.items, prof)).level === "good") tags += '<span class="tag big you">' + ic("heart") + "Good for you</span>";
+    tags += '<span class="tag big sc ' + b.cls + '">' + b.label + "</span>";
+    if (prof && an.score !== null && !hit && (hk ? window.Hair.match(an.items, prof, hk) : window.Profile.match(an.items, prof)).level === "good") tags += '<span class="tag big you">' + ic("heart") + "For you</span>";
     tags += markTags(p);
     if (window.Alerts && window.Alerts.match(p).length) tags += '<span class="tag bad">' + ic("alert") + "Official alert</span>";
     if (hit) tags += '<span class="tag bad">' + ic("alert") + "Your allergy</span>";
-    return '<div class="fav-card" role="button" tabindex="0" data-i="' + i + '">' + photoHtml(p) +
+    return '<div class="fav-card' + (heart ? " has-heart" : "") + '" role="button" tabindex="0" data-i="' + i + '">' + photoHtml(p) +
       '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
       '<span class="tags">' + tags + "</span></span>" +
       (heart ? '<button type="button" class="fav-heart" data-i="' + i + '" aria-label="Remove from favorites">' + ic("heart") + "</button>" : "") + "</div>";
@@ -660,7 +660,7 @@
   function rtRow(p, kind, act, i) {
     return '<button type="button" class="result-item" data-act="' + act + '" data-i="' + i + '">' + photoHtml(p) +
       '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
-      '<span class="tags">' + scorePill(p) + (noTimeKind(kind) ? "" : whenTag(whenOf(p, kind))) + "</span></span>" + ic("chevron-right", "chev-ic") + "</button>";
+      '<span class="tags">' + scorePill(p, true) + (noTimeKind(kind) ? "" : whenTag(whenOf(p, kind))) + "</span></span>" + ic("chevron-right", "chev-ic") + "</button>";
   }
   function scanBtn(i) { return '<button type="button" class="secondary small-btn" data-act="scan" data-i="' + i + '">' + ic("camera") + "Scan</button>"; }
   function renderRoutine() {
@@ -1822,12 +1822,14 @@
     muts.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) upgradePhotos(n); }); });
   }).observe(document.body, { childList: true, subtree: true });
 
-  function scorePill(p) {
+  // Lists show only the band word (Excellent, Good...); the number is for the product screen. withNum keeps it for the routine rows.
+  function scorePill(p, withNum) {
     var a;
     try { a = window.Ingredients.analyze(p.ingredientsText); } catch (e) { return ""; }
     var si = scoreInfo(p, a);
     if (si.score === null) return "";
-    return '<span class="tag sc ' + band(si.score).cls + '">' + si.label + " " + si.score + "/100</span>";
+    var b = band(si.score);
+    return '<span class="tag sc ' + b.cls + '">' + (withNum ? si.label + " " + si.score + "/100" : b.label) + "</span>";
   }
   function resultRows(list) {
     return list.map(function (p, idx) {
@@ -2172,6 +2174,73 @@
     renderRoutineCard();
     show("home");
   });
+  // ----- Full-screen product photo: tap the photo on the product screen; pinch, double-tap or wheel to zoom, drag to move, X to close -----
+  (function () {
+    var box = el("photo-view"), stage = el("pv-stage"), img = el("pv-img"), tile = document.querySelector(".photo-tile");
+    var s = 1, tx = 0, ty = 0, pts = {}, startD = 0, startS = 1, lastTap = 0, open = false;
+    function apply(anim) { img.style.transition = anim ? "transform .22s ease" : "none"; img.style.transform = "translate(" + tx + "px," + ty + "px) scale(" + s + ")"; }
+    function clamp() {
+      var mx = (s - 1) * box.clientWidth / 2, my = (s - 1) * box.clientHeight / 2;
+      tx = Math.max(-mx, Math.min(mx, tx)); ty = Math.max(-my, Math.min(my, ty));
+    }
+    function zoomTo(ns, cx, cy) {
+      ns = Math.max(1, Math.min(5, ns));
+      var r = box.getBoundingClientRect(), ox = cx - r.left - r.width / 2, oy = cy - r.top - r.height / 2, k = ns / s;
+      tx = ox - (ox - tx) * k; ty = oy - (oy - ty) * k; s = ns;
+      if (s === 1) { tx = 0; ty = 0; }
+      clamp();
+    }
+    // The stage grows from where the small photo sits and shrinks back to it.
+    function fromTile() {
+      var r = tile.getBoundingClientRect(), vw = box.clientWidth, vh = box.clientHeight;
+      return "translate(" + (r.left + r.width / 2 - vw / 2) + "px," + (r.top + r.height / 2 - vh / 2) + "px) scale(" + Math.max(0.15, r.width / vw) + ")";
+    }
+    function openView() {
+      var ph = el("photo");
+      if (!ph || ph.hidden || !ph.src) return;
+      img.src = ph.src; s = 1; tx = 0; ty = 0; pts = {}; apply(false);
+      box.hidden = false; open = true;
+      stage.style.transition = "none"; stage.style.transform = fromTile(); box.style.opacity = "0";
+      void box.offsetWidth;
+      stage.style.transition = "transform .3s cubic-bezier(.2,.8,.2,1)"; box.style.transition = "opacity .25s ease";
+      stage.style.transform = "none"; box.style.opacity = "1";
+    }
+    function closeView() {
+      if (!open) return;
+      open = false; s = 1; tx = 0; ty = 0; apply(true);
+      stage.style.transform = fromTile(); box.style.opacity = "0";
+      setTimeout(function () { if (!open) box.hidden = true; }, 300);
+    }
+    function dist() { var k = Object.keys(pts); return Math.hypot(pts[k[0]].x - pts[k[1]].x, pts[k[0]].y - pts[k[1]].y); }
+    function mid() { var k = Object.keys(pts); return { x: (pts[k[0]].x + pts[k[1]].x) / 2, y: (pts[k[0]].y + pts[k[1]].y) / 2 }; }
+    box.addEventListener("pointerdown", function (e) {
+      if (e.target.closest(".pv-close")) return;
+      pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+      try { box.setPointerCapture(e.pointerId); } catch (x) {}
+      if (Object.keys(pts).length === 2) { startD = dist(); startS = s; }
+      else {
+        var now = Date.now();
+        if (now - lastTap < 300) { zoomTo(s > 1 ? 1 : 2.5, e.clientX, e.clientY); apply(true); lastTap = 0; } else lastTap = now;
+      }
+    });
+    box.addEventListener("pointermove", function (e) {
+      var p = pts[e.pointerId]; if (!p) return;
+      var n = Object.keys(pts).length;
+      if (n === 2) {
+        p.x = e.clientX; p.y = e.clientY;
+        var m = mid(); zoomTo(startS * dist() / startD, m.x, m.y); apply(false);
+      } else if (s > 1) {
+        tx += e.clientX - p.x; ty += e.clientY - p.y; clamp(); p.x = e.clientX; p.y = e.clientY; apply(false);
+      }
+    });
+    function up(e) { delete pts[e.pointerId]; if (s < 1.02) { s = 1; tx = 0; ty = 0; apply(true); } }
+    box.addEventListener("pointerup", up); box.addEventListener("pointercancel", up);
+    box.addEventListener("wheel", function (e) { e.preventDefault(); zoomTo(s * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX, e.clientY); apply(false); }, { passive: false });
+    el("pv-close").addEventListener("click", closeView);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeView(); });
+    tile.addEventListener("click", openView);
+  })();
+
   // One theme-color tag, switched by script: iPhones in app mode pick the LAST of several theme-color tags no matter the mode.
   (function () {
     var meta = el("theme-color"), mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;

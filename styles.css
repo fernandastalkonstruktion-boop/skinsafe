@@ -617,16 +617,19 @@ body.on-result .top { display: none; }
 .filter-row select, .rt-add select { font: inherit; font-size: 14px; font-weight: 600; color: var(--text); padding: 8px 10px; border-radius: 12px; border: 1px solid var(--glass-line); background: var(--glass); }
 .fav-list { display: flex; flex-direction: column; gap: 10px; }
 .fav-card {
-  position: relative; display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; cursor: pointer; padding: 12px 56px 12px 12px; font-family: inherit; color: var(--text);
+  position: relative; display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; cursor: pointer; padding: 12px; font-family: inherit; color: var(--text);
   border-radius: 22px; border: 1px solid var(--glass-line); background: var(--glass);
   -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2);
 }
 .fav-card img, .fav-card .result-ph { width: 64px; height: 76px; border-radius: 12px; object-fit: contain; background: #fff; flex: none; display: flex; align-items: center; justify-content: center; color: var(--accent); }
-.fav-card .tags { margin-top: 8px; gap: 6px; }
+.fav-card .tags { margin-top: 8px; gap: 6px; align-items: center; }
+.fav-card.has-heart .result-brand, .fav-card.has-heart .result-name { padding-right: 40px; }
+.fav-card .tag.big { font-size: 12px; padding: 4px 10px; }
 .fav-heart { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: transparent; color: #d6455d; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
 .fav-heart .ic { width: 24px; height: 24px; fill: currentColor; }
 .tag.big { font-size: 13px; padding: 5px 12px; }
-.tag.you { background: transparent; color: var(--good); border: 1.5px solid var(--good); }
+.tag.you { background: rgba(214, 69, 93, 0.12); color: #d6455d; }
+.tag.you .ic { fill: currentColor; }
 
 /* ---------- routine ---------- */
 .linkcard { display: block; width: 100%; text-align: left; cursor: pointer; margin: 0 0 12px; padding: 12px 14px; font-family: inherit; color: var(--text); border-radius: 18px; border: 1px solid var(--glass-line); background: var(--soft); }
@@ -870,3 +873,12 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .switch i { width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.3); transition: transform 0.2s; }
 .switch.on { background: var(--accent); }
 .switch.on i { transform: translateX(20px); }
+
+/* ---------- full-screen product photo ---------- */
+.photo-tile { cursor: zoom-in; }
+.photo-view { position: fixed; inset: 0; z-index: 90; background: #fff; touch-action: none; overflow: hidden; -webkit-user-select: none; user-select: none; }
+.photo-view[hidden] { display: none; }
+.pv-stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; will-change: transform; }
+.pv-stage img { width: 100%; height: 100%; object-fit: contain; transform-origin: center; will-change: transform; -webkit-user-drag: none; }
+.pv-close { position: absolute; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + 14px); left: 16px; width: 48px; height: 48px; border-radius: 50%; border: 0; background: #fff; color: #1b1b1b; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.pv-close .ic { width: 24px; height: 24px; }
