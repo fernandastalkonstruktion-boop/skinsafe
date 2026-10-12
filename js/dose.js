@@ -29,20 +29,24 @@
     { rx: /^(bht|butylated hydroxytoluene)$/, cap: 0.8, ref: "Annex III/325" },
     { rx: /^(retinol|retinyl palmitate|retinyl acetate)$/, cap: 0.3, ref: "Annex III/376" },
     { rx: /^salicylic acid$/, cap: 3.0, ref: "Annex III/98" },
-    { rx: /^butyl methoxydibenzoylmethane$/, cap: 5, ref: "Annex VI/8" },
-    { rx: /^octocrylene$/, cap: 10, ref: "Annex VI/10" },
-    { rx: /^(ethylhexyl methoxycinnamate|octinoxate)$/, cap: 10, ref: "Annex VI/12" },
-    { rx: /^ethylhexyl salicylate$/, cap: 5, ref: "Annex VI/20" },
-    { rx: /^homosalate$/, cap: 7.34, ref: "Annex VI/3" },
-    { rx: /^benzophenone-3$/, cap: 6, ref: "Annex VI/4" }
+    { rx: /^butyl methoxydibenzoylmethane$/, cap: 5, ref: "Annex VI/8", uv: true },
+    { rx: /^octocrylene$/, cap: 10, ref: "Annex VI/10", uv: true },
+    { rx: /^(ethylhexyl methoxycinnamate|octinoxate)$/, cap: 10, ref: "Annex VI/12", uv: true },
+    { rx: /^ethylhexyl salicylate$/, cap: 5, ref: "Annex VI/20", uv: true },
+    { rx: /^homosalate$/, cap: 7.34, ref: "Annex VI/3", uv: true },
+    { rx: /^benzophenone-3$/, cap: 6, ref: "Annex VI/4", uv: true }
   ];
   function norm(s) { return String(s || "").toLowerCase().replace(/\*/g, "").replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim(); }
   // The highest cap the entry can have (a rinse-off cap can be higher than the leave-on one): "capped at 1% or less" needs every variant to be <= 1.
   function capOf(item) {
     var n = norm(item.inci || item.name);
-    for (var k = 0; k < CAPS.length; k++) if (CAPS[k].rx.test(n)) return { cap: Math.max(CAPS[k].cap, CAPS[k].capRinse || 0), ref: CAPS[k].ref };
+    for (var k = 0; k < CAPS.length; k++) if (CAPS[k].rx.test(n)) return { cap: Math.max(CAPS[k].cap, CAPS[k].capRinse || 0), ref: CAPS[k].ref, uv: !!CAPS[k].uv };
     return null;
   }
+  // Structural ingredients (oils, waxes, petrolatum) are usually several percent even when they come late in the list (a mascara or a lip product can be mostly wax),
+  // so the generic EPA estimate does not lower them: only the law can. This follows the EPA finding that the function of an ingredient predicts its amount better than its place.
+  var BULK = /(petrolatum|petrolato|vaselina|paraffin|parafina|mineral oil|aceite mineral|microcrystalline wax|cera microcristalina|ozokerite)/;
+  function isBulk(it) { return BULK.test(norm(it.inci || it.name)); }
   function row(N) { return WF[Math.max(2, Math.min(55, N))]; }
   // Estimated weight fraction of the ingredient at 1-based rank i in a list of N: { median, low, high } in percent, or null
   function wf(i, N) {
@@ -70,7 +74,8 @@
     if (c && c.cap <= 1) return false;
     var m = marker(items);
     if (m && idx + 1 >= m) return false;
-    if (mode === "epa" && idx + 1 > bigRanks(items.length)) return false;
+    // A UV filter in a sunscreen or an SPF product is the active ingredient (the SPF needs several percent), so its place in the list never lowers it: only the law can
+    if (mode === "epa" && !(c && c.uv) && !isBulk(it) && idx + 1 > bigRanks(items.length)) return false;
     return true;
   }
   function pct(x) { return x < 0.1 ? "under 0.1%" : x < 10 ? (Math.round(x * 10) / 10) + "%" : Math.round(x) + "%"; }
@@ -79,7 +84,9 @@
     if (!it.pos || !it.n || it.n < 5) return "";
     var parts = [], c = capOf(it), w = wf(it.pos, it.n), epa = false;
     if (it.family === "fragrance") return "Amount: for an allergy the amount hardly changes the risk (the EU label threshold is already 0.001%), so the place in the list does not lower this flag.";
+    if (isBulk(it) && !(it.mk && it.pos >= it.mk)) return "Amount: oils, waxes and petrolatum are structural ingredients, usually several percent even late in the list, so the place in the list does not lower this flag.";
     if (c) parts.push("the law caps it at " + pct(c.cap));
+    if (c && c.uv && !(it.mk && it.pos >= it.mk)) return "Amount: a UV filter is usually the active ingredient of a sunscreen (the SPF needs several percent), so its place in the list does not lower this flag." + (c ? " The law caps it at " + pct(c.cap) + "." : "");
     if (it.mk && it.pos >= it.mk) parts.push("it comes after the first ingredient the law caps at 1% or less, so it is 1% or less");
     else if (w && it.pos === 1) epa = true, parts.push("probably the largest ingredient (about " + pct(w.median) + ", could be " + pct(w.low) + " to " + pct(w.high) + ")");
     else if (w && w.median < 1) epa = true, parts.push("probably under 1% (about " + pct(w.median) + ", could be up to " + pct(w.high) + ")");
