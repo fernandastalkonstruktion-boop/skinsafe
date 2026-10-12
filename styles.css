@@ -734,12 +734,8 @@ body.on-home .section-title { margin: 19px 0 12px; }
 .linkcard.slim span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .linkcard.slim .chev-ic { flex: none; width: 16px; height: 16px; color: var(--text-2); }
 
-/* ---------- Profile is one fixed screen too: every card is a compact row, no scrolling (phones shorter than 700px may scroll) ---------- */
-@media (min-height: 700px) {
-  html:has(body.on-profile) { overflow: hidden; height: 100%; }
-  body.on-profile { overflow: hidden; height: 100vh; height: 100dvh; overscroll-behavior: none; }
-  body.on-profile .app { height: 100vh; height: 100dvh; overflow: hidden; padding-bottom: calc(86px + max(10px, calc(env(safe-area-inset-bottom) - 12px))); }
-}
+/* ---------- Profile: every card is a compact row and the page scrolls up and down (12 oct 2026: the fixed screen cut off the preferences card) ---------- */
+body.on-profile .app { padding-bottom: calc(96px + max(10px, calc(env(safe-area-inset-bottom) - 12px))); }
 body.on-profile .top { margin-bottom: 8px; }
 body.on-profile #skin .page-title { margin-bottom: 4px; }
 body.on-profile #skin .profile-sub { display: none; }
