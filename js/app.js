@@ -106,6 +106,9 @@
   // Score preferences (Profile): products lose points for the checks the person keeps on. The safety score from ingredients is the base.
   // Since 12 Oct 2026 the purity check and "matches my skin and hair" start on; cruelty-free, vegan and the health conditions start off.
   var PREF_PEN = { cf: 10, vegan: 5, nomatch: 8, maybe: 4 };
+  // Fragrance on delicate skin (12 Oct 2026; docs/investigacion-12oct/investigacion_fragancia_piel_delicada.md): [leave-on, rinse-off] x [light, with several allergens]. Everything "Matches my skin" subtracts is capped at 11,
+  // so a band-64 product never ends below a band-52 one because of this switch.
+  var FRAG_PTS = { sensitive: [[4, 6], [1, 2]], high: [[6, 9], [2, 4]] }, FIT_CAP = 11;
   function prefsActive() { var pr = window.Profile.loadPrefs(); return pr.on && (pr.vegan || pr.cf || pr.fit || pr.pure || pr.endo || pr.horm); }
   function fitPrefActive() { var pr = window.Profile.loadPrefs(); return pr.on && pr.fit; }
   // Rinse-off products (shampoo, wash, toothpaste) count half for the health check: less time on the skin.
@@ -128,9 +131,23 @@
       // Same quiz match that shows "Good for you": not a match costs 8, a possible match 4 (oral care and products without a quiz are left alone)
       var hk = window.Hair.classify(p), prof = window.Oral.classify(p) ? null : hk ? window.Hair.load() : window.Profile.load();
       if (pr.fit && prof) {
-        var m = hk ? window.Hair.match(a.items, prof, hk) : window.Profile.match(a.items, prof), area = hk ? "hair" : "skin";
-        if (m.level === "bad") { pen.push({ pts: PREF_PEN.nomatch, why: "not a match for your " + area }); total += PREF_PEN.nomatch; }
-        else if (m.level === "mid") { pen.push({ pts: PREF_PEN.maybe, why: "only a possible match for your " + area }); total += PREF_PEN.maybe; }
+        var area = hk ? "hair" : "skin", m, fp = 0, fragWhy = "";
+        if (hk) m = window.Hair.match(a.items, prof, hk);
+        else {
+          // Skin: parfum and its declared allergens are ONE family. The quiz ladder (8 / 4) runs on the rest; a delicate skin pays for the fragrance once, by the table below
+          var fr = window.Ingredients.fragrance(a.items, { lip: window.Body && window.Body.classify(p) === "lip" }), sens = window.Profile.sensitivityOf(prof);
+          m = window.Profile.match(fr.rest, prof);
+          if (fr.any && sens) {
+            var rinse = isRinseOff(p), heavy = fr.nal >= 2;
+            fp = FRAG_PTS[sens][rinse ? 1 : 0][heavy ? 1 : 0];
+            fragWhy = (heavy ? "several fragrance allergens" : "fragrance") + ", and your skin is " + (sens === "high" ? "very reactive" : "sensitive") + (rinse ? " (rinse-off, counts less)" : "");
+          }
+        }
+        var ladder = m.level === "bad" ? PREF_PEN.nomatch : m.level === "mid" ? PREF_PEN.maybe : 0, room = FIT_CAP;
+        var lp = Math.min(ladder, room); room -= lp;
+        var fpp = Math.min(fp, room);
+        if (lp > 0) pen.push({ pts: lp, why: (m.level === "bad" ? "not a match for your " : "only a possible match for your ") + area }), total += lp;
+        if (fpp > 0) pen.push({ pts: fpp, why: fragWhy }), total += fpp;
       }
       if (pr.pure || pr.endo || pr.horm) {
         var x = pureOf(p, a);

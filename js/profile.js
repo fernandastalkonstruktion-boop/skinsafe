@@ -106,15 +106,24 @@
   }
 
   // Only ingredients that are not already rated "good" can count against a product.
+  // How delicate the skin is, with the same conditions `avoid` uses: "high" (very reactive), "sensitive", or "" (resistant).
+  function sensitivityOf(p) {
+    var rx = reactivityOf(p), concerns = p.concerns || [];
+    if (rx === "high") return "high";
+    if (rx === "sensitive" || p.reacts === "yes" || concerns.indexOf("redness") > -1) return "sensitive";
+    return "";
+  }
   function match(items, p) {
     var av = avoid(p);
     var reasons = [];
-    var pregnancy = false;
+    var pregnancy = false, fragSeen = false;
     items.forEach(function (i) {
       if (!i.level || i.level === "good") return;
       for (var k = 0; k < i.risks.length; k++) {
         var why = av[i.risks[k]];
         if (why) {
+          // Parfum and its declared allergens are one family: one reason, not one per ingredient
+          if (window.Ingredients && window.Ingredients.isFragrance(i)) { if (fragSeen) break; fragSeen = true; }
           reasons.push(i.name + ": " + why);
           if (i.risks[k] === "pregnancy") pregnancy = true;
           break;
@@ -220,5 +229,5 @@
   }
   function savePrefs(p) { try { localStorage.setItem(PKEY, JSON.stringify({ v: 2, on: !!p.on, pure: !!p.pure, fit: !!p.fit, vegan: !!p.vegan, cf: !!p.cf, endo: !!p.endo, horm: !!p.horm })); } catch (e) {} }
 
-  window.Profile = { loadPrefs: loadPrefs, savePrefs: savePrefs, inferType: inferType, inferReactivity: inferReactivity, loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, typeLabel: function (p) { return LABEL.type[p.type] || ""; }, match: match };
+  window.Profile = { loadPrefs: loadPrefs, savePrefs: savePrefs, inferType: inferType, inferReactivity: inferReactivity, loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, sensitivityOf: sensitivityOf, typeLabel: function (p) { return LABEL.type[p.type] || ""; }, match: match };
 })();

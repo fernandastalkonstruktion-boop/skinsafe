@@ -719,5 +719,28 @@
     };
   }
 
-window.Ingredients = { analyze: analyze, purity: purity, health: health, split: split, veganCheck: veganCheck, RISK_LABEL: RISK_LABEL, RISK_ICON: RISK_ICON };
+  // ----- Fragrance family (12 Oct 2026): parfum, declared fragrance allergens and fragrance essential oils count as ONE family, so a product with parfum and
+  // two declared allergens is not charged three times for the same thing (the allergens already lowered the base band). Method: docs/investigacion-12oct/.
+  function isFragrance(i) {
+    return i.family === "fragrance" || /essential oil|botanical fragrance|fragrance or essential oil/i.test(i.note || "") || /^(perfume|fragancia)/.test(String(i.inci || i.name || "").toLowerCase());
+  }
+  // Returns { any, parfum, nal (distinct declared allergens), neo (distinct essential oils), fam (the family's items), rest (all the other items) }.
+  // A product whose only fragrance ingredient is benzyl alcohol (a preservative) does not count; "aroma" and "flavor" in lip products do not count.
+  function fragrance(items, opts) {
+    var fam = [], parfum = false, al = {}, eo = {}, nal = 0, neo = 0;
+    items.forEach(function (i) {
+      if (!isFragrance(i)) return;
+      var raw = String(i.inci || i.name || "").toLowerCase().trim(), n = nm(i);
+      if (opts && opts.lip && /^(aroma|flavor|flavour|sabor)$/.test(n)) return;
+      fam.push(i);
+      if (/^Fragrance mix/.test(i.note || "") || /^(perfume|fragancia)/.test(raw)) parfum = true;
+      else if (i.level === "bad") { if (!al[n]) { al[n] = 1; nal++; } }
+      else if (!eo[n]) { eo[n] = 1; neo++; }
+    });
+    if (fam.length && !parfum && !neo && nal === 1 && fam.length === 1 && /^benzyl alcohol$/.test(nm(fam[0]))) fam = [];
+    var rest = items.filter(function (i) { return fam.indexOf(i) < 0; });
+    return { any: fam.length > 0, parfum: parfum, nal: nal, neo: neo, fam: fam, rest: rest };
+  }
+
+window.Ingredients = { analyze: analyze, fragrance: fragrance, isFragrance: isFragrance, purity: purity, health: health, split: split, veganCheck: veganCheck, RISK_LABEL: RISK_LABEL, RISK_ICON: RISK_ICON };
 })();
