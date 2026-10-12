@@ -626,14 +626,22 @@
       else if (i.level === "bad") flagged.push(idx);
       else if (i.level === "mid" || (i.level !== "bad" && LOW_RX.test((esName(i.name) || i.name).toLowerCase().replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim()))) low++;
     });
+    // Place in the list, total length and the place of the first law-capped (1% or less) ingredient, for the dose estimate (js/dose.js)
+    var mk = window.Dose ? window.Dose.marker(items) : 0;
+    items.forEach(function (it, k) { it.pos = k + 1; it.n = items.length; it.mk = mk; });
     var rated = n.good + n.mid + n.bad;
     var score = null;
     if (rated >= 3) {
       var nudge = LOW_WEIGHT * low / items.length;
       if (danger) score = BASE_P;
       else if (!flagged.length) score = 100 - nudge;
-      else if (flagged[0] < EARLY) score = BASE_EARLY - nudge;
-      else score = BASE_LATE - PER_EXTRA_M * (flagged.length - 1) - nudge;
+      // An alert is "early" (a big share of the product) when it is among the first EARLY places and the dose estimate (js/dose.js) does not say it is probably under 1%.
+      else if (flagged.some(function (idx) { return idx < EARLY && (!window.Dose || window.Dose.isEarly(items, idx, window.Dose.mode)); })) score = BASE_EARLY - nudge;
+      else {
+        score = BASE_LATE - PER_EXTRA_M * (flagged.length - 1) - nudge;
+        // The dose estimate only RELIEVES: a product that was "early" by position alone never ends below what it had
+        if (flagged[0] < EARLY) score = Math.max(score, BASE_EARLY - nudge);
+      }
       score = Math.max(0, Math.min(100, Math.round(score)));
     }
     return { items: items, counts: n, score: score };

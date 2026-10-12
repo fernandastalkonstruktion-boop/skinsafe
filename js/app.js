@@ -1,5 +1,5 @@
 (function () {
-  var VIEWS = ["home", "history", "favorites", "routine", "cats", "pick", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result"];
+  var VIEWS = ["home", "history", "favorites", "routine", "cats", "sug", "pick", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result"];
   var scanner = null;
   var lastProduct = null;
   var cameFrom = "home";        // where "Back" on a result should go
@@ -20,7 +20,7 @@
   function ic(name, cls) {
     return '<svg class="ic ' + (cls || "") + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
   }
-  var TAB_OF = { home: "home", routine: "home", cats: "home", pick: "home", history: "hist", favorites: "fav", skin: "skin", quiz: "skin", allergies: "skin", about: "skin" };
+  var TAB_OF = { home: "home", routine: "home", cats: "home", sug: "home", pick: "home", history: "hist", favorites: "fav", skin: "skin", quiz: "skin", allergies: "skin", about: "skin" };
   var aboutFrom = "skin";
   // The selection pill slides to the tab with a small spring and a soft glow while it moves (like the reference app).
   var indTab = null, indTimer = 0;
@@ -637,6 +637,57 @@
     el("cats-more").hidden = rows.length <= cats.shown;
   }
 
+  // ----- Suggested: the 10 best products of one category. "Best" = highest score shown everywhere (with the person's own subtractions), never a partial list,
+  // no alert, no allergy hit, not a bad match for the quiz; ties go to "good for you", then to the list with fewer unrated ingredients, then to one with a photo.
+  // At most 2 per brand so the top 10 is not one brand's whole line. If a category has fewer than 10 at 90+, the rest are the best available and the page says so.
+  var sug = { area: "face", kind: "", rows: [] }, SUG_N = 10, SUG_PER_BRAND = 2, SUG_HIGH = 90;
+  function sugKinds(area) {
+    var ks = area === "hair" ? window.Hair.ORDER : area === "body" ? window.Body.ORDER : area === "mouth" ? window.Oral.ORDER : window.Routine.ORDER;
+    return ks.filter(function (k) { return sugCount[k]; });
+  }
+  var sugCount = null;
+  function topFor(kind) {
+    var hair = isHairKind(kind), ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), out = [];
+    var prof = window.Oral.KINDS && window.Oral.KINDS[kind] ? null : hair ? window.Hair.load() : window.Profile.load();
+    catalogList.forEach(function (p) {
+      if (p.partial || kindOf(p) !== kind) return;
+      var a = analysisOf(p), sc = scoreInfo(p, a).score;
+      if (sc === null) return;
+      if (window.Alerts && window.Alerts.match(p).length) return;
+      if ((ids.length || words.length) && window.Profile.allergyHits(a.items, ids, words).length) return;
+      var m = prof ? (hair ? window.Hair.match(a.items, prof, kind) : window.Profile.match(a.items, prof)) : { level: "good", helps: [] };
+      if (m.level === "bad") return;
+      out.push({ p: p, score: sc, lv: m.level === "good" ? 0 : 1, helps: m.helps.length, unr: a.items.length ? a.counts.none / a.items.length : 1 });
+    });
+    out.sort(function (x, y) { return y.score - x.score || x.lv - y.lv || x.unr - y.unr || y.helps - x.helps || (y.p.image ? 1 : 0) - (x.p.image ? 1 : 0); });
+    var perBrand = {}, picked = [];
+    out.forEach(function (x) {
+      var b = String(x.p.brand || "").toLowerCase();
+      if (picked.length >= SUG_N || (perBrand[b] || 0) >= SUG_PER_BRAND) return;
+      perBrand[b] = (perBrand[b] || 0) + 1; picked.push(x);
+    });
+    return { picked: picked, total: out.length, high: out.filter(function (x) { return x.score >= SUG_HIGH; }).length };
+  }
+  function renderSug() {
+    if (!sugCount) { sugCount = {}; catalogList.forEach(function (p) { if (!p.partial) { var k = kindOf(p); sugCount[k] = (sugCount[k] || 0) + 1; } }); }
+    Array.prototype.forEach.call(el("sug-areas").querySelectorAll("button"), function (b) { var on = b.getAttribute("data-area") === sug.area; b.classList.toggle("on", on); b.setAttribute("aria-selected", String(on)); });
+    var kinds = sugKinds(sug.area);
+    if (kinds.indexOf(sug.kind) < 0) sug.kind = kinds[0] || "";
+    el("sug-chips").innerHTML = kinds.map(function (k) { return '<button type="button" class="cat-chip' + (sug.kind === k ? " on" : "") + '" data-k="' + k + '">' + esc(kindLabel(k)) + "</button>"; }).join("");
+    var r = sug.kind ? topFor(sug.kind) : { picked: [], total: 0, high: 0 };
+    sug.rows = r.picked.map(function (x) { return x.p; });
+    var n = sug.rows.length, top = r.picked.filter(function (x) { return x.score >= SUG_HIGH; }).length;
+    el("sug-note").textContent = !n ? "Nothing to suggest here yet." :
+      top === n ? (n === SUG_N ? "Top 10, all scoring " + SUG_HIGH + " or more." : "Only " + n + " products here, all scoring " + SUG_HIGH + " or more.") :
+      top === 0 ? "No product in this category reaches " + SUG_HIGH + " yet. These are the best we have." :
+      "Only " + top + " in this category reach " + SUG_HIGH + " or more. The rest are the best available.";
+    el("sug-list").innerHTML = sug.rows.map(function (p, i) { return cardHtml(p, i, false); }).join("");
+    el("sug-foot").textContent = n ? "Ranked by ingredient safety" + (prefsActive() ? " with your score preferences" : "") + ", at most 2 per brand. Products with a partial ingredient list, an alert, or one of your allergies are left out. It doesn't measure how well a product works." : "";
+  }
+  function openSug() {
+    window.Shop.load().then(function (list) { catalogList = list; sugCount = null; renderSug(); show("sug"); });
+  }
+
   // ----- Your routine: one list of steps for the morning and one for the night, saved only on this phone -----
   var catalogList = [], rtPeriod = "face", rtSel = 0, rtSelPeriod = "", rtStripPeriod = "", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {}, scanCtx = null;
   function analysisOf(p) { var c = anCache[p.ingredientsText]; if (!c) { c = window.Ingredients.analyze(p.ingredientsText); anCache[p.ingredientsText] = c; } return c; }
@@ -1033,6 +1084,11 @@
     return out;
   }
 
+  // Probable amount, only for flagged or to-watch ingredients (see js/dose.js)
+  function doseHtml(i) {
+    var s = i.level && i.level !== "good" && window.Dose ? window.Dose.describe(i) : "";
+    return s ? '<p class="ing-ev">' + esc(s) + "</p>" : "";
+  }
   function ingredientRow(i) {
     var labels = window.Ingredients.RISK_LABEL;
     var icons = window.Ingredients.RISK_ICON;
@@ -1060,7 +1116,7 @@
       '<span class="ing-main"><span class="ing-name">' + esc(i.name) + '</span>' +
       '<span class="ing-level"><i class="dot ' + i.level + '"></i><b class="lv ' + i.level + '">' + levelWord + '</b><span class="ing-note">' + esc(i.note) + "</span></span></span>" +
       '<span class="chev" aria-hidden="true"></span></summary>' +
-      '<div class="ing-body"><p class="ing-detail">' + esc(i.detail) + "</p>" + evidenceHtml(i) +
+      '<div class="ing-body"><p class="ing-detail">' + esc(i.detail) + "</p>" + doseHtml(i) + evidenceHtml(i) +
       ((chips || allergenChips) ? '<div class="risks">' + chips + allergenChips + "</div>" : "") + hints + helps +
       '<p class="ing-src">Look it up in: ' + links.join(" · ") + "</p></div></details></li>";
   }
@@ -1194,6 +1250,7 @@
     else if (cameFrom === "favorites") { renderSavedList(); show("favorites"); }
     else if (cameFrom === "routine") openRoutine();
     else if (cameFrom === "cats") show("cats");
+    else if (cameFrom === "sug") show("sug");
     else goHome();
   }
 
@@ -2137,14 +2194,14 @@
   var ABOUT = [
     ["shield-check", "Who we trust", "Regulators, public health agencies, medical societies and published research from universities and hospitals. We do not use brands, industry-funded review panels or paid certification programs."],
     ["scale", "When sources disagree", "The stricter rule wins. Order: EU, then Korea, then Japan and China, then the rest. Fragrance allergens, banned preservatives and restricted ingredients come from those rules."],
-    ["check", "The score, 0 to 100", "The worst ingredient decides the band. A product with an ingredient the EU bans in cosmetics, or carbon black, scores 24. A product with a flag near the top of the list (the first 14 ingredients) scores around 52, because labels list ingredients from the largest amount to the smallest. A flag further down scores around 64, and each extra flag takes off 2 more. A product with no flags starts at 100. Everyday additives such as preservatives, colorants and ethoxylated emulsifiers, and the ingredients to watch, take off a little each, depending on how much of the list they make up. Excellent is 76 to 100 (green, the only green), Good 51 to 75 (yellow), Not great 26 to 50 (orange), Bad 0 to 25 (red)."],
+    ["check", "The score, 0 to 100", "The worst ingredient decides the band. A product with an ingredient the EU bans in cosmetics, or carbon black, scores 24. A product with a flag near the top of the list scores around 52, because labels list ingredients from the largest amount to the smallest. \u201cNear the top\u201d means among the first 14 and also probably above 1% of the product: a preservative the law caps at 1% or less, or anything listed after the first such ingredient, does not count as near the top, and neither does an ingredient far enough down the list that the US EPA model puts it under 1%. Fragrance allergens, essential oils and banned ingredients never get that relief, because for allergy the amount hardly changes the risk. A flag further down scores around 64, and each extra flag takes off 2 more. A product with no flags starts at 100. Everyday additives such as preservatives, colorants and ethoxylated emulsifiers, and the ingredients to watch, take off a little each, depending on how much of the list they make up. Excellent is 76 to 100 (green, the only green), Good 51 to 75 (yellow), Not great 26 to 50 (orange), Bad 0 to 25 (red)."],
     ["flag", "Flag, watch and good", "A flag is something an EU or Korean rule bans, restricts or requires to be named as an allergen, or that the EU safety committee has raised a concern about. To watch means irritation, clogged pores, sun sensitivity or a limit that is respected. Good means no known concern. Ingredients marked “rated by type” are judged as a group, not one by one."],
     ["alert", "Allergy is not irritation", "Can cause allergy: some people become allergic after repeated contact, and it usually stays. Allergen if you're allergic: only matters to people who already have that allergy, like nuts or wheat. Can irritate: depends on the amount and your skin, and goes away when you stop."],
     ["info", "Product alerts", "Official recalls are facts, with the date and a link to the notice. Lawsuits only appear when a court grouped many cases from different people and published science backs the claim. They are always labeled not proven."],
     ["ban", "What we can't know", "The list order tells us the biggest ingredients, not the exact amounts. Photos can be misread. Product data comes from a community database that can be out of date. A cosmetic scientist has not reviewed our ratings yet. This is not medical advice."],
     ["package", "Find a product", "One camera does it all. Barcode reads by itself. Product takes a photo of the front (we read its barcode first, then the words on the label). Shelf tries to recognize several products in one photo, and Ingredients reads the ingredient list. You can also search by name. For a round bottle, tap Camera app to use your phone's own camera: you can zoom in (for example 5×) so the list looks flatter, and tap to focus. Reading words from a photo can miss stylized fonts and crowded shelves, so check that each match is your product. Photos are read on your phone and are not uploaded."],
     ["sun", "Your routine", "There is a face routine (one list; each product shows a sun, a moon or both, so you know if it is for the day, the night or both), a hair routine (wash day and styling) and a body routine (shower, from the intimate wash to the body wash and scrub, and body care, from lotion and deodorant to hand cream). The best routine uses mostly the same products day and night; only a few are for one time (sunscreen in the morning, retinol and exfoliating acids at night), and suggestions follow that. Suggested products are the best-rated ones in our list that fit your skin or hair quiz and have no allergy hit or official alert. The hair quiz asks about pattern, strand thickness, scalp, past treatments and goals, with a tip in each question to find out your answer; it is guidance, not a diagnosis. Hair products tend to score lower, so for hair we also suggest a few fair ones (35 or more) after the best ones. The morning or night tip comes from the product name and its ingredients: retinol and exfoliating acids at night, sunscreen and vitamin C in the morning. It is guidance, so follow the package. You can swap any suggestion for the product you really own."],
-    ["leaf", "Score preferences", "In Profile, Subtract points from the score takes points off the ingredient score. APPLIED NOW AND ON AT FIRST: Contaminant risks (up to 10 points: a PFAS ingredient, an amine that can form nitrosamines, an aerosol with propane or butane, talc in a loose powder), Plastic packaging (4 points, only when the photo clearly shows plastic; glass, metal or an unclear photo subtract nothing) and Matches my skin and hair (8 or 4 points, plus fragrance on sensitive or very reactive skin; never more than 11 points together). APPLIED WHEN YOU TURN THEM ON: Cruelty-free (10), Vegan-friendly (5), Endometriosis (up to 8) and Hormone sensitivity (up to 6, for ingredients that regulators watch for hormone activity; rinse-off products count half; these two stay on your phone only). NOT APPLIED YET: mental health (the evidence in cosmetics is too early), a dose estimate (a label shows the order of ingredients, not the amounts) and heavy metals (a label cannot show lead or arsenic)."],
+    ["leaf", "Score preferences", "In Profile, Subtract points from the score takes points off the ingredient score. APPLIED NOW AND ON AT FIRST: Contaminant risks (up to 10 points: a PFAS ingredient, an amine that can form nitrosamines, an aerosol with propane or butane, talc in a loose powder), Plastic packaging (4 points, only when the photo clearly shows plastic; glass, metal or an unclear photo subtract nothing) and Matches my skin and hair (8 or 4 points, plus fragrance on sensitive or very reactive skin; never more than 11 points together). APPLIED WHEN YOU TURN THEM ON: Cruelty-free (10), Vegan-friendly (5), Endometriosis (up to 8) and Hormone sensitivity (up to 6, for ingredients that regulators watch for hormone activity; rinse-off products count half; these two stay on your phone only). NOT APPLIED YET: mental health (the evidence in cosmetics is too early), heavy metals (a label cannot show lead or arsenic)."],
     ["info", "Evidence in people", "Each ingredient shows two lines: the rule (what the EU or Korea does) and the evidence in people (High, Moderate, Low or Very early). They can disagree: a ban made from animal studies is a firm rule with very early evidence. Not verified means we only found the ingredient in the EU database, not in a study. The label says how firm the evidence is, not how serious it is."],
     ["package", "Buying safely", "A label cannot tell a fake from the real product. Buy from the brand's store or an authorised seller, be wary of prices far below normal, check that the lot number is printed and matches on the box and the bottle, and compare the ingredient list with the one here. If you react, stop using it and report it to Profeco or Cofepris. Fakes and lots never change the score."],
     ["camera", "Product photos", "Where we have one, the product photo is the brand's own or a large beauty retailer's studio photo, shown straight from their website. The photos belong to those brands and shops. We never store or sell them, and a photo can disappear if the website changes it."],
@@ -2174,7 +2231,6 @@
     renderHeart(lastProduct);
     renderSavedList();
   });
-  el("scan-btn").addEventListener("click", function () { openCam("code"); });
   // The results page keeps its own search box so a typo can be fixed without going back. While picking a product for a barcode, it searches that same pick.
   el("results-form").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -2253,6 +2309,15 @@
   el("tab-fav").addEventListener("click", function () { lastProduct = null; renderSavedList(); show("favorites"); });
   el("fab-cam").addEventListener("click", function () { openCam("code"); });
   el("tile-cats").addEventListener("click", openCats);
+  el("tile-sug").addEventListener("click", openSug);
+  el("sug-back").addEventListener("click", function () { goHome(); });
+  el("sug-areas").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-area]") : null; if (b) { sug.area = b.getAttribute("data-area"); sug.kind = ""; renderSug(); } });
+  el("sug-chips").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-k]") : null; if (b) { sug.kind = b.getAttribute("data-k"); renderSug(); } });
+  el("sug-list").addEventListener("click", function (e) {
+    var c = e.target.closest ? e.target.closest(".fav-card") : null;
+    var p = c && sug.rows[Number(c.getAttribute("data-i"))];
+    if (p) { cameFrom = "sug"; renderResult(p); }
+  });
   el("cats-back").addEventListener("click", function () { goHome(); });
   el("cats-areas").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-area]") : null; if (b) { cats.area = b.getAttribute("data-area"); cats.kind = "all"; cats.q = ""; el("cats-q").value = ""; renderCats(); } });
   el("cats-chips").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-k]") : null; if (b) { cats.kind = b.getAttribute("data-k"); renderCats(); } });

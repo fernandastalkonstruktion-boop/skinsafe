@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#6fd0d8" id="theme-color">
-  <meta name="app-version" content="20261012144051">
+  <meta name="app-version" content="20261012145027">
   <title>SkinSafe</title>
   <link rel="icon" type="image/png" sizes="32x32" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-fav-10.png">
   <link rel="icon" type="image/png" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-10.png">
@@ -13,11 +13,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="SkinSafe">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="styles.css?v=20261012144051">
+  <link rel="stylesheet" href="styles.css?v=20261012145027">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
     <defs>
+      <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z"/></symbol>
       <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M16 7v10"/></symbol>
       <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
       <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
@@ -85,7 +86,7 @@
 
       <h2 class="section-title">Explore</h2>
       <div class="explore">
-        <button class="xtile t-scan" id="scan-btn" type="button"><svg class="ic"><use href="#i-scan"/></svg><b>Scan</b><span>Analyze a product with its barcode or a photo</span></button>
+        <button class="xtile t-scan" id="tile-sug" type="button"><svg class="ic"><use href="#i-star"/></svg><b>Suggested</b><span>The best-rated products in each category</span></button>
         <button class="xtile t-shelf" id="tile-cats" type="button"><svg class="ic"><use href="#i-package"/></svg><b>Categories</b><span>Browse products by type</span></button>
         <button class="xtile t-ing" id="tile-ing" type="button"><svg class="ic"><use href="#i-camera"/></svg><b>Ingredients</b><span>Photo of the list on the package</span></button>
         <button class="xtile t-code" id="manual-btn" type="button"><svg class="ic"><use href="#i-keyboard"/></svg><b>Barcode</b><span>Type the number</span></button>
@@ -120,6 +121,21 @@
       <p class="quiz-sub" id="cats-count"></p>
       <div class="result-list" id="cats-list"></div>
       <button class="secondary" id="cats-more" type="button" hidden>Show more</button>
+    </section>
+
+    <section id="sug" hidden>
+      <button class="back" id="sug-back" type="button"><svg class="ic"><use href="#i-arrow-left"/></svg>Back</button>
+      <h2 class="page-title">Suggested</h2>
+      <div class="seg" id="sug-areas" role="tablist" aria-label="Area">
+        <button type="button" role="tab" data-area="face">Face</button>
+        <button type="button" role="tab" data-area="hair">Hair</button>
+        <button type="button" role="tab" data-area="body">Body</button>
+        <button type="button" role="tab" data-area="mouth">Mouth</button>
+      </div>
+      <div class="cat-chips" id="sug-chips"></div>
+      <p class="quiz-sub" id="sug-note"></p>
+      <div class="fav-list sug-list" id="sug-list"></div>
+      <p class="quiz-sub" id="sug-foot"></p>
     </section>
 
     <section id="history" hidden>
@@ -407,19 +423,20 @@
     <div class="pv-stage" id="pv-stage"><img id="pv-img" alt="" draggable="false"></div>
   </div>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/ingredients.js?v=20261012144051"></script>
-  <script src="js/alerts.js?v=20261012144051"></script>
-  <script src="js/profile.js?v=20261012144051"></script>
-  <script src="js/api.js?v=20261012144051"></script>
-  <script src="js/routine.js?v=20261012144051"></script>
-  <script src="js/hair.js?v=20261012144051"></script>
-  <script src="js/body.js?v=20261012144051"></script>
-  <script src="js/ocr.js?v=20261012144051"></script>
-  <script src="js/imgops.js?v=20261012144051"></script>
-  <script src="js/barcode.js?v=20261012144051"></script>
-  <script src="js/reader.js?v=20261012144051"></script>
-  <script src="js/app.js?v=20261012144051"></script>
-  <script src="js/update.js?v=20261012144051"></script>
-  <script src="js/offline.js?v=20261012144051"></script>
+  <script src="js/dose.js?v=20261012145027"></script>
+  <script src="js/ingredients.js?v=20261012145027"></script>
+  <script src="js/alerts.js?v=20261012145027"></script>
+  <script src="js/profile.js?v=20261012145027"></script>
+  <script src="js/api.js?v=20261012145027"></script>
+  <script src="js/routine.js?v=20261012145027"></script>
+  <script src="js/hair.js?v=20261012145027"></script>
+  <script src="js/body.js?v=20261012145027"></script>
+  <script src="js/ocr.js?v=20261012145027"></script>
+  <script src="js/imgops.js?v=20261012145027"></script>
+  <script src="js/barcode.js?v=20261012145027"></script>
+  <script src="js/reader.js?v=20261012145027"></script>
+  <script src="js/app.js?v=20261012145027"></script>
+  <script src="js/update.js?v=20261012145027"></script>
+  <script src="js/offline.js?v=20261012145027"></script>
 </body>
 </html>
