@@ -2517,6 +2517,7 @@
   el("tile-cats").addEventListener("click", openCats);
   el("tile-sug").addEventListener("click", openSug);
   el("sug-back").addEventListener("click", function () { goHome(); });
+  el("routine-back").addEventListener("click", function () { goHome(); });
   el("sug-areas").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-area]") : null; if (b) { sug.area = b.getAttribute("data-area"); sug.kind = ""; renderSug(); } });
   el("sug-chips").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-k]") : null; if (b) { sug.kind = b.getAttribute("data-k"); renderSug(); } });
   el("sug-list").addEventListener("click", function (e) {
