@@ -81,6 +81,11 @@
   function pct(x) { return x < 0.1 ? "under 0.1%" : x < 10 ? (Math.round(x * 10) / 10) + "%" : Math.round(x) + "%"; }
   // Plain sentence about the probable amount of one analysed item (needs item.pos, item.n and item.mk set by Ingredients.analyze), or "" when we cannot say
   function describe(it) {
+    if (it.declared != null) {
+      var c0 = capOf(it), s = "Amount: the product name says " + pct(it.declared) + " (the brand's claim, not checked).";
+      if (c0 && it.declared > c0.cap) s += " The EU cap is " + pct(c0.cap) + ", so check which version is sold where you live.";
+      return s;
+    }
     if (!it.pos || !it.n || it.n < 5) return "";
     var parts = [], c = capOf(it), w = wf(it.pos, it.n), epa = false;
     if (it.family === "fragrance") return "Amount: for an allergy the amount hardly changes the risk (the EU label threshold is already 0.001%), so the place in the list does not lower this flag.";
@@ -93,5 +98,35 @@
     else if (w) epa = true, parts.push("probably about " + pct(w.median) + " (could be " + pct(w.low) + " to " + pct(w.high) + ")");
     return parts.length ? "Amount: " + parts.join("; ") + (epa ? ". Estimated from its place in the list (US EPA model), not measured." : ". This follows from the labeling law, not from a measurement.") : "";
   }
-  window.Dose = { describe: describe, wf: wf, bigRanks: bigRanks, marker: marker, capOf: capOf, isEarly: isEarly, mode: "epa" };
+  // Percentages written in the product name ("Niacinamide 10%", "0.3% Retinol", "BHA 2%"): a claim by the brand, not checked, but it is the only real amount we ever get.
+  // Only well-known actives are read (name word -> the INCI names it can be); anything else ("Heartleaf 77%" is an extract) is left alone.
+  var ACTIVES = [
+    { w: "retinol", max: 2, i: /^retinol$/ }, { w: "niacinamide", max: 20, i: /^niacinamide$/ },
+    { w: "salicylic acid|bha", max: 5, i: /^salicylic acid$/ }, { w: "glycolic acid", max: 30, i: /^glycolic acid$/ }, { w: "lactic acid", max: 30, i: /^lactic acid$/ },
+    { w: "mandelic acid", max: 30, i: /^mandelic acid$/ }, { w: "aha", max: 30, i: /^(glycolic acid|lactic acid|mandelic acid)$/ },
+    { w: "azelaic acid", max: 20, i: /^azelaic acid$/ }, { w: "tranexamic acid|txa", max: 10, i: /^tranexamic acid$/ },
+    { w: "vitamin c|ascorbic acid", max: 30, i: /^(ascorbic acid|l-ascorbic acid|ethyl ascorbic acid|3-o-ethyl ascorbic acid|ascorbyl glucoside|magnesium ascorbyl phosphate|sodium ascorbyl phosphate|tetrahexyldecyl ascorbate|ascorbyl palmitate)$/ },
+    { w: "hyaluronic acid", max: 5, i: /(hyaluronic acid|hyaluronate)/ }, { w: "panthenol", max: 20, i: /^panthenol$/ }, { w: "urea", max: 40, i: /^urea$/ },
+    { w: "benzoyl peroxide", max: 10, i: /^benzoyl peroxide$/ }, { w: "zinc oxide", max: 30, i: /^zinc oxide$/ }, { w: "squalane", max: 100, i: /^squalane$/ }
+  ];
+  var NUM = "(\\d+(?:[.,]\\d+)?)";
+  // Returns { itemIndex: percent } for the items whose amount the product name states
+  function declared(productName, items) {
+    var nm = String(productName || "").toLowerCase(), out = {};
+    ACTIVES.forEach(function (a) {
+      var re1 = new RegExp(NUM + "\\s*%\\s*(?:(?:pure|gentle|nano|high-potency|high potency|extra|pro)\\s+)?(?:" + a.w + ")\\b"),
+        re2 = new RegExp("\\b(?:" + a.w + ")\\s*" + NUM + "\\s*%");
+      var m = re1.exec(nm) || re2.exec(nm);
+      if (!m && a.w === "retinol") m = new RegExp("\\bretinol\\s*(0[.,]\\d+)\\b").exec(nm);
+      if (!m) return;
+      var v = parseFloat(m[1].replace(",", "."));
+      // A number above what is plausible for that active is not its amount ("Peach 70% Niacinamide": the 70% belongs to the peach extract)
+      if (!(v > 0 && v <= a.max)) return;
+      for (var k = 0; k < items.length; k++) {
+        if (a.i.test(norm(items[k].inci || items[k].name))) { if (out[k] == null) out[k] = v; break; }
+      }
+    });
+    return out;
+  }
+  window.Dose = { describe: describe, declared: declared, wf: wf, bigRanks: bigRanks, marker: marker, capOf: capOf, isEarly: isEarly, mode: "epa" };
 })();

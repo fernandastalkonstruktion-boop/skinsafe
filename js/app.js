@@ -1091,7 +1091,7 @@
 
   // Probable amount, only for flagged or to-watch ingredients (see js/dose.js)
   function doseHtml(i) {
-    var s = i.level && i.level !== "good" && window.Dose ? window.Dose.describe(i) : "";
+    var s = window.Dose && (i.declared != null || (i.level && i.level !== "good")) ? window.Dose.describe(i) : "";
     return s ? '<p class="ing-ev">' + esc(s) + "</p>" : "";
   }
   function ingredientRow(i) {
@@ -1226,6 +1226,9 @@
     renderAllergyBox(a.items);
     renderMatch(a.items, product);
 
+    // Amounts the product name states ("Niacinamide 10%"), set on the shared analysis items every time (a cached list can belong to a differently named product)
+    var dcl = window.Dose ? window.Dose.declared(product.name, a.items) : {};
+    a.items.forEach(function (it, k) { it.declared = dcl[k] != null ? dcl[k] : null; });
     var order = { bad: 0, mid: 1, good: 2 };
     var rated = a.items
       .filter(function (i) { return i.level; })
