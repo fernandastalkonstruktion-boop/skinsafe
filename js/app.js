@@ -103,10 +103,22 @@
     return { cls: "bad", label: "Bad", icon: "alert" };
   }
 
-  // Score preferences (Profile): when switched on, products lose points for the marks the person asked for. The safety score from ingredients is the base.
+  // Score preferences (Profile): products lose points for the checks the person keeps on. The safety score from ingredients is the base.
+  // Since 12 Oct 2026 the purity check and "matches my skin and hair" start on; cruelty-free, vegan and the health conditions start off.
   var PREF_PEN = { cf: 10, vegan: 5, nomatch: 8, maybe: 4 };
-  function prefsActive() { var pr = window.Profile.loadPrefs(); return pr.on && (pr.vegan || pr.cf || pr.fit); }
+  function prefsActive() { var pr = window.Profile.loadPrefs(); return pr.on && (pr.vegan || pr.cf || pr.fit || pr.pure || pr.endo || pr.horm); }
   function fitPrefActive() { var pr = window.Profile.loadPrefs(); return pr.on && pr.fit; }
+  // Rinse-off products (shampoo, wash, toothpaste) count half for the health check: less time on the skin.
+  function isRinseOff(p) {
+    var hk = window.Hair.classify(p), bk = window.Body && window.Body.classify(p);
+    return !!(window.Oral.classify(p) || hk === "shampoo" || hk === "conditioner" || hk === "hmask" || bk === "intimate" || bk === "bodywash" || bk === "bscrub" || window.Routine.classify(p) === "cleanser");
+  }
+  var pureCache = {};
+  function pureOf(p, a) {
+    var key = (p.name || "") + "|" + (p.form || "") + "|" + (p.shop ? 1 : 0) + "|" + (p.ingredientsText || "").length + "|" + (a.items.length ? a.items[0].name : ""), c = pureCache[key];
+    if (!c) { c = pureCache[key] = { pure: window.Ingredients.purity(p, a.items), health: window.Ingredients.health(p, a.items, isRinseOff(p)) }; }
+    return c;
+  }
   function scoreInfo(p, a) {
     var base = a.score, pen = [], total = 0;
     if (base !== null && prefsActive()) {
@@ -119,6 +131,17 @@
         var m = hk ? window.Hair.match(a.items, prof, hk) : window.Profile.match(a.items, prof), area = hk ? "hair" : "skin";
         if (m.level === "bad") { pen.push({ pts: PREF_PEN.nomatch, why: "not a match for your " + area }); total += PREF_PEN.nomatch; }
         else if (m.level === "mid") { pen.push({ pts: PREF_PEN.maybe, why: "only a possible match for your " + area }); total += PREF_PEN.maybe; }
+      }
+      if (pr.pure || pr.endo || pr.horm) {
+        var x = pureOf(p, a);
+        if (pr.pure) x.pure.forEach(function (h) { pen.push({ pts: h.pts, why: h.why }); total += h.pts; });
+        // endometriosis and hormone sensitivity use the same ingredients, so they are not added together: the bigger one counts
+        var e = pr.endo ? x.health.endo : 0, h2 = pr.horm ? x.health.horm : 0, hp = Math.max(e, h2);
+        if (hp > 0) {
+          var names = (e >= h2 ? x.health.endoNames : x.health.hormNames).join(" and ");
+          pen.push({ pts: hp, why: (pr.endo && e >= h2 ? "ingredients linked to hormone disruption (" + names + "); the evidence for endometriosis is limited" : "hormone-active ingredients (" + names + ")") });
+          total += hp;
+        }
       }
     }
     return { score: base === null ? null : Math.max(0, base - total), base: base, pen: pen, total: total, label: prefsActive() ? "For you" : "Safety" };
@@ -185,12 +208,12 @@
     if (!box) return;
     var h = window.Hair.load();
     if (h) {
-      box.innerHTML = '<p class="profile-label">' + ic("hair") + 'My hair</p><p class="profile-text">' + esc(window.Hair.summary(h)) + "</p>" +
+      box.innerHTML = '<p class="profile-label">' + ic("hair") + 'My hair</p><p class="profile-text">' + esc(window.Hair.typeLabel(h)) + "</p>" +
         '<div class="profile-actions"><button type="button" class="link" id="hair-edit">Edit</button><button type="button" class="link" id="hair-clear">Remove</button></div>';
       el("hair-edit").addEventListener("click", function () { startQuiz(h, "hair"); });
       el("hair-clear").addEventListener("click", function () { window.Hair.clear(); renderHairCard(); });
     } else {
-      box.innerHTML = '<p class="profile-label">' + ic("hair") + 'My hair</p><p class="profile-text">5 quick questions, with tips to find out your hair type.</p>' +
+      box.innerHTML = '<p class="profile-label">' + ic("hair") + 'My hair</p><p class="profile-text">5 quick questions</p>' +
         '<div class="profile-actions"><button type="button" class="secondary small-btn" id="hair-start">Start</button></div>';
       el("hair-start").addEventListener("click", function () { startQuiz(null, "hair"); });
     }
@@ -200,21 +223,25 @@
     var box = el("pref-card");
     if (!box) return;
     var pr = window.Profile.loadPrefs();
-    function sw(id, on, name, sub) {
-      return '<div class="pref-row"><span class="pref-text"><span class="pref-name">' + name + '</span><span class="pref-sub">' + sub + '</span></span>' +
+    // One line per switch: name, the most it can subtract, switch. The long explanations live in "How we rate".
+    function sw(id, on, name, amt) {
+      return '<div class="pref-row"><span class="pref-text"><span class="pref-name">' + name + (amt ? ' <span class="pref-amt">' + amt + "</span>" : "") + "</span></span>" +
         '<button type="button" class="switch' + (on ? " on" : "") + '" role="switch" aria-checked="' + on + '" aria-label="' + esc(name) + '" id="' + id + '"><i></i></button></div>';
     }
     box.innerHTML = '<p class="profile-label">' + ic("leaf") + 'My score preferences</p>' +
-      sw("pref-on", pr.on, "Subtract points from the score", "Off: scores come only from the ingredients. On: products lose points when they miss a mark you ask for below.") +
-      (pr.on ? sw("pref-cf", pr.cf, "Cruelty-free", "\u2212" + PREF_PEN.cf + " if the brand isn't listed by Leaping Bunny or PETA") +
-        sw("pref-vegan", pr.vegan, "Vegan-friendly", "\u2212" + PREF_PEN.vegan + " if we find animal-derived ingredients") +
-        sw("pref-fit", pr.fit, "Matches my skin and hair", "\u2212" + PREF_PEN.nomatch + " if it's not a match for your quiz answers, \u2212" + PREF_PEN.maybe + " if only a possible match") +
-        (pr.cf || pr.vegan || pr.fit ? (pr.fit && !window.Profile.load() && !window.Hair.load() ? '<p class="pref-hint">Take the skin or hair quiz so we can check the match.</p>' : "") : '<p class="pref-hint">Turn on at least one to change the scores.</p>') : "");
+      sw("pref-on", pr.on, "Subtract points from the score", "") +
+      (pr.on ? sw("pref-pure", pr.pure, "Purity checks", "up to \u221210") +
+        sw("pref-fit", pr.fit, "Matches my skin and hair", "\u2212" + PREF_PEN.nomatch + " or \u2212" + PREF_PEN.maybe) +
+        sw("pref-cf", pr.cf, "Cruelty-free", "\u2212" + PREF_PEN.cf) +
+        sw("pref-vegan", pr.vegan, "Vegan-friendly", "\u2212" + PREF_PEN.vegan) +
+        sw("pref-endo", pr.endo, "Endometriosis", "up to \u22128") +
+        sw("pref-horm", pr.horm, "Hormone sensitivity", "up to \u22126") +
+        (pr.fit && !window.Profile.load() && !window.Hair.load() ? '<p class="pref-hint">Take the skin or hair quiz to check the match.</p>' : "") : "");
     function flip(key) {
       return function () { var p = window.Profile.loadPrefs(); p[key] = !p[key]; window.Profile.savePrefs(p); renderPrefCard(); renderSavedList(); renderRoutineCard(); };
     }
     el("pref-on").addEventListener("click", flip("on"));
-    if (pr.on) { el("pref-cf").addEventListener("click", flip("cf")); el("pref-vegan").addEventListener("click", flip("vegan")); el("pref-fit").addEventListener("click", flip("fit")); }
+    if (pr.on) ["pure", "fit", "cf", "vegan", "endo", "horm"].forEach(function (k) { el("pref-" + k).addEventListener("click", flip(k)); });
   }
 
   function renderProfileCard() {
@@ -226,7 +253,7 @@
     if (p) {
       box.innerHTML =
         '<p class="profile-label">' + ic("droplet") + 'My skin</p>' +
-        '<p class="profile-text">' + esc(window.Profile.summary(p)) + "</p>" +
+        '<p class="profile-text">' + esc(window.Profile.typeLabel(p)) + "</p>" +
         '<div class="profile-actions"><button type="button" class="link" id="profile-edit">Edit</button>' +
         '<button type="button" class="link" id="profile-clear">Remove</button></div>';
       el("profile-edit").addEventListener("click", function () { startQuiz(p); });
@@ -234,7 +261,7 @@
     } else {
       box.innerHTML =
         '<p class="profile-label">' + ic("droplet") + 'My skin</p>' +
-        '<p class="profile-text">6 quick questions for a personal match.</p>' +
+        '<p class="profile-text">6 quick questions</p>' +
         '<div class="profile-actions"><button type="button" class="secondary small-btn" id="profile-start">Start</button></div>';
       el("profile-start").addEventListener("click", function () { startQuiz(null); });
     }
@@ -447,7 +474,7 @@
     var id = productId(p), list = loadSaved(), at = -1;
     list.forEach(function (x, i) { if (x.id === id) at = i; });
     if (at > -1) list.splice(at, 1);
-    else list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, savedAt: Date.now() });
+    else list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", savedAt: Date.now() });
     storeSaved(list);
   }
   function renderHeart(p) {
@@ -487,7 +514,7 @@
   function addHistory(p) {
     var id = productId(p);
     var list = loadHistory().filter(function (x) { return x.id !== id; });
-    list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, seenAt: Date.now() });
+    list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", seenAt: Date.now() });
     try { localStorage.setItem(HKEY, JSON.stringify(list.slice(0, HMAX))); } catch (e) {}
   }
   function renderHistory() {
@@ -564,7 +591,7 @@
   // ----- Your routine: one list of steps for the morning and one for the night, saved only on this phone -----
   var catalogList = [], rtPeriod = "face", rtSel = 0, rtSelPeriod = "", rtStripPeriod = "", rt = null, rtSug = [], pickCtx = null, pickList = [], anCache = {}, scanCtx = null;
   function analysisOf(p) { var c = anCache[p.ingredientsText]; if (!c) { c = window.Ingredients.analyze(p.ingredientsText); anCache[p.ingredientsText] = c; } return c; }
-  function routineProd(p) { return { id: productId(p), code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial }; }
+  function routineProd(p) { return { id: productId(p), code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "" }; }
   function whenOf(p, kind) { return window.Routine.when(p, kind || kindOf(p), analysisOf(p).items); }
   function isHairKind(k) { return !!(window.Hair.KINDS[k]); }
   function isHairPeriod(pd) { return pd === "hw" || pd === "hs"; }
@@ -906,6 +933,22 @@
     }).join("");
   }
 
+  // Two separate lines per ingredient (12 Oct 2026): the legal RULE, and how firm the EVIDENCE IN PEOPLE is. They can disagree (a ban made from animal studies
+  // is a firm rule with very early evidence), so they are never merged. Codes and method: docs/investigacion-12oct/.
+  var EV_WORD = { A: "High", M: "Moderate", L: "Low", V: "Very early" };
+  function evidenceHtml(i) {
+    var out = "", ev = i.ev, k = ev && ev[0];
+    var rule = i.danger ? "banned in EU cosmetics" : i.level === "bad" ? "restricted, or a declared allergen, in the EU or Korea" : i.level === "mid" ? "not banned, but worth watching" : "";
+    if (rule) out += '<p class="ing-ev"><b>Rule:</b> ' + esc(rule) + ".</p>";
+    if (EV_WORD[k]) out += '<p class="ing-ev"><b>Evidence in people:</b> <span class="evtag">' + EV_WORD[k] + "</span> for " + esc(ev[1]) + ".</p>";
+    else if (k === "U") out += '<p class="ing-ev"><b>Evidence in people:</b> <span class="evtag none">Not verified</span> The only source we found is the EU ingredient database (CosIng), which lists names and functions, not studies.</p>';
+    else if (k === "T") out += '<p class="ing-ev"><b>Evidence in people:</b> <span class="evtag none">Rated by type</span> No study of its own.</p>';
+    else if (k === "R") out += '<p class="ing-ev"><b>Evidence in people:</b> <span class="evtag none">Not rated</span> Only a legal limit, not a health claim.</p>';
+    else if (k === "E") out += '<p class="ing-ev"><b>Evidence in people:</b> <span class="evtag none">Not rated</span> An environmental rule, not a health claim.</p>';
+    if (EV_WORD[k] || k === "U") out += '<p class="ing-evnote">This says how firm the evidence is, not how serious it is. Not verified does not mean safe.</p>';
+    return out;
+  }
+
   function ingredientRow(i) {
     var labels = window.Ingredients.RISK_LABEL;
     var icons = window.Ingredients.RISK_ICON;
@@ -933,7 +976,7 @@
       '<span class="ing-main"><span class="ing-name">' + esc(i.name) + '</span>' +
       '<span class="ing-level"><i class="dot ' + i.level + '"></i><b class="lv ' + i.level + '">' + levelWord + '</b><span class="ing-note">' + esc(i.note) + "</span></span></span>" +
       '<span class="chev" aria-hidden="true"></span></summary>' +
-      '<div class="ing-body"><p class="ing-detail">' + esc(i.detail) + "</p>" +
+      '<div class="ing-body"><p class="ing-detail">' + esc(i.detail) + "</p>" + evidenceHtml(i) +
       ((chips || allergenChips) ? '<div class="risks">' + chips + allergenChips + "</div>" : "") + hints + helps +
       '<p class="ing-src">Look it up in: ' + links.join(" · ") + "</p></div></details></li>";
   }
@@ -2003,7 +2046,9 @@
     ["ban", "What we can't know", "The list order tells us the biggest ingredients, not the exact amounts. Photos can be misread. Product data comes from a community database that can be out of date. A cosmetic scientist has not reviewed our ratings yet. This is not medical advice."],
     ["package", "Find a product", "One camera does it all. Barcode reads by itself. Product takes a photo of the front (we read its barcode first, then the words on the label). Shelf tries to recognize several products in one photo, and Ingredients reads the ingredient list. You can also search by name. For a round bottle, tap Camera app to use your phone's own camera: you can zoom in (for example 5×) so the list looks flatter, and tap to focus. Reading words from a photo can miss stylized fonts and crowded shelves, so check that each match is your product. Photos are read on your phone and are not uploaded."],
     ["sun", "Your routine", "There is a face routine (one list; each product shows a sun, a moon or both, so you know if it is for the day, the night or both), a hair routine (wash day and styling) and a body routine (shower, from the intimate wash to the body wash and scrub, and body care, from lotion and deodorant to hand cream). The best routine uses mostly the same products day and night; only a few are for one time (sunscreen in the morning, retinol and exfoliating acids at night), and suggestions follow that. Suggested products are the best-rated ones in our list that fit your skin or hair quiz and have no allergy hit or official alert. The hair quiz asks about pattern, strand thickness, scalp, past treatments and goals, with a tip in each question to find out your answer; it is guidance, not a diagnosis. Hair products tend to score lower, so for hair we also suggest a few fair ones (35 or more) after the best ones. The morning or night tip comes from the product name and its ingredients: retinol and exfoliating acids at night, sunscreen and vitamin C in the morning. It is guidance, so follow the package. You can swap any suggestion for the product you really own."],
-    ["leaf", "Vegan and cruelty-free marks", "Profile has an optional switch, off by default, that subtracts points from a product's score when it lacks the cruelty-free mark (10 points) or the vegan-friendly mark (5 points), or when the skin or hair quiz says it is not a match (8 points) or only a possible match (4 points); with it off, scores come only from the ingredients. These small round logos appear only when they are true, and they never change the score. The bunny is Leaping Bunny and PETA is PETA: each shows only when that nonprofit lists the brand as cruelty-free; the leaf means vegan-friendly. They are our own simple drawings, not the official artwork. Vegan-friendly means we found no animal-derived ingredient in the list (honey, beeswax, collagen, lanolin, milk proteins and similar). Some common ingredients, like glycerin or stearic acid, can come from animals or plants and the list does not say which, so this is not a vegan certification. Cruelty-free means the brand is listed by Leaping Bunny or PETA, two independent nonprofits; we do not use the brand's own claim."],
+    ["leaf", "Score preferences", "In Profile, Subtract points from the score takes points off the ingredient score. Purity checks and Matches my skin and hair start on; cruelty-free, vegan and the health conditions start off. Purity subtracts up to 10 when the list shows a PFAS ingredient (4 for polymers like PTFE, 8 for the small molecules), an amine that can form nitrosamines (3, or 8 together with bronopol), an aerosol with propane or butane (3, benzene has been found in some recalled lots) or talc in a loose powder (3). Heavy metals like lead and arsenic cannot be seen on a label, so they subtract nothing. Cruelty-free subtracts 10 and vegan 5. Matches my skin and hair subtracts 8 or 4. Endometriosis and Hormone sensitivity subtract up to 8 and 6 for ingredients that regulators watch for hormone activity; the evidence in people is limited, so the points are small and never change the band. Those two stay on your phone only, and rinse-off products count half."],
+    ["info", "Evidence in people", "Each ingredient shows two lines: the rule (what the EU or Korea does) and the evidence in people (High, Moderate, Low or Very early). They can disagree: a ban made from animal studies is a firm rule with very early evidence. Not verified means we only found the ingredient in the EU database, not in a study. The label says how firm the evidence is, not how serious it is."],
+    ["package", "Buying safely", "A label cannot tell a fake from the real product. Buy from the brand's store or an authorised seller, be wary of prices far below normal, check that the lot number is printed and matches on the box and the bottle, and compare the ingredient list with the one here. If you react, stop using it and report it to Profeco or Cofepris. Fakes and lots never change the score."],
     ["camera", "Product photos", "Where we have one, the product photo is the brand's own or a large beauty retailer's studio photo, shown straight from their website. The photos belong to those brands and shops. We never store or sell them, and a photo can disappear if the website changes it."],
     ["lock", "Your data", "Nothing is uploaded. Your skin answers and allergies stay on your device, and there are no accounts."]
   ];

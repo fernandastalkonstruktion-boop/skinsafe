@@ -144,5 +144,5 @@
   // The routine screen reads step labels from Routine.KINDS, so hair steps are added there too.
   if (window.Routine) Object.keys(KINDS).forEach(function (k) { window.Routine.KINDS[k] = KINDS[k]; });
 
-  window.Hair = { isHair: isHair, QUESTIONS: QUESTIONS, KINDS: KINDS, ORDER: ORDER, DEFAULT_STEPS: DEFAULT_STEPS, load: load, save: save, clear: clear, summary: summary, classify: classify, match: match };
+  window.Hair = { isHair: isHair, QUESTIONS: QUESTIONS, KINDS: KINDS, ORDER: ORDER, DEFAULT_STEPS: DEFAULT_STEPS, load: load, save: save, clear: clear, summary: summary, typeLabel: function (h) { return (LABEL.pattern[h.pattern] || "") + " hair"; }, classify: classify, match: match };
 })();

@@ -83,7 +83,7 @@
     ["mid", ["cocos nucifera oil", "cocos nucifera (coconut) oil", "coconut oil"], "Can clog pores for some skin", "Moisturizing, but rated comedogenic in older tests. The real-world effect varies, and acne-prone skin often reacts.", ["comedogenic"], ["dryness"], ["COSING"]],
     ["mid", ["isopropyl myristate"], "Can clog pores for some skin", "Gives a silky feel. Rated comedogenic in older tests, so acne-prone skin may prefer to avoid it.", ["comedogenic"], [], ["COSING"]],
     ["mid", ["menthyl lactate"], "Cooling, can irritate sensitive skin", "Gives a cooling sensation. Can irritate sensitive or damaged skin.", ["irritation"], [], ["COSING"]],
-    ["mid", ["benzophenone-3", "oxybenzone"], "Chemical UV filter, known allergen for some", "Absorbs UV light. A known cause of contact and photo-allergy for some people, and restricted in some places for environmental reasons.", ["allergy"], [], ["SCCS", "EUREG", "MFDS", "MHLW", "NMPA"]],
+    ["mid", ["benzophenone-3", "oxybenzone"], "Chemical UV filter, known allergen for some", "Absorbs UV light. A known cause of contact and photo-allergy for some people, and restricted in some places for environmental reasons.", ["allergy", "hormone"], [], ["SCCS", "EUREG", "MFDS", "MHLW", "NMPA"]],
     ["bad", ["dmdm hydantoin", "imidazolidinyl urea", "quaternium-15", "diazolidinyl urea", "sodium hydroxymethylglycinate", "bronopol", "2-bromo-2-nitropropane-1,3-diol"], "Preservative that releases small amounts of formaldehyde", "Formaldehyde is classified as a human carcinogen by IARC. These preservatives release tiny amounts, and the EU requires a label warning above a set level. They can cause contact allergy.", ["allergy", "cancer"], [], ["EUREG", "SCCS", "MFDS", "IARC", "ECHA", "MHLW", "NMPA"]],
 
     // bad
@@ -140,11 +140,11 @@
     ["good", ["coco-glucoside", "decyl glucoside", "lauryl glucoside", "sodium cocoyl glycinate", "sodium cocoyl glutamate", "sodium cocoyl isethionate", "disodium cocoamphodiacetate", "cocamidopropyl hydroxysultaine", "sodium lauroyl glutamate", "cocamide mea", "sodium methyl cocoyl taurate", "sodium taurine cocoyl methyltaurate", "sodium methyl stearoyl taurate", "potassium cocoyl glycinate", "sodium cocoyl alaninate", "lauryl betaine", "lauryl hydroxysultaine", "quillaja saponaria bark extract"], "Mild cleansing agent", "A gentle foaming agent that cleans without stripping as much as sulfates do.", [], [], ["COSING"]],
     ["mid", ["isopropyl palmitate", "isopropyl isostearate"], "Can clog pores for some skin", "An emollient rated comedogenic in older tests, so acne-prone skin may prefer to avoid it.", ["comedogenic"], [], ["COSING"]],
     ["mid", ["theobroma cacao seed butter", "cocoa butter"], "Rich butter, can clog pores for some", "Very softening but rated comedogenic in older tests. Acne-prone skin may react.", ["comedogenic"], ["dryness"], ["COSING"]],
-    ["mid", ["cyclopentasiloxane", "cyclohexasiloxane", "cyclomethicone"], "Silicone solvent, EU-restricted", "The EU already limits these silicones to 0.1% in rinse-off products, and from 6 June 2027 in all cosmetics, because they persist in the environment. This is about the environment, not a skin reaction.", ["restricted"], [], ["EUREG", "SCCS"]],
+    ["mid", ["cyclopentasiloxane", "cyclohexasiloxane", "cyclomethicone"], "Silicone solvent, EU-restricted", "The EU already limits these silicones to 0.1% in rinse-off products, and from 6 June 2027 in all cosmetics, because they persist in the environment. This is about the environment, not a skin reaction.", ["restricted", "hormone"], [], ["EUREG", "SCCS"]],
     ["mid", ["lanolin", "lanolin alcohol"], "Rich emollient, known allergen for some", "Softens very dry skin but is a well-known cause of contact allergy, especially on damaged skin.", ["allergy"], ["dryness"], ["COSING", "ACDS"]],
     ["mid", ["propolis extract", "propolis cera"], "Bee product, can cause allergy", "Soothing for some, but propolis is a known contact allergen, especially if you react to bee products or balsam of Peru.", ["allergy"], [], ["COSING", "ACDS"]],
     ["bad", ["triethanolamine"], "pH adjuster, EU-regulated", "Used to balance acidity. The EU limits it and advises not to combine it with ingredients that can form nitrosamines. Can irritate sensitive skin.", ["restricted", "irritation"], [], ["EUREG", "SCCS"]],
-    ["bad", ["methylparaben", "ethylparaben", "sodium methylparaben", "sodium ethylparaben", "potassium methylparaben", "potassium ethylparaben"], "Preservative, EU-limited", "A preservative the EU allows up to 0.4% each (0.8% total). Debated for hormone-like activity at high doses, though EU scientists consider these limits safe.", ["restricted"], [], ["SCCS", "EUREG", "MFDS", "MHLW", "NMPA"]],
+    ["bad", ["methylparaben", "ethylparaben", "sodium methylparaben", "sodium ethylparaben", "potassium methylparaben", "potassium ethylparaben"], "Preservative, EU-limited", "A preservative the EU allows up to 0.4% each (0.8% total). Debated for hormone-like activity at high doses, though EU scientists consider these limits safe.", ["restricted", "hormone"], [], ["SCCS", "EUREG", "MFDS", "MHLW", "NMPA"]],
     ["bad", ["propylparaben", "butylparaben", "sodium propylparaben", "sodium butylparaben", "potassium propylparaben", "potassium butylparaben"], "Preservative, EU limit lowered", "The EU lowered the limit to 0.14% in 2014 because of hormone-related concerns, and bars them from nappy-area products for children under 3.", ["restricted", "hormone"], [], ["SCCS", "EUREG", "MFDS", "ECHA", "MHLW", "NMPA"]],
     ["bad", ["iodopropynyl butylcarbamate"], "Preservative, restricted", "The EU restricts it and does not allow it in lip products, body lotions or products for children under 3. Can cause contact allergy.", ["allergy", "restricted"], [], ["SCCS", "EUREG", "MHLW", "NMPA"]],
     ["mid", ["cocamide dea"], "Foam booster, cancer concern", "IARC rates it as possibly carcinogenic (group 2B), and DEA-type ingredients can form nitrosamines. Also a skin irritant for some.", ["irritation", "cancer"], [], ["IARC", "EUREG", "ECHA"]],
@@ -162,7 +162,7 @@
     ["bad", ["tpo", "trimethylbenzoyl diphenylphosphine oxide"], "Banned in EU cosmetics since 2025", "A nail-polish and gel-nail ingredient the EU banned in cosmetics from September 2025 because of reproductive toxicity concerns. It still shows up in many alerts for imported products.", ["hormone", "restricted"], [], ["EUREG", "SCCS", "ECHA"]],
     ["bad", ["hydroquinone"], "Not allowed in EU skin lighteners", "A skin-lightening agent the EU does not allow in cosmetics for the skin because of safety concerns, including skin damage with long use.", ["restricted"], [], ["SCCS", "EUREG", "MHLW", "NMPA"]],
 
-    ["mid", ["cyclotetrasiloxane", "octamethylcyclotetrasiloxane"], "Silicone D4, restricted in the EU", "A silicone known as D4. The EU lists it among the substances banned in cosmetics (it is classified as possibly toxic to reproduction, category 2) and it also persists in the environment. Only technically unavoidable traces are tolerated. We rate it \"to watch\" rather than flagged because OnSkin rates it as moderate risk (decision of 6 Oct 2026, based on Huxley Secret of Sahara Essence: OnSkin 49).", ["hormone", "restricted"], [], ["EUREG", "ECHA"]],
+    ["bad", ["cyclotetrasiloxane", "octamethylcyclotetrasiloxane"], "Banned in the EU: silicone D4", "A silicone known as D4. The EU lists it among the substances banned in cosmetics (Annex II, entry 1388), because it may harm reproduction, and it also persists in the environment. Only technically unavoidable traces are tolerated. OnSkin rates it as a moderate risk, but EU and Asian rules rank above OnSkin (rule of 12 Oct 2026).", ["hormone", "restricted"], [], ["EUREG", "ECHA"]],
 
     ["bad", ["pentasodium pentetate", "pentetic acid"], "Banned in EU cosmetics since 2023", "A chelating agent (it binds metal ions so the formula stays stable). The EU classified it as toxic to reproduction (category 1B) and banned it in cosmetics from 1 December 2023. Products made for other markets can still contain it.", ["hormone", "restricted"], [], ["EUREG", "ECHA"]],
 
@@ -263,12 +263,195 @@
     ["good", ["calcium titanium borosilicate", "barium sulfate", "magnesium carbonate", "calcium sulfate", "magnesium oxide", "aluminum calcium sodium silicate", "aluminum silicate", "hectorite", "stearalkonium bentonite", "nylon-6", "diatomaceous earth"], "Mineral filler, pearl or bulking agent", "Mineral or polymer powder used to add slip, bulk, shimmer or oil absorption in makeup. Generally well tolerated; avoid breathing in loose powders.", [], [], ["COSING"]],
   ];
 
+  // Evidence in people, one code per group (12 Oct 2026; method and sources in docs/investigacion-12oct/): A high, M moderate, L low,
+  // V very early (animal / lab / precaution only), U not verified (only listed in CosIng), N no alerts, R legal cap only, E environmental, T rated by type.
+  // This says how firm the evidence is for the claim, NOT how serious it is. The legal rule is shown separately.
+  var EV = {
+    "water": ["N"],
+    "glycerin": ["U", "benefit: dryness"],
+    "hyaluronic acid": ["U", "benefit: dryness/lines"],
+    "ceramide np": ["U", "benefit: dryness/redness"],
+    "cholesterol": ["U", "benefit: dryness"],
+    "panthenol": ["U", "benefit: dryness/redness"],
+    "niacinamide": ["U", "benefit: pigmentation/acne/redness"],
+    "squalane": ["U", "benefit: dryness"],
+    "tocopherol": ["U", "benefit: lines"],
+    "allantoin": ["U", "benefit: redness/dryness"],
+    "centella asiatica extract": ["U", "benefit: redness"],
+    "aloe barbadensis leaf juice": ["U", "benefit: redness/dryness"],
+    "butyrospermum parkii butter": ["U", "benefit: dryness"],
+    "cetearyl alcohol": ["N"],
+    "zinc oxide": ["N"],
+    "titanium dioxide": ["L", "inhalation cancer (IARC 2B animal) / EU spray advice"],
+    "xanthan gum": ["N"],
+    "disodium edta": ["N"],
+    "ascorbic acid": ["U", "irritation"],
+    "dimethicone": ["N"],
+    "retinol": ["L", "pregnancy (oral vit A -> topical)"],
+    "salicylic acid": ["M", "irritation (SCCS opinion)"],
+    "glycolic acid": ["U", "irritation"],
+    "sodium laureth sulfate": ["U", "irritation"],
+    "cocamidopropyl betaine": ["M", "contact allergy (ACDS)"],
+    "cocos nucifera oil": ["U", "comedogenic"],
+    "isopropyl myristate": ["U", "comedogenic"],
+    "menthyl lactate": ["U", "irritation"],
+    "benzophenone-3": ["M", "contact/photo-allergy"],
+    "dmdm hydantoin": ["M", "cancer (formaldehyde IARC 1; releasers tiny dose)"],
+    "parfum": ["A", "contact allergy (fragrance mix)"],
+    "limonene": ["M", "contact allergy (declared fragrance allergens)"],
+    "menthol": ["M", "contact allergy (menthol)"],
+    "citrus aurantium bergamia peel oil": ["M", "contact allergy (botanical, expanded list)"],
+    "butylphenyl methylpropional": ["V", "reproductive toxicity (CMR 1B, animal)"],
+    "alcohol denat.": ["U", "irritation"],
+    "sodium lauryl sulfate": ["U", "irritation"],
+    "methylisothiazolinone": ["A", "contact allergy (MI/MCI)"],
+    "triclosan": ["V", "hormone (animal/in vitro)"],
+    "citric acid": ["N"],
+    "sodium hydroxide": ["N"],
+    "phenoxyethanol": ["L", "irritation (few people)"],
+    "sodium benzoate": ["R"],
+    "ethylhexylglycerin": ["N"],
+    "hydroxyacetophenone": ["U", "benefit: redness"],
+    "sodium chloride": ["N"],
+    "caprylic/capric triglyceride": ["N"],
+    "propylene glycol": ["U", "irritation"],
+    "butylene glycol": ["U", "benefit: dryness"],
+    "sodium pca": ["U", "benefit: dryness"],
+    "urea": ["U", "irritation"],
+    "glyceryl stearate": ["N"],
+    "carbomer": ["N"],
+    "silica": ["N"],
+    "ci 77491": ["N"],
+    "ci 42090": ["N"],
+    "aluminum chlorohydrate": ["R"],
+    "propane": ["N"],
+    "helianthus annuus seed oil": ["U", "benefit: dryness"],
+    "cera alba": ["N"],
+    "paraffinum liquidum": ["M", "cancer, untreated oils (IARC 1); cosmetic grade refined"],
+    "pentaerythrityl tetra-di-t-butyl hydroxyhydrocinnamate": ["N"],
+    "ethylhexyl triazone": ["R"],
+    "bisabolol": ["U", "benefit: redness/lines"],
+    "snail secretion filtrate": ["U", "benefit: redness/dryness"],
+    "ascorbyl glucoside": ["U", "benefit: pigmentation/lines"],
+    "avobenzone": ["R"],
+    "phytosterols": ["N"],
+    "alpha-arbutin": ["V", "hydroquinone release (single lab-model)"],
+    "tranexamic acid": ["U", "benefit: pigmentation"],
+    "azelaic acid": ["U", "irritation"],
+    "gluconolactone": ["U", "benefit: lines/pigmentation"],
+    "palmitoyl tripeptide-1": ["U", "benefit: lines"],
+    "piroctone olamine": ["R"],
+    "coco-glucoside": ["N"],
+    "isopropyl palmitate": ["U", "comedogenic"],
+    "theobroma cacao seed butter": ["U", "comedogenic"],
+    "cyclopentasiloxane": ["E"],
+    "lanolin": ["M", "contact allergy (ACDS)"],
+    "propolis extract": ["M", "contact allergy (ACDS)"],
+    "triethanolamine": ["V", "nitrosamine formation (chemistry+animal)"],
+    "methylparaben": ["V", "hormone, debated (SCCS: safe at cap)"],
+    "propylparaben": ["V", "hormone (animal; EU cap lowered)"],
+    "iodopropynyl butylcarbamate": ["M", "contact allergy (SCCS)"],
+    "cocamide dea": ["V", "cancer (IARC 2B animal)"],
+    "talc": ["L", "cancer (IARC 2A; genital powder, inhalation)"],
+    "homosalate": ["V", "hormone (animal/in vitro)"],
+    "kojic acid": ["L", "allergy/irritation (SCCS cap; animal thyroid)"],
+    "hamamelis virginiana water": ["U", "irritation"],
+    "citrus aurantifolia oil": ["M", "contact allergy / photo (citrus oil)"],
+    "polymethyl methacrylate": ["E"],
+    "hydrolyzed wheat protein": ["M", "wheat allergy via skin (Japan >2000 cases)"],
+    "carmine": ["M", "allergy (case reports + Japan FSC)"],
+    "isopropyl alcohol": ["U", "irritation"],
+    "isopropylparaben": ["V", "hormone: banned for lack of data"],
+    "hydroxyisohexyl 3-cyclohexene carboxaldehyde": ["A", "contact allergy (>1,500 cases)"],
+    "tpo": ["V", "repro tox (CMR 1B, animal)"],
+    "hydroquinone": ["M", "skin harm: ochronosis (case series), ban"],
+    "cyclotetrasiloxane": ["V", "hormone/repro (animal; PBT)"],
+    "pentasodium pentetate": ["V", "repro tox (CMR 1B)"],
+    "sodium borate": ["V", "repro tox (CMR 1B, animal)"],
+    "p-phenylenediamine": ["A", "contact allergy (PPD)"],
+    "basic yellow 87": ["V", "allergy (SCCS opinions; LLNA)"],
+    "hydrogen peroxide": ["U", "irritation"],
+    "benzoyl peroxide": ["M", "irritation/allergy (ACDS)"],
+    "benzalkonium chloride": ["U", "irritation"],
+    "arbutin": ["R"],
+    "bht": ["V", "hormone (animal)"],
+    "octocrylene": ["V", "hormone (animal)"],
+    "carbon black": ["V", "cancer, inhaled (IARC 2B animal)"],
+    "mercury": ["A", "toxicity (kidney etc.)"],
+    "ethyl hexanediol": ["U", "benefit: dryness"],
+    "cellulose": ["N"],
+    "sodium lauroyl methyl isethionate": ["N"],
+    "hydrolyzed elastin": ["U", "benefit: dryness"],
+    "cetrimonium chloride": ["U", "irritation"],
+    "climbazole": ["U", "irritation"],
+    "hydrolyzed silk": ["N"],
+    "glutamine": ["N"],
+    "cocamide methyl mea": ["N"],
+    "trihydroxystearin": ["N"],
+    "zinc pyrithione": ["V", "repro tox (CMR 1B, animal)"],
+    "quaternium-33": ["U", "irritation"],
+    "lanolin acid": ["U", "allergy"],
+    "honey": ["N"],
+    "sea salt": ["N"],
+    "quaternium-80": ["U", "irritation"],
+    "phytantriol": ["N"],
+    "sulfur": ["U", "irritation"],
+    "sodium palmate": ["U", "irritation"],
+    "tea-sulfate": ["U", "irritation"],
+    "ceresin": ["N"],
+    "quaternium-18": ["U", "irritation"],
+    "sodium bicarbonate": ["N"],
+    "chlorhexidine digluconate": ["U", "allergy"],
+    "dipalmitoylethyl hydroxyethylmonium methosulfate": ["U", "irritation"],
+    "2-oleamido-1,3-octadecanediol": ["N"],
+    "potassium cocoate": ["U", "irritation"],
+    "sodium fluoride": ["R"],
+    "cetylpyridinium chloride": ["U", "irritation"],
+    "flavor": ["L", "possible allergens"],
+    "eucalyptol": ["U", "irritation"],
+    "tbhq": ["U", "irritation"],
+    "sodium saccharin": ["N"],
+    "calcium carbonate": ["N"],
+    "sodium hexametaphosphate": ["N"],
+    "zinc lactate": ["N"],
+    "ci 12085": ["N"],
+    "propyl gallate": ["M", "skin sensitizer (CLP + case reports)"],
+    "ci 74160": ["N"],
+    "oenocarpus bataua fruit oil": ["U", "benefit: dryness"],
+    "polyurethane-14": ["N"],
+    "sodium chlorite": ["U", "irritation"],
+    "lysozyme": ["N"],
+    "peat water": ["N"],
+    "hexapeptide 9": ["N"],
+    "hydrogenated poly (c6-14 olefin)": ["N"],
+    "c12-14 sec-pareth-7": ["T"],
+    "dipalmitoylethyl dimonium chloride": ["U", "irritation"],
+    "lauramide dea": ["U", "irritation"],
+    "cymbopogon nardus oil": ["U", "irritation"],
+    "magnesium laureth sulfate": ["U", "irritation"],
+    "dimethyl stearamine": ["U", "irritation"],
+    "lavandula hybrida oil": ["U", "allergy"],
+    "sodium lauroyl isethionate": ["N"],
+    "alpha-glucan oligosaccharide": ["N"],
+    "cetearyl isononanoate": ["N"],
+    "myrtrimonium bromide": ["U", "irritation"],
+    "4-methylbenzylidene camphor": ["V", "hormone (animal/in vitro)"],
+    "helianthus annuus (sunflower) seed wax": ["T"],
+    "dimethyl isosorbide": ["N"],
+    "manganese violet (ci 77742)": ["N"],
+    "chamaecyparis obtusa oil": ["U", "irritation"],
+    "bismuth oxychloride": ["N"],
+    "ci 77007": ["N"],
+    "calcium titanium borosilicate": ["N"]
+  };
+
   var INDEX = {};
   RAW.forEach(function (r) {
     var entry = {
       level: r[0], family: r[7] || null, note: r[2], detail: r[3], risks: r[4], helps: r[5],
       // "danger" = the entry says the EU bans it in cosmetics, or it is marked as one (9th field, e.g. carbon black).
       // Only used by the score (see analyze).
+      ev: EV[r[1][0]] || null,
       danger: r[0] === "bad" && (r[8] === true || /^(banned|not allowed|mercury, banned)/i.test(r[2])),
       src: r[6].map(function (k) { return SOURCES[k]; }).sort(function (a, b) { return a.rank - b.rank; })
     };
@@ -432,8 +615,8 @@
       var hit = lookup(raw);
       var name = raw.replace(/\*/g, "").trim(), inci = esName(raw) || name;
       return hit
-        ? { name: name, inci: inci, level: hit.level, family: hit.family || null, danger: !!hit.danger, note: hit.note, detail: hit.detail, risks: hit.risks, helps: hit.helps, src: hit.src }
-        : { name: name, inci: inci, level: null, family: null, danger: false, note: "", detail: "", risks: [], helps: [], src: [] };
+        ? { name: name, inci: inci, level: hit.level, family: hit.family || null, danger: !!hit.danger, ev: hit.ev, note: hit.note, detail: hit.detail, risks: hit.risks, helps: hit.helps, src: hit.src }
+        : { name: name, inci: inci, level: null, family: null, danger: false, ev: null, note: "", detail: "", risks: [], helps: [], src: [] };
     });
     var n = { good: 0, mid: 0, bad: 0, none: 0 };
     var danger = 0, flagged = [], low = 0;
@@ -469,5 +652,72 @@
     return { ok: animal.length === 0 && (items || []).length >= 5, animal: animal };
   }
 
-window.Ingredients = { analyze: analyze, split: split, veganCheck: veganCheck, RISK_LABEL: RISK_LABEL, RISK_ICON: RISK_ICON };
+  // ----- Purity (contamination) and health-condition checks (12 Oct 2026). Method, sources and every number: docs/investigacion-12oct/ -----
+  // A label can't show contaminants, so only ingredients that ARE the problem, or a product type plus an ingredient on a known route, count.
+  // Metals (lead, arsenic, cadmium): 0 points, an ingredient list can't show them. Fakes and lots: a buying tip in "How we rate", not points.
+  // Texts say "possible": they never claim the product contains the contaminant.
+  function nm(i) { return String(i.inci || i.name || "").toLowerCase().replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim(); }
+  var PFAS_POLY = /^(ptfe|polytetrafluoroethylene|politetrafluoroetileno)$|trifluoropropyl|perfluorononyl dimethicone/;
+  var PFAS_SMALL = /perfluoro/;
+  var AMINE2 = /^(diethanolamine|dietanolamina|morpholine|(cocamide|lauramide|oleamide|linoleamide|stearamide|myristamide|cocamida|lauramida|oleamida) dea)$/;
+  var TEA_RX = /^(triethanolamine|trietanolamina)$/;
+  var NITROSATING = /^(bronopol|2-bromo-2-nitropropane-1,3-diol|bronidox|5-bromo-5-nitro-1,3-dioxane|sodium nitrite|nitrito de sodio)$/;
+  var PROPELLANT = /^(isobutane|isobutano|butane|butano|propane|propano|isopentane|isopentano)$/;
+  var AEROSOL_NAME = /(aerosol|dry shampoo|champ[uú] seco|mousse|espuma moldeadora|hair ?spray|\blaca\b|\bspray\b)/i;
+  var POWDER_NAME = /(\btalc\b|talco|polvos? (sueltos?|corporal|para (beb[eé]|pies))|body powder|baby powder|loose (setting |face )?powder|foot powder|intimate powder)/i;
+  var NOT_LOOSE = /(pressed|compact|prensad|palette|blush|bronzer|eye ?shadow|highlighter|foundation|stick)/i;
+  function isForm(p, form) {
+    if (p.form) return p.form === form;
+    if (p.shop) return false;    // catalog products were judged by Jev (tools/jev_forma.py); no form there means "not this form"
+    var name = p.name || "";
+    return form === "aerosol" ? AEROSOL_NAME.test(name) : POWDER_NAME.test(name) && !NOT_LOOSE.test(name);
+  }
+  // Returns the purity hits for a product: [{ pts, why }], total capped at 10.
+  function purity(p, items) {
+    var hits = [], names = items.map(nm), pfas = 0, pfasName = "", sec = "", tea = false, nitros = "", prop = "", talcEarly = false;
+    names.forEach(function (n, idx) {
+      var v = PFAS_POLY.test(n) ? 4 : PFAS_SMALL.test(n) ? 8 : 0;
+      if (v > pfas) { pfas = v; pfasName = items[idx].name; }
+      if (AMINE2.test(n) && !sec) sec = items[idx].name;
+      if (TEA_RX.test(n)) tea = true;
+      if (NITROSATING.test(n) && !nitros) nitros = items[idx].name;
+      if (PROPELLANT.test(n) && !prop) prop = items[idx].name;
+      if (idx < 10 && /^(talc|talco)$/.test(n)) talcEarly = true;
+    });
+    if (pfas) hits.push({ id: "pfas", pts: pfas, why: "a PFAS ingredient (" + pfasName + ")" });
+    if ((sec || tea) && nitros) hits.push({ id: "nitro", pts: 8, why: "possible nitrosamine route (" + (sec || "triethanolamine") + " with " + nitros + ")" });
+    else if (sec && names.indexOf(nm({ name: sec })) > -1 && names.indexOf(nm({ name: sec })) < 10) hits.push({ id: "nitro", pts: 3, why: "an amine that can form nitrosamines (" + sec + ") among the first ingredients" });
+    if (prop && isForm(p, "aerosol")) hits.push({ id: "benzene", pts: 3, why: "an aerosol with " + prop.toLowerCase() + ": benzene has been found in some recalled aerosol lots" });
+    if (talcEarly && isForm(p, "powder")) hits.push({ id: "talc", pts: 3, why: "talc in a loose powder: talc can carry asbestos in some lots" });
+    var total = hits.reduce(function (s, h) { return s + h.pts; }, 0);
+    if (total > 10) { var left = 10; hits.forEach(function (h) { h.pts = Math.min(h.pts, left); left -= h.pts; }); hits = hits.filter(function (h) { return h.pts > 0; }); }
+    return hits;
+  }
+  // Hormone-active ingredients: endometriosis (cap 8) and hormone sensitivity (cap 6, the same list x0.75 plus two more). Evidence in people
+  // is low, so the points are small and never cross a score band. rinse = washed off (x0.5). UV filters far down the list count half.
+  var HORM_UV = /^(benzophenone-3|oxybenzone|oxibenzona|homosalate|homosalato|octocrylene|octocrileno|octinoxate|ethylhexyl methoxycinnamate|metoxicinamato de etilhexilo)$/;
+  var HORM_1 = /^(benzophenone-3|oxybenzone|oxibenzona|homosalate|homosalato|propylparaben|butylparaben|propilparabeno|butilparabeno|triclosan|triclocarban|dibutyl phthalate|diethylhexyl phthalate|butylbenzyl phthalate|dibutilftalato|dibutil ftalato)$/;
+  var HORM_2 = /^(methylparaben|ethylparaben|metilparabeno|etilparabeno|octocrylene|octocrileno|octinoxate|ethylhexyl methoxycinnamate|metoxicinamato de etilhexilo|bht|butylated hydroxytoluene|bha|butylated hydroxyanisole|cyclopentasiloxane|cyclohexasiloxane|ciclopentasiloxano|ciclohexasiloxano|diethyl phthalate|dietil ftalato)$/;
+  var HORM_EXTRA = /^(resorcinol|genistein|daidzein)$/;
+  function health(p, items, rinse) {
+    var list = [];
+    items.forEach(function (it, idx) {
+      var n = nm(it), base = 0, extra = 0;
+      if (HORM_1.test(n)) base = 4; else if (HORM_2.test(n) || PFAS_POLY.test(n) || PFAS_SMALL.test(n)) base = 2;
+      if (HORM_EXTRA.test(n)) extra = 3;
+      if (!base && !extra) return;
+      var f = (rinse ? 0.5 : 1) * (HORM_UV.test(n) && idx >= EARLY ? 0.5 : 1);
+      list.push({ name: it.name, endo: base * f, horm: base * 0.75 * f + extra * f });
+    });
+    var seen = {}, uniq = list.filter(function (x) { var k = x.name.toLowerCase(); if (seen[k]) return false; seen[k] = 1; return true; });
+    function top2(key) { return uniq.slice().sort(function (a, b) { return b[key] - a[key]; }).slice(0, 2).filter(function (x) { return x[key] > 0; }); }
+    var e = top2("endo"), h = top2("horm");
+    function sum(a, key) { return a.reduce(function (s, x) { return s + x[key]; }, 0); }
+    return {
+      endo: Math.min(8, Math.round(sum(e, "endo"))), endoNames: e.map(function (x) { return x.name; }),
+      horm: Math.min(6, Math.round(sum(h, "horm"))), hormNames: h.map(function (x) { return x.name; })
+    };
+  }
+
+window.Ingredients = { analyze: analyze, purity: purity, health: health, split: split, veganCheck: veganCheck, RISK_LABEL: RISK_LABEL, RISK_ICON: RISK_ICON };
 })();

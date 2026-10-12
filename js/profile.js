@@ -205,15 +205,20 @@
     return hits;
   }
 
-  // ----- score preferences: subtract points for products without the vegan or cruelty-free marks (off until the person turns it on) -----
+  // ----- score preferences (Profile). Since 12 Oct 2026 the purity check and "matches my skin and hair" start ON (turn the master switch off to see ingredients only);
+  // cruelty-free, vegan and the health conditions (endometriosis, hormone sensitivity) start OFF: the conditions are personal, so they only live on this phone. -----
   var PKEY = "skinsafe.prefs";
+  var PDEF = { on: true, pure: true, fit: true, vegan: false, cf: false, endo: false, horm: false };
   function loadPrefs() {
     try {
-      var p = JSON.parse(localStorage.getItem(PKEY) || "null") || {};
-      return { on: !!p.on, vegan: !!p.vegan, cf: !!p.cf, fit: !!p.fit };
-    } catch (e) { return { on: false, vegan: false, cf: false, fit: false }; }
+      var p = JSON.parse(localStorage.getItem(PKEY) || "null");
+      if (!p) return Object.assign({}, PDEF);
+      // saved before 12 Oct 2026 (no version): the new defaults apply, the person's cruelty-free and vegan choices stay
+      if (p.v !== 2) return { on: true, pure: true, fit: true, vegan: !!p.vegan, cf: !!p.cf, endo: false, horm: false };
+      return { on: !!p.on, pure: p.pure !== false, fit: !!p.fit, vegan: !!p.vegan, cf: !!p.cf, endo: !!p.endo, horm: !!p.horm };
+    } catch (e) { return Object.assign({}, PDEF); }
   }
-  function savePrefs(p) { try { localStorage.setItem(PKEY, JSON.stringify({ on: !!p.on, vegan: !!p.vegan, cf: !!p.cf, fit: !!p.fit })); } catch (e) {} }
+  function savePrefs(p) { try { localStorage.setItem(PKEY, JSON.stringify({ v: 2, on: !!p.on, pure: !!p.pure, fit: !!p.fit, vegan: !!p.vegan, cf: !!p.cf, endo: !!p.endo, horm: !!p.horm })); } catch (e) {} }
 
-  window.Profile = { loadPrefs: loadPrefs, savePrefs: savePrefs, inferType: inferType, inferReactivity: inferReactivity, loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, match: match };
+  window.Profile = { loadPrefs: loadPrefs, savePrefs: savePrefs, inferType: inferType, inferReactivity: inferReactivity, loadWords: loadWords, saveWords: saveWords, ALLERGENS: ALLERGENS, loadAllergies: loadAllergies, saveAllergies: saveAllergies, allergenLabels: allergenLabels, allergyHits: allergyHits, QUESTIONS: QUESTIONS, load: load, save: save, clear: clear, summary: summary, typeLabel: function (p) { return LABEL.type[p.type] || ""; }, match: match };
 })();
