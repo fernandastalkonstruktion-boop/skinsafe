@@ -938,3 +938,19 @@ body.on-profile #skin .profile-card.pref { display: block; }
 #sug .sug-list .fav-card::before { content: counter(sug); position: absolute; top: 8px; left: 8px; z-index: 1; min-width: 22px; height: 22px; padding: 0 5px; box-sizing: border-box; border-radius: 11px; background: var(--btn); color: var(--on-btn); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 #sug .quiz-sub { margin: 0 0 10px; }
 #sug #sug-foot { margin: 12px 0 14px; font-size: 12.5px; opacity: 0.8; }
+
+/* Suggested and Categories selectors (12 Oct 2026): the area switch is a compact single row; the kinds are ONE scrolling row of chips instead of a wrapped pile */
+#cats-areas, #sug-areas { padding: 3px; border-radius: 16px; margin-bottom: 10px; }
+#cats-areas button, #sug-areas button { padding: 7px 4px; font-size: 13.5px; border-radius: 13px; white-space: nowrap; }
+#cats-chips, #sug-chips { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch; margin: 0 -16px 12px; padding: 2px 16px; -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 26px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 26px), transparent 100%); }
+#cats-chips::-webkit-scrollbar, #sug-chips::-webkit-scrollbar { display: none; }
+#cats-chips .cat-chip, #sug-chips .cat-chip { flex: none; white-space: nowrap; scroll-snap-align: center; padding: 6px 12px; font-size: 13.5px; }
+
+/* time of day chips: morning warm yellow, night the sky blue of the app background, day/night split between the two */
+.tag.when.am { background: #FFE9A8; color: #7a4a00; }
+.tag.when.am .ic { color: #E08A00; }
+.tag.when.pm { background: #9bd3ee; color: #0e3a5c; }
+.tag.when.pm .ic { color: #1d6fa5; }
+.tag.when.both { background: #FFE9A8; color: #E08A00; }
+.tag.when.both .n { background: #9bd3ee; color: #0e3a5c; }
+.tag.when.both .n .ic { color: #1d6fa5; }

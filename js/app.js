@@ -622,6 +622,7 @@
     el("cats-chips").innerHTML = ['<button type="button" class="cat-chip' + (cats.kind === "all" ? " on" : "") + '" data-k="all">All<small>' + total + "</small></button>"].concat(kinds.map(function (k) {
       return '<button type="button" class="cat-chip' + (cats.kind === k ? " on" : "") + '" data-k="' + k + '">' + esc(kindLabel(k)) + "<small>" + catsCount[k] + "</small></button>";
     })).join("");
+    centerChip("cats-chips");
     if (!keepShown) cats.shown = 40;
     var want = cats.kind === "all" ? kinds : [cats.kind];
     var words = cats.q.toLowerCase().split(/\s+/).filter(Boolean);
@@ -674,6 +675,7 @@
     var kinds = sugKinds(sug.area);
     if (kinds.indexOf(sug.kind) < 0) sug.kind = kinds[0] || "";
     el("sug-chips").innerHTML = kinds.map(function (k) { return '<button type="button" class="cat-chip' + (sug.kind === k ? " on" : "") + '" data-k="' + k + '">' + esc(kindLabel(k)) + "</button>"; }).join("");
+    centerChip("sug-chips");
     var r = sug.kind ? topFor(sug.kind) : { picked: [], hasProf: false };
     sug.rows = r.picked.map(function (x) { return x.p; });
     var n = sug.rows.length, top = r.picked.filter(function (x) { return x.score >= SUG_HIGH; }).length;
@@ -1089,6 +1091,11 @@
     return out;
   }
 
+  // The category chips are one scrolling row; bring the chosen one to the middle
+  function centerChip(id) {
+    var box = el(id), on = box && box.querySelector(".cat-chip.on");
+    if (on) box.scrollLeft = on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2;
+  }
   // One short line on how to use each kind of product (shown under the name on the product page)
   var USE_LINE = {
     cleanser: "Massage on damp skin, then rinse.", toner: "Press into clean skin, before serum.", serum: "A few drops on clean skin, before cream.",
@@ -1202,20 +1209,8 @@
       ? '<span class="mlogos big">' + marks.map(logoHtml).join("") + "</span>" +
         '<p class="badge-note">' + marks.map(function (m) { return "<strong>" + esc(m.label) + "</strong>: " + esc(m.note); }).join(" \u00b7 ") + "</p>"
       : "";
-    // Packaging: a short section, only when we read the packaging from the photo. Health and environment are kept apart on purpose.
-    var pbox = el("pack-box"), pk = packOf(product);
-    if (pk && (pk.format || pk.material !== "unknown")) {
-      var MAT = { plastic: "Plastic", glass: "Glass", metal: "Metal", paper: "Paper", mixed: "Mixed materials" }, sure = pk.conf !== "low";
-      var ptitle = (sure && MAT[pk.material] ? MAT[pk.material] + " " + pk.format : pk.format ? pk.format.charAt(0).toUpperCase() + pk.format.slice(1) + ", material not clear" : "Material not clear").trim();
-      var prefOn = window.Profile.loadPrefs(), costs = pk.plastic && prefOn.on && prefOn.pk;
-      pbox.hidden = false;
-      pbox.innerHTML = '<details class="ing"><summary><span class="ing-main"><span class="ing-name">Packaging: ' + esc(ptitle) + "</span>" +
-        '<span class="ing-level"><b class="lv ' + (pk.plastic ? "mid" : "good") + '">' + (costs ? "\u2212" + PACK_PEN + " points" : pk.plastic ? "Plastic" : "No points") + '</b><span class="ing-note">Read from the photo</span></span></span><span class="chev" aria-hidden="true"></span></summary>' +
-        '<div class="ing-body"><p class="ing-detail">We read this from the product photo with a computer vision model, so it can be wrong. When the photo does not show the material clearly, we say nothing and subtract nothing. Glass is often hard to tell from plastic.</p>' +
-        '<p class="ing-ev"><b>Health:</b> <span class="evtag">Very early</span> Lab tests on cosmetic containers found small amounts of substances nobody added (some were phthalates) moving into test liquids; no one has tested real cosmetics, and the EU sets no numeric limits for cosmetic packaging. A tub that gets opened and touched is harder to keep clean than a pump, but this only matters for formulas without preservatives.</p>' +
-        '<p class="ing-ev"><b>Environment:</b> plastic is harder to reuse than glass or metal. This is a preference, not a health effect.</p>' +
-        '<p class="ing-evnote">The plastic switch in Profile subtracts ' + PACK_PEN + " points as a precaution and for the environment. Unknown packaging never subtracts.</p></div></details>";
-    } else { pbox.hidden = true; pbox.innerHTML = ""; }
+    // The packaging explanation lives only in "How we rate" (the plastic switch in Profile still takes points off; see packOf)
+    el("pack-box").hidden = true;
     var note = el("catalog-note");
     if (product.shop) {
       var host = "";
@@ -2225,6 +2220,7 @@
     ["package", "Find a product", "One camera does it all. Barcode reads by itself. Product takes a photo of the front (we read its barcode first, then the words on the label). Shelf tries to recognize several products in one photo, and Ingredients reads the ingredient list. You can also search by name. For a round bottle, tap Camera app to use your phone's own camera: you can zoom in (for example 5×) so the list looks flatter, and tap to focus. Reading words from a photo can miss stylized fonts and crowded shelves, so check that each match is your product. Photos are read on your phone and are not uploaded."],
     ["sun", "Your routine", "There is a face routine (one list; each product shows a sun, a moon or both, so you know if it is for the day, the night or both), a hair routine (wash day and styling) and a body routine (shower, from the intimate wash to the body wash and scrub, and body care, from lotion and deodorant to hand cream). The best routine uses mostly the same products day and night; only a few are for one time (sunscreen in the morning, retinol and exfoliating acids at night), and suggestions follow that. Suggested products are the best-rated ones in our list that fit your skin or hair quiz and have no allergy hit or official alert. The hair quiz asks about pattern, strand thickness, scalp, past treatments and goals, with a tip in each question to find out your answer; it is guidance, not a diagnosis. Hair products tend to score lower, so for hair we also suggest a few fair ones (35 or more) after the best ones. The morning or night tip comes from the product name and its ingredients: retinol and exfoliating acids at night, sunscreen and vitamin C in the morning. It is guidance, so follow the package. You can swap any suggestion for the product you really own."],
     ["leaf", "Score preferences", "In Profile, Subtract points from the score takes points off the ingredient score. APPLIED NOW AND ON AT FIRST: Contaminant risks (up to 10 points: a PFAS ingredient, an amine that can form nitrosamines, an aerosol with propane or butane, talc in a loose powder), Plastic packaging (4 points, only when the photo clearly shows plastic; glass, metal or an unclear photo subtract nothing) and Matches my skin and hair (8 or 4 points, plus fragrance on sensitive or very reactive skin; never more than 11 points together). APPLIED WHEN YOU TURN THEM ON: Cruelty-free (10), Vegan-friendly (5), Endometriosis (up to 8) and Hormone sensitivity (up to 6, for ingredients that regulators watch for hormone activity; rinse-off products count half; these two stay on your phone only). NOT APPLIED YET: mental health (the evidence in cosmetics is too early), heavy metals (a label cannot show lead or arsenic)."],
+    ["package", "Packaging", "Plastic packaging takes 4 points off (switch in Profile), only when the product photo clearly shows plastic. We read the material from the photo with a computer vision model, so it can be wrong, and glass is often hard to tell from plastic: then we say nothing and take nothing off. The health evidence is very early: lab tests on 11 cosmetic containers found small amounts of substances nobody added (some were phthalates) moving into test liquids; nobody has tested real cosmetics, and the EU sets no numeric limits for cosmetic packaging. A tub that gets opened and touched is harder to keep clean than a pump, but that only matters for formulas without preservatives. That plastic is harder to reuse than glass or metal is an environmental preference, not a health effect."],
     ["info", "Evidence in people", "Each ingredient shows two lines: the rule (what the EU or Korea does) and the evidence in people (High, Moderate, Low or Very early). They can disagree: a ban made from animal studies is a firm rule with very early evidence. Not verified means we only found the ingredient in the EU database, not in a study. The label says how firm the evidence is, not how serious it is."],
     ["package", "Buying safely", "A label cannot tell a fake from the real product. Buy from the brand's store or an authorised seller, be wary of prices far below normal, check that the lot number is printed and matches on the box and the bottle, and compare the ingredient list with the one here. If you react, stop using it and report it to Profeco or Cofepris. Fakes and lots never change the score."],
     ["camera", "Product photos", "Where we have one, the product photo is the brand's own or a large beauty retailer's studio photo, shown straight from their website. The photos belong to those brands and shops. We never store or sell them, and a photo can disappear if the website changes it."],
