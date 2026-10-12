@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#6fd0d8" id="theme-color">
-  <meta name="app-version" content="20261012163807">
+  <meta name="app-version" content="20261012164845">
   <title>SkinSafe</title>
   <link rel="icon" type="image/png" sizes="32x32" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-fav-10.png">
   <link rel="icon" type="image/png" sizes="180x180" href="https://fernandastalkonstruktion-boop.github.io/skinsafe/icons/skinsafe-touch-10.png">
@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="SkinSafe">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="styles.css?v=20261012163807">
+  <link rel="stylesheet" href="styles.css?v=20261012164845">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -58,6 +58,8 @@
       <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
       <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
       <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+      <symbol id="i-cart" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
       <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
     </defs>
   </svg>
@@ -140,14 +142,24 @@
 
     <section id="history" hidden>
       <h2 class="page-title">History</h2>
-      <div class="fav-list" id="history-list"></div>
+      <div class="seg" id="hist-seg" role="tablist" aria-label="Recent or favorites">
+        <button type="button" role="tab" data-h="recent">Recent</button>
+        <button type="button" role="tab" data-h="favs">Favorites</button>
+      </div>
+      <div id="hist-recent"><div class="fav-list" id="history-list"></div></div>
+      <div id="hist-favs" hidden>
+        <div class="filter-row"><label for="fav-filter">Filter:</label>
+          <select id="fav-filter" aria-label="Filter favorites by type"></select></div>
+        <div class="fav-list" id="saved"></div>
+      </div>
     </section>
 
-    <section id="favorites" hidden>
-      <h2 class="page-title">Favorites</h2>
-      <div class="filter-row"><label for="fav-filter">Filter:</label>
-        <select id="fav-filter" aria-label="Filter favorites by type"></select></div>
-      <div class="fav-list" id="saved"></div>
+    <section id="shop" hidden>
+      <h2 class="page-title">Shop</h2>
+      <p class="quiz-sub" id="shop-sub"></p>
+      <div class="fav-list" id="shop-list"></div>
+      <button class="secondary wide" id="shop-addfavs" type="button" hidden></button>
+      <p class="privacy-note" id="shop-note"><svg class="ic"><use href="#i-info"/></svg><span></span></p>
     </section>
 
     <section id="routine" hidden>
@@ -285,6 +297,7 @@
         <button class="back" id="back" type="button"><svg class="ic"><use href="#i-arrow-left"/></svg>Back</button>
         <div class="res-actions">
           <button class="heart" id="note-btn" type="button" aria-expanded="false" aria-label="About this ingredient list" hidden><svg class="ic"><use href="#i-info"/></svg></button>
+          <button class="heart wish" id="wish" type="button" aria-pressed="false" aria-label="Add to wishlist"><svg class="ic"><use href="#i-cart"/></svg></button>
           <button class="heart" id="heart" type="button" aria-pressed="false" aria-label="Save to Favorites"><svg class="ic"><use href="#i-heart"/></svg></button>
         </div>
       </div>
@@ -332,7 +345,7 @@
       <span class="tab-ind" id="tab-ind" aria-hidden="true"></span>
       <button type="button" class="tab" id="tab-home" data-tab="home"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg><span>Home</span></button>
       <button type="button" class="tab" id="tab-hist" data-tab="hist"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span>History</span></button>
-      <button type="button" class="tab" id="tab-fav" data-tab="fav"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg><span>Favorites</span></button>
+      <button type="button" class="tab" id="tab-shop" data-tab="shop"><svg class="ic" aria-hidden="true"><use href="#i-cart"/></svg><span>Shop</span></button>
       <button type="button" class="tab" id="tab-skin" data-tab="skin"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg><span>Profile</span></button>
     </nav>
     <button type="button" class="fab" id="fab-cam" aria-label="Scan a product"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg></button>
@@ -428,21 +441,21 @@
     <div class="pv-stage" id="pv-stage"><img id="pv-img" alt="" draggable="false"></div>
   </div>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/dose.js?v=20261012163807"></script>
-  <script src="js/ingredients.js?v=20261012163807"></script>
-  <script src="js/pores.js?v=20261012163807"></script>
-  <script src="js/alerts.js?v=20261012163807"></script>
-  <script src="js/profile.js?v=20261012163807"></script>
-  <script src="js/api.js?v=20261012163807"></script>
-  <script src="js/routine.js?v=20261012163807"></script>
-  <script src="js/hair.js?v=20261012163807"></script>
-  <script src="js/body.js?v=20261012163807"></script>
-  <script src="js/ocr.js?v=20261012163807"></script>
-  <script src="js/imgops.js?v=20261012163807"></script>
-  <script src="js/barcode.js?v=20261012163807"></script>
-  <script src="js/reader.js?v=20261012163807"></script>
-  <script src="js/app.js?v=20261012163807"></script>
-  <script src="js/update.js?v=20261012163807"></script>
-  <script src="js/offline.js?v=20261012163807"></script>
+  <script src="js/dose.js?v=20261012164845"></script>
+  <script src="js/ingredients.js?v=20261012164845"></script>
+  <script src="js/pores.js?v=20261012164845"></script>
+  <script src="js/alerts.js?v=20261012164845"></script>
+  <script src="js/profile.js?v=20261012164845"></script>
+  <script src="js/api.js?v=20261012164845"></script>
+  <script src="js/routine.js?v=20261012164845"></script>
+  <script src="js/hair.js?v=20261012164845"></script>
+  <script src="js/body.js?v=20261012164845"></script>
+  <script src="js/ocr.js?v=20261012164845"></script>
+  <script src="js/imgops.js?v=20261012164845"></script>
+  <script src="js/barcode.js?v=20261012164845"></script>
+  <script src="js/reader.js?v=20261012164845"></script>
+  <script src="js/app.js?v=20261012164845"></script>
+  <script src="js/update.js?v=20261012164845"></script>
+  <script src="js/offline.js?v=20261012164845"></script>
 </body>
 </html>

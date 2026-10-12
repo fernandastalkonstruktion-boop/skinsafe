@@ -1,5 +1,5 @@
 (function () {
-  var VIEWS = ["home", "history", "favorites", "routine", "cats", "sug", "pick", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result"];
+  var VIEWS = ["home", "history", "shop", "routine", "cats", "sug", "pick", "skin", "quiz", "allergies", "results", "about", "ocr", "status", "result"];
   var scanner = null;
   var lastProduct = null;
   var cameFrom = "home";        // where "Back" on a result should go
@@ -20,7 +20,7 @@
   function ic(name, cls) {
     return '<svg class="ic ' + (cls || "") + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
   }
-  var TAB_OF = { home: "home", routine: "home", cats: "home", sug: "home", pick: "home", history: "hist", favorites: "fav", skin: "skin", quiz: "skin", allergies: "skin", about: "skin" };
+  var TAB_OF = { home: "home", routine: "home", cats: "home", sug: "home", pick: "home", history: "hist", shop: "shop", skin: "skin", quiz: "skin", allergies: "skin", about: "skin" };
   var aboutFrom = "skin";
   // The selection pill slides to the tab with a small spring and a soft glow while it moves (like the reference app).
   var indTab = null, indTimer = 0;
@@ -641,6 +641,112 @@
     });
   }
 
+  // History and Favorites share one tab: a switch at the top picks Recent or Favorites.
+  var histTab = "recent";
+  function renderHistoryTab() {
+    Array.prototype.forEach.call(el("hist-seg").querySelectorAll("button"), function (b) { var on = b.getAttribute("data-h") === histTab; b.classList.toggle("on", on); b.setAttribute("aria-selected", String(on)); });
+    el("hist-recent").hidden = histTab !== "recent";
+    el("hist-favs").hidden = histTab !== "favs";
+    renderHistory();
+    renderSavedList();
+  }
+  function openHistory(which) {
+    if (which) histTab = which;
+    lastProduct = null;
+    renderHistoryTab();
+    show("history");
+  }
+
+  // ----- Shop: a wishlist kept on this phone, with where to buy each product in Mexico. -----
+  // Prices are only what Sephora México and Euphoria list on their own sites (checked on the date in data/prices.json); nothing is estimated.
+  // Amazon México gets a search link and no price, because its price changes by seller and we do not read it.
+  var WKEY = "skinsafe.wish";
+  function loadWish() {
+    try {
+      var s = JSON.parse(localStorage.getItem(WKEY) || "[]");
+      return Array.isArray(s) ? s.filter(function (p) { return !window.isJunkProduct(p); }) : [];
+    } catch (e) { return []; }
+  }
+  function storeWish(list) { try { localStorage.setItem(WKEY, JSON.stringify(list.slice(0, 100))); } catch (e) {} }
+  function isWished(p) { var id = productId(p); return loadWish().some(function (x) { return x.id === id; }); }
+  function toggleWish(p) {
+    var id = productId(p), list = loadWish(), at = -1;
+    list.forEach(function (x, i) { if (x.id === id) at = i; });
+    if (at > -1) list.splice(at, 1);
+    else list.unshift({ id: id, code: p.code || "", brand: p.brand || "", name: p.name, image: p.image || "", ingredientsText: p.ingredientsText, shop: !!p.shop, partial: !!p.partial, form: p.form || "", pack: p.pack || "", kind: p.kind || "", wishAt: Date.now() });
+    storeWish(list);
+  }
+  function renderWishBtn(p) {
+    var b = el("wish"), on = isWished(p);
+    b.setAttribute("aria-pressed", String(on));
+    b.setAttribute("aria-label", on ? "Remove from wishlist" : "Add to wishlist");
+    b.classList.toggle("on", on);
+  }
+  var pricesPromise = null;
+  function loadPrices() {
+    if (!pricesPromise) {
+      var meta = document.querySelector('meta[name="app-version"]'), v = meta ? meta.getAttribute("content") : "dev";
+      pricesPromise = fetch("data/prices.json?v=" + encodeURIComponent(v))
+        .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+        .catch(function () { pricesPromise = null; return null; });
+    }
+    return pricesPromise;
+  }
+  function priceKey(p) { return String(p.brand || "").toLowerCase() + "|" + String(p.name || "").toLowerCase(); }
+  function money(n) { return "$" + n.toLocaleString("en-US", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
+  function niceDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""), mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return m ? Number(m[3]) + " " + mon[Number(m[2]) - 1] + " " + m[1] : "";
+  }
+  // The two stores that publish a price: row = [price, regular price if on sale (else 0), in stock (1/0), store id, size text]
+  function storeEntries(p, data) {
+    var e = (data && data.p && data.p[priceKey(p)]) || {};
+    // Cheapest first. We do not label one as "the lowest": Sephora does not publish the size, and the same product can come in different sizes at each store.
+    return [
+      { name: "Sephora México", row: e.s, url: e.s ? "https://www.sephora.com.mx/products-" + e.s[3] + ".html" : "" },
+      { name: "Euphoria", row: e.e, url: e.e ? "https://euphoria.com.mx/products/" + e.e[3] : "" }
+    ].sort(function (a, b) { return (a.row ? a.row[0] : 1e9) - (b.row ? b.row[0] : 1e9); });
+  }
+  function storeRowHtml(x, hasData) {
+    var link = function (url, label) { return '<a class="store-go" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' + label + ic("external") + "</a>"; };
+    if (!x.row) return '<div class="store-row none"><span class="store-name">' + x.name + '</span><span class="store-none">' + (hasData ? "We didn’t find it here" : "Prices didn’t load") + "</span></div>";
+    var r = x.row, sub = (r[2] ? "In stock" : "Out of stock") + (r[4] ? " · " + esc(r[4]) : "");
+    return '<div class="store-row' + "" + (r[2] ? "" : " out") + '">' +
+      '<span class="store-name">' + x.name + '<span class="store-sub">' + sub + "</span></span>" +
+      '<span class="store-price"><b>' + money(r[0]) + "</b>" + (r[1] ? "<s>" + money(r[1]) + "</s>" : "") + "</span>" + link(x.url, "View") + "</div>";
+  }
+  function shopCardHtml(p, i, data) {
+    var en = storeEntries(p, data), amazon = "https://www.amazon.com.mx/s?k=" + encodeURIComponent(((p.brand || "") + " " + (p.name || "")).trim());
+    var an = window.Ingredients.analyze(p.ingredientsText), si = scoreInfo(p, an);
+    return '<div class="shop-card"><div class="fav-card shop-top has-heart" role="button" tabindex="0" data-i="' + i + '">' + photoHtml(p) +
+      '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
+      '<span class="tags">' + (si.score === null ? "" : scoreTag(si.score, true)) + "</span></span>" +
+      '<button type="button" class="shop-del" data-i="' + i + '" aria-label="Remove from wishlist">' + ic("trash") + "</button></div>" +
+      '<div class="store-list">' + en.map(function (x) { return storeRowHtml(x, !!data); }).join("") +
+      '<div class="store-row amz"><span class="store-name">Amazon México<span class="store-sub">The price changes by seller: check it there</span></span><span class="store-price"></span><a class="store-go" href="' + esc(amazon) + '" target="_blank" rel="noopener noreferrer">Search' + ic("external") + "</a></div></div></div>";
+  }
+  function renderShop() {
+    var list = loadWish(), box = el("shop-list"), favs = loadSaved();
+    loadPrices().then(function (data) {
+      if (!list.length) {
+        box.innerHTML = '<p class="saved-empty">Nothing here yet. Open a product and tap the cart to add it to your wishlist. We will show where to buy it in Mexico and what each store charges.</p>';
+        el("shop-sub").textContent = "";
+      } else {
+        box.innerHTML = list.map(function (p, i) { return shopCardHtml(p, i, data); }).join("");
+        upgradePhotos(box);
+        var priced = list.filter(function (p) { return storeEntries(p, data).some(function (x) { return x.row; }); }).length;
+        el("shop-sub").textContent = list.length + (list.length === 1 ? " product" : " products") + " on your wishlist" +
+          (priced ? ": " + (priced === list.length ? "all have" : priced + " have") + " a price at Sephora México or Euphoria." : ". None is listed with a price at Sephora México or Euphoria that we found.");
+      }
+      var have = {}; list.forEach(function (x) { have[x.id] = 1; });
+      var more = favs.filter(function (x) { return !have[x.id]; }).length, b = el("shop-addfavs");
+      b.hidden = !more;
+      b.textContent = "Add my " + (more === 1 ? "favorite" : more + " favorites") + " to the wishlist";
+      el("shop-note").lastElementChild.textContent = (data && data.asOf ? "Prices are what Sephora México and Euphoria listed on " + niceDate(data.asOf) + ". Stores change them often and sizes can differ, so confirm in the store. " : "We could not load the prices, so only the store links work. ") +
+        "We never estimate a price: where you see none, the store did not list it or we could not match the product with certainty.";
+    });
+  }
+
   // ----- Categories: browse the whole list by type (Face, Hair, Body, Mouth, First aid), best-rated first, with a search inside the category -----
   var cats = { area: "face", kind: "all", q: "", shown: 40 }, catsRows = [];
   function catsKinds() {
@@ -848,8 +954,8 @@
       catalogList = list;
       var r = window.Routine.load();
       if (refreshRoutine(r)) window.Routine.save(r);
-      var ch1 = syncStored(loadSaved(), SKEY), ch2 = syncStored(loadHistory(), HKEY);
-      if (ch1 || ch2) { renderSavedList(); renderHistory(); }
+      var ch1 = syncStored(loadSaved(), SKEY), ch2 = syncStored(loadHistory(), HKEY), ch3 = syncStored(loadWish(), WKEY);
+      if (ch1 || ch2 || ch3) { renderSavedList(); renderHistory(); if (!el("shop").hidden) renderShop(); }
       draw(r);
     });
   }
@@ -1359,6 +1465,7 @@
     note.hidden = true;
     el("note-btn").setAttribute("aria-expanded", "false");
     renderHeart(product);
+    renderWishBtn(product);
     renderAlerts(product);
     renderAllergyBox(a.items);
     renderMatch(a.items, product);
@@ -1391,8 +1498,9 @@
     lastProduct = null;
     if (cameFrom === "cam") openCam("code");
     else if (cameFrom === "results" && lastResults) show("results");
-    else if (cameFrom === "history") { renderHistory(); show("history"); }
-    else if (cameFrom === "favorites") { renderSavedList(); show("favorites"); }
+    else if (cameFrom === "history") openHistory("recent");
+    else if (cameFrom === "favorites") openHistory("favs");
+    else if (cameFrom === "shop") { renderShop(); show("shop"); }
     else if (cameFrom === "routine") openRoutine();
     else if (cameFrom === "cats") show("cats");
     else if (cameFrom === "sug") show("sug");
@@ -2457,6 +2565,11 @@
     renderHeart(lastProduct);
     renderSavedList();
   });
+  el("wish").addEventListener("click", function () {
+    if (!lastProduct) return;
+    toggleWish(lastProduct);
+    renderWishBtn(lastProduct);
+  });
   // The results page keeps its own search box so a typo can be fixed without going back. While picking a product for a barcode, it searches that same pick.
   el("results-form").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -2531,8 +2644,21 @@
   el("allergy-cancel").addEventListener("click", function () { if (lastProduct) show("result"); else { renderAllergyCard(); renderProfileCard(); show("skin"); } });
   el("tab-home").addEventListener("click", function () { goHome(); });
   el("tab-skin").addEventListener("click", function () { lastProduct = null; renderProfileCard(); renderAllergyCard(); show("skin"); });
-  el("tab-hist").addEventListener("click", function () { lastProduct = null; renderHistory(); show("history"); });
-  el("tab-fav").addEventListener("click", function () { lastProduct = null; renderSavedList(); show("favorites"); });
+  el("tab-hist").addEventListener("click", function () { openHistory(); });
+  el("tab-shop").addEventListener("click", function () { lastProduct = null; renderShop(); show("shop"); });
+  el("hist-seg").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-h]") : null; if (b) { histTab = b.getAttribute("data-h"); renderHistoryTab(); } });
+  el("shop-list").addEventListener("click", function (e) {
+    var del = e.target.closest ? e.target.closest(".shop-del") : null, list = loadWish();
+    if (del) { var d = list[Number(del.getAttribute("data-i"))]; if (d) { toggleWish(d); renderShop(); } return; }
+    var top = e.target.closest ? e.target.closest(".shop-top") : null, p = top && list[Number(top.getAttribute("data-i"))];
+    if (p) { cameFrom = "shop"; renderResult(p); }
+  });
+  el("shop-addfavs").addEventListener("click", function () {
+    var have = {}; loadWish().forEach(function (x) { have[x.id] = 1; });
+    var add = loadSaved().filter(function (x) { return !have[x.id]; });
+    storeWish(add.map(function (x) { return Object.assign({}, x, { wishAt: Date.now() }); }).concat(loadWish()));
+    renderShop();
+  });
   el("fab-cam").addEventListener("click", function () { openCam("code"); });
   el("tile-cats").addEventListener("click", openCats);
   el("tile-sug").addEventListener("click", openSug);

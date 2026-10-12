@@ -1026,3 +1026,27 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .cam-controls .cam-side { width: 66px; align-items: center; }
 .cam-controls { gap: 14px; }
 .cam.m-code .cam-controls, .cam:not(.m-code) .cam-controls { gap: 14px; }
+
+/* Shop: wishlist with the stores that sell each product in Mexico */
+.heart.wish.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.shop-card { border-radius: 22px; border: 1px solid var(--glass-line); background: var(--glass); -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2); overflow: hidden; }
+.shop-card .fav-card { border: 0; border-radius: 0; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.shop-del { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: transparent; color: var(--text-2); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+.shop-del .ic { width: 20px; height: 20px; }
+.store-list { display: flex; flex-direction: column; border-top: 1px solid rgba(127, 150, 170, 0.28); }
+.store-row { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid rgba(127, 150, 170, 0.28); }
+.store-row:last-child { border-bottom: 0; }
+.store-row.best { background: var(--good-bg); }
+.store-row.out .store-price { opacity: 0.55; }
+.store-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 14px; font-weight: 700; }
+.store-name .tag { align-self: flex-start; margin-top: 2px; }
+.store-sub { font-size: 11px; font-weight: 500; color: var(--text-2); line-height: 1.35; }
+.store-price { display: flex; flex-direction: column; align-items: flex-end; font-size: 16px; }
+.store-price s { font-size: 11px; color: var(--text-2); }
+.store-none { margin-left: auto; font-size: 12px; color: var(--text-2); text-align: right; }
+.store-row.none .store-name { font-weight: 600; color: var(--text-2); flex: none; }
+.store-go { flex: none; display: inline-flex; align-items: center; gap: 3px; padding: 7px 12px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; text-decoration: none; }
+.store-go .ic { width: 14px; height: 14px; }
+.store-row.amz .store-go { background: var(--soft); color: var(--text); border: 1px solid var(--glass-line); }
+#shop-sub:empty { display: none; }
+#shop-addfavs { margin-top: 12px; }

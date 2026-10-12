@@ -16,7 +16,7 @@ var SHELL = [
   "styles.css?v=" + V,
   "js/dose.js?v=" + V, "js/ingredients.js?v=" + V, "js/pores.js?v=" + V, "js/alerts.js?v=" + V, "js/profile.js?v=" + V, "js/api.js?v=" + V,
   "js/routine.js?v=" + V, "js/hair.js?v=" + V, "js/body.js?v=" + V, "js/ocr.js?v=" + V, "js/imgops.js?v=" + V, "js/barcode.js?v=" + V, "js/barcode-worker.js?v=" + V, "js/reader.js?v=" + V, "js/app.js?v=" + V, "js/update.js?v=" + V, "js/offline.js?v=" + V,
-  "data/catalog.json?v=" + V, "data/names.json?v=" + V, "data/brands.json?v=" + V,
+  "data/catalog.json?v=" + V, "data/prices.json?v=" + V, "data/names.json?v=" + V, "data/brands.json?v=" + V,
   "fonts/fraunces-soft-600.woff2", "fonts/cormorant-italic.woff2",
   "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png",
