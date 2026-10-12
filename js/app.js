@@ -1082,7 +1082,8 @@
       showStatus("We don't have " + code + " yet. Take a photo of the ingredient list on the package and we'll remember this product on this phone.", true);
     } else {
       pending = { code: code, brand: r.p.brand, name: r.p.name, image: r.p.image };
-      showStatus(r.p.name + " is in the database but has no ingredient list yet. Take a photo of the list on the package and we'll remember it on this phone.", true);
+      var who = [r.p.brand, r.p.name].filter(Boolean).join(" ") || code;
+      showStatus(who + " is in the database but has no ingredient list yet. Take a photo of the list on the package and we'll remember it on this phone.", true);
     }
   }
   function lookupCode(raw) {

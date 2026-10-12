@@ -157,13 +157,21 @@
   }
   window.ProductName = { display: displayName, translate: translateName, setNames: function (o) { NAMES = o || {}; }, load: loadNames };
 
+  // Open Beauty Facts is filled in by volunteers: many records have "???", "-" or a few stray letters where the list should be.
+  // That is no list at all: a real one has several words with letters.
+  function realIngredients(t) {
+    t = (t || "").trim();
+    if (/^(none|unknown|unavailable|n\/?a|null|tbd|todo|sin datos|no data)\.?$/i.test(t)) return "";
+    return /[A-Za-zÀ-ɏ]{4,}/.test(t) ? t : "";
+  }
   function toProduct(p, fallbackCode) {
+    var ing = realIngredients(p.ingredients_text_en) || realIngredients(p.ingredients_text);
     return {
       code: p.code || fallbackCode || "",
       brand: p.brands ? p.brands.split(",")[0].trim() : "",
-      name: displayName(p) || "Unnamed product",
+      name: displayName(p) || (ing ? "Unnamed product" : ""),
       image: p.image_front_url || "",
-      ingredientsText: p.ingredients_text_en || p.ingredients_text || ""
+      ingredientsText: ing
     };
   }
 

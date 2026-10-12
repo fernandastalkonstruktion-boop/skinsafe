@@ -114,8 +114,15 @@
 
   // ---- Shelf: many products in one picture ----
   // Words close together belong to the same package.
+  // Makeup counters are covered in store signs (section headers, "best seller" tags). They are big and bright, so they get read
+  // and glued to the nearest package. Only words that never appear in a product name are listed (not "ojos", "labios", "face", "lip"
+  // or "rubor", which do), and they are dropped before grouping.
+  var SIGN = /^(complexi[oó]n|mejillas|accesorios|brochas|nuevo|nueva|nuestro|m[aá]s|vendido|disponible|edici[oó]n|limitada|promoci[oó]n|oferta|bestseller|seller|tester|sale)$/i;
   function groups(words) {
-    var ws = (words || []).filter(function (w) { return w.bbox && w.confidence >= 30 && /[A-Za-z]{2,}/.test(w.text || ""); });
+    var ws = (words || []).filter(function (w) {
+      var t = (w.text || "").replace(/[^A-Za-zÀ-ɏ]/g, "");
+      return w.bbox && w.confidence >= 30 && /[A-Za-z]{2,}/.test(w.text || "") && !SIGN.test(t);
+    });
     var parent = ws.map(function (_, i) { return i; });
     function find(i) { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; }
     for (var i = 0; i < ws.length; i++) {
