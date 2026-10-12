@@ -461,18 +461,22 @@
   function faceAndBody(p) { return /\b(face|facial)\b/i.test(p.name || ""); }
   function kindOf(p) { return window.Oral.classify(p) || window.Hair.classify(p) || (faceAndBody(p) && window.Routine.classify(p)) || window.Body.classify(p) || window.Routine.classify(p) || "other"; }
   function kindLabel(k) { return k === "other" ? "Other" : window.Routine.KINDS[k].label; }
-  function cardHtml(p, i, heart) {
+  // One tag row for every product card: band word + number, "For you" heart, certification logos, alerts.
+  function cardTags(p) {
     var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), hk = window.Hair.classify(p), prof = window.Oral.classify(p) ? null : hk ? window.Hair.load() : window.Profile.load();
-    var an = window.Ingredients.analyze(p.ingredientsText), si = scoreInfo(p, an), b = band(si.score), tags = "";
+    var an = window.Ingredients.analyze(p.ingredientsText), si = scoreInfo(p, an), tags = "";
     var hit = (ids.length || words.length) && window.Profile.allergyHits(an.items, ids, words).length;
-    tags += '<span class="tag big sc ' + b.cls + '">' + b.label + "</span>";
+    tags += si.score === null ? '<span class="tag big sc none">Not enough data</span>' : scoreTag(si.score, true);
     if (prof && an.score !== null && !hit && (hk ? window.Hair.match(an.items, prof, hk) : window.Profile.match(an.items, prof)).level === "good") tags += '<span class="tag big you">' + ic("heart") + "For you</span>";
     tags += markTags(p);
     if (window.Alerts && window.Alerts.match(p).length) tags += '<span class="tag bad">' + ic("alert") + "Official alert</span>";
     if (hit) tags += '<span class="tag bad">' + ic("alert") + "Your allergy</span>";
+    return tags;
+  }
+  function cardHtml(p, i, heart) {
     return '<div class="fav-card' + (heart ? " has-heart" : "") + '" role="button" tabindex="0" data-i="' + i + '">' + photoHtml(p) +
       '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
-      '<span class="tags">' + tags + "</span></span>" +
+      '<span class="tags">' + cardTags(p) + "</span></span>" +
       (heart ? '<button type="button" class="fav-heart" data-i="' + i + '" aria-label="Remove from favorites">' + ic("heart") + "</button>" : "") + "</div>";
   }
   // ----- History: the last 14 products opened (scanned or searched), stored only on this phone -----
@@ -657,10 +661,11 @@
     out.sort(function (x, y) { return x.low - y.low || x.lv - y.lv || y.helps - x.helps || y.score - x.score || (y.p.image ? 1 : 0) - (x.p.image ? 1 : 0); });
     return out.slice(0, limit).map(function (x) { return x.p; });
   }
+  // Same card as History and Favorites, with the time-of-day tag at the end of the row.
   function rtRow(p, kind, act, i) {
-    return '<button type="button" class="result-item" data-act="' + act + '" data-i="' + i + '">' + photoHtml(p) +
+    return '<button type="button" class="fav-card pick-card" data-act="' + act + '" data-i="' + i + '">' + photoHtml(p) +
       '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
-      '<span class="tags">' + scorePill(p, true) + (noTimeKind(kind) ? "" : whenTag(whenOf(p, kind))) + "</span></span>" + ic("chevron-right", "chev-ic") + "</button>";
+      '<span class="tags">' + cardTags(p) + (noTimeKind(kind) ? "" : whenTag(whenOf(p, kind))) + "</span></span></button>";
   }
   function scanBtn(i) { return '<button type="button" class="secondary small-btn" data-act="scan" data-i="' + i + '">' + ic("camera") + "Scan</button>"; }
   function renderRoutine() {
@@ -1822,14 +1827,15 @@
     muts.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) upgradePhotos(n); }); });
   }).observe(document.body, { childList: true, subtree: true });
 
-  // Lists show only the band word (Excellent, Good...); the number is for the product screen. withNum keeps it for the routine rows.
-  function scorePill(p, withNum) {
+  function scoreTag(score, big) {
+    var b = band(score);
+    return '<span class="tag ' + (big ? "big " : "") + "sc " + b.cls + '">' + b.label + '<span class="num">' + score + "/100</span></span>";
+  }
+  function scorePill(p) {
     var a;
     try { a = window.Ingredients.analyze(p.ingredientsText); } catch (e) { return ""; }
     var si = scoreInfo(p, a);
-    if (si.score === null) return "";
-    var b = band(si.score);
-    return '<span class="tag sc ' + b.cls + '">' + (withNum ? si.label + " " + si.score + "/100" : b.label) + "</span>";
+    return si.score === null ? "" : scoreTag(si.score, false);
   }
   function resultRows(list) {
     return list.map(function (p, idx) {

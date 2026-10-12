@@ -622,9 +622,9 @@ body.on-result .top { display: none; }
   -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2);
 }
 .fav-card img, .fav-card .result-ph { width: 64px; height: 76px; border-radius: 12px; object-fit: contain; background: #fff; flex: none; display: flex; align-items: center; justify-content: center; color: var(--accent); }
-.fav-card .tags { margin-top: 8px; gap: 6px; align-items: center; }
+.fav-card .tags { margin-top: 8px; gap: 5px; align-items: center; }
 .fav-card.has-heart .result-brand, .fav-card.has-heart .result-name { padding-right: 40px; }
-.fav-card .tag.big { font-size: 12px; padding: 4px 10px; }
+.fav-card .tag.big { font-size: 12px; padding: 4px 8px; }
 .fav-heart { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: transparent; color: #d6455d; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
 .fav-heart .ic { width: 24px; height: 24px; fill: currentColor; }
 .tag.big { font-size: 13px; padding: 5px 12px; }
@@ -882,3 +882,12 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .pv-stage img { width: 100%; height: 100%; object-fit: contain; transform-origin: center; will-change: transform; -webkit-user-drag: none; }
 .pv-close { position: absolute; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + 14px); left: 16px; width: 48px; height: 48px; border-radius: 50%; border: 0; background: #fff; color: #1b1b1b; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
 .pv-close .ic { width: 24px; height: 24px; }
+
+/* band word + number in one pill; routine picker uses the favorites card */
+.tag.sc .num { margin-left: 5px; padding-left: 5px; border-left: 1px solid currentColor; font-weight: 600; opacity: 0.85; }
+.tag.sc { font-weight: 700; }
+.fav-card.pick-card { align-items: center; }
+.fav-card.pick-card .result-text { flex: 1; min-width: 0; }
+.fav-card.pick-card .chev-ic { flex: none; color: var(--text-2); }
+.fav-card.pick-card .tags { align-items: center; }
+.tag.sc.none { background: var(--accent-soft); color: var(--text-2); }
