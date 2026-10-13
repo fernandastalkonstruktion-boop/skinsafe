@@ -760,11 +760,18 @@
     var list = loadWish(), box = el("shop-list"), favs = loadSaved();
     loadPrices().then(function (data) {
       if (!list.length) {
+        el("shop-total").hidden = true;
         box.innerHTML = '<p class="saved-empty">Nothing here yet. Open a product and tap the cart to add it to your wishlist. We will show where to buy it in Mexico and what each store charges.</p>';
       } else {
         var rows = list.map(function (p, i) { var l = lowestPrice(p, data); return { p: p, i: i, k: l ? (l.out ? 1e6 : 0) + l.price : 2e6 }; });
         rows.sort(function (a, b) { return a.k - b.k || a.i - b.i; });          // cheapest first; products without a price last
         box.innerHTML = rows.map(function (r) { return shopCardHtml(r.p, r.i, data); }).join("");
+        // Total if you bought everything at its best (lowest in-stock) price.
+        var total = 0, priced = 0, left = 0;
+        list.forEach(function (p) { var l = lowestPrice(p, data); if (l && !l.out) { total += l.price; priced++; } else left++; });
+        var tb = el("shop-total");
+        tb.hidden = !priced;
+        tb.innerHTML = '<span class="shop-total-label">If you buy everything at the best price</span><b>' + money(total) + ' <small>MXN</small></b><span class="shop-total-sub">' + priced + (priced === 1 ? " product" : " products") + (left ? " · " + left + " not counted (no price or out of stock)" : "") + ". Sizes can differ between stores.</span>";
         upgradePhotos(box);
       }
       var have = {}; list.forEach(function (x) { have[x.id] = 1; });

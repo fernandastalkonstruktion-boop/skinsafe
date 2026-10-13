@@ -1074,3 +1074,10 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .sug-wish .ic { width: 16px; height: 16px; }
 .sug-wish.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .sug-act { flex-wrap: wrap; }
+
+.shop-total { display: flex; flex-direction: column; gap: 2px; margin: 0 0 12px; padding: 12px 16px; border-radius: 18px; border: 1px solid var(--glass-line); background: var(--glass); -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2); }
+.shop-total-label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.shop-total b { font-size: 28px; font-weight: 700; line-height: 1.15; }
+.shop-total b small { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.shop-total-sub { font-size: 12px; color: var(--text-2); line-height: 1.4; }
+.shop-total[hidden] { display: none; }
