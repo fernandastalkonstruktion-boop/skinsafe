@@ -162,7 +162,14 @@
   function realIngredients(t) {
     t = (t || "").trim();
     if (/^(none|unknown|unavailable|n\/?a|null|tbd|todo|sin datos|no data)\.?$/i.test(t)) return "";
-    return /[A-Za-zÀ-ɏ]{4,}/.test(t) ? t : "";
+    if (!/[A-Za-zÀ-ɏ]{4,}/.test(t)) return "";
+    // One or two "ingredients" and none of them known is a keyboard smash ("kzkshidodnddjod") or a sentence from the box
+    // ("Uses for the relief of..."), not a list (Redken 5th Avenue NYC record, 13 Oct 2026).
+    try {
+      var A = window.Ingredients && window.Ingredients.analyze(t);
+      if (A && A.items.length <= 2 && !A.items.some(function (i) { return i.level; })) return "";
+    } catch (e) {}
+    return t;
   }
   // Products saved on this phone before the empty-record fix (an Open Beauty Facts entry with "???" and no name) stay stored as
   // "Unnamed product" with no list. They are not products: drop them wherever the phone keeps products.

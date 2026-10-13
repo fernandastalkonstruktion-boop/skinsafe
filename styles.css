@@ -628,7 +628,8 @@ body.on-result .top { display: none; }
 .fav-heart { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: transparent; color: #d6455d; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
 .fav-heart .ic { width: 24px; height: 24px; fill: currentColor; }
 .tag.big { font-size: 13px; padding: 5px 12px; }
-.tag.you { background: rgba(214, 69, 93, 0.12); color: #d6455d; }
+/* Solid white chip (Fernanda, 13 oct 2026): the see-through pink looked dull on the glass cards. */
+.tag.you { background: #fff; color: #d6455d; }
 .tag.you .ic { fill: currentColor; }
 
 /* ---------- routine ---------- */

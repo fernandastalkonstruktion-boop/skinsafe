@@ -483,7 +483,51 @@
       if ((c === "," || c === ";") && depth === 0 && !inNumber) { out.push(cur); cur = ""; } else { cur += c; }
     }
     out.push(cur);
-    return out.map(function (s) { return s.trim(); }).filter(Boolean);
+    var parts = out.map(function (s) { return s.trim(); }).filter(Boolean);
+    // Lists typed without commas (Open Beauty Facts records copied from the box, e.g. "ISODODECANE DIMETHICONE
+    // DIMETHICONOL COCOS NUCIFERA OIL • ... . LIMONENE"): a long piece is cut again at bullets, dashes and
+    // full stops, then known ingredient names are picked out word by word (13 Oct 2026).
+    // Only for lists that are (almost) all one piece; normal comma lists are left exactly as they are.
+    if (parts.length > 3) return parts;
+    var res = [];
+    parts.forEach(function (p) { if (p.split(/\s+/).length < 5 || exact(p)) res.push(p); else Array.prototype.push.apply(res, unglue(p)); });
+    return res;
+  }
+
+  // Exact names only (no type rules), so a run of several ingredients is never taken for one.
+  function exact(s) {
+    var full = clean(s), noParen = clean(s.replace(/\([^)]*\)/g, " "));
+    if (INDEX[full] || INDEX[noParen]) return true;
+    if (ES_ALIAS[deacc(full)] || ES_ALIAS[deacc(noParen)]) return true;
+    // "Cocos Nucifera Oil/Coconut Oil": every side of the slash has to be a known name.
+    return /\//.test(noParen) && noParen.split("/").every(function (x) { return !!INDEX[x.trim()]; });
+  }
+  var TAIL = /^(oil|extract|water|butter|juice|powder|ferment|filtrate|wax|leaf|flower|seed|root)$/i;
+  function unglue(piece) {
+    var bits = piece.replace(/\(\s*f\.?i\.?l\.?[^)]*\)/ig, " ").split(/\s+[•·\u2022\-–]\s+|\s*[•·\u2022]\s*|(?:^|\s)\.\s+|\.\s+(?=[A-Z])|\n+/);
+    var out = [], known = 0, words = 0;
+    bits.map(function (b) { return b.trim().replace(/[.;]+$/, ""); }).filter(Boolean).forEach(function (b) {
+      var w = b.split(/\s+/).filter(function (x) { return !/^[o•·]$/i.test(x); });
+      words += w.length;
+      if (w.length < 2 || exact(w.join(" "))) { out.push(w.join(" ")); if (lookup(w.join(" "))) known += w.length; return; }
+      var i = 0, rest = [];
+      while (i < w.length) {
+        var hit = 0, j;
+        for (j = Math.min(w.length, i + 8); j > i; j--) { if (exact(w.slice(i, j).join(" "))) { hit = j; break; } }
+        // Not a listed name (or only its first word is, like "Camellia"): the shortest run that ends like a plant
+        // ingredient ("... Seed Oil"), that a type rule knows, and whose middle words are not ingredients themselves.
+        if (hit <= i + 1) for (j = i + 2; j <= Math.min(w.length, i + 6); j++) {
+          if (j > i + 2 && exact(w[j - 2])) break;
+          if (hit === i + 1 && exact(w.slice(i + 1, j).join(" "))) break;
+          if (TAIL.test(w[j - 1]) && lookup(w.slice(i, j).join(" "))) { hit = j; break; }
+        }
+        if (hit) { if (rest.length) { out.push(rest.join(" ")); rest = []; } out.push(w.slice(i, hit).join(" ")); known += hit - i; i = hit; }
+        else { rest.push(w[i]); i++; }
+      }
+      if (rest.length) out.push(rest.join(" "));
+    });
+    // Keep the piece whole unless most of it turned out to be real ingredient names.
+    return known >= words * 0.6 ? out : [piece];
   }
 
   // Types of ingredient that are rated as a group instead of one by one (K-beauty formulas are full of them).
