@@ -721,17 +721,30 @@
       '<span class="store-name">' + '<span class="store-nm">' + x.name + (best === x ? '<span class="tag ok">Lowest</span>' : "") + '</span><span class="store-sub">' + sub + "</span></span>" +
       '<span class="store-price"><b>' + money(r[0]) + "</b>" + (r[1] ? "<s>" + money(r[1]) + "</s>" : "") + "</span>" + link(x.url, "View") + "</div>";
   }
+  // Cheapest price a product has (in stock first); sorts the wishlist from the cheapest to the most expensive.
+  function lowestPrice(p, data) {
+    var best = null, out = null;
+    storeEntries(p, data).forEach(function (x) {
+      if (!x.row) return;
+      if (x.row[2]) { if (!best || x.row[0] < best.price) best = { price: x.row[0], name: x.name, out: false }; }
+      else if (!out || x.row[0] < out.price) out = { price: x.row[0], name: x.name, out: true };
+    });
+    return best || out;
+  }
+  var shopOpen = {};
+  // One compact row per product (photo, name, lowest price); tap it to open its stores.
   function shopCardHtml(p, i, data) {
-    var en = storeEntries(p, data), best = lowestOf(en), q = encodeURIComponent(((p.brand || "") + " " + (p.name || "")).trim());
-    var an = window.Ingredients.analyze(p.ingredientsText), si = scoreInfo(p, an);
-    return '<div class="shop-card"><div class="fav-card shop-top has-heart" role="button" tabindex="0" data-i="' + i + '">' + photoHtml(p) +
-      '<span class="result-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="result-name">' + esc(p.name) + "</span>" +
-      '<span class="tags">' + (si.score === null ? "" : scoreTag(si.score, true)) + "</span></span>" +
-      '<button type="button" class="shop-del" data-i="' + i + '" aria-label="Remove from wishlist">' + ic("trash") + "</button></div>" +
-      '<div class="store-list">' + en.map(function (x) { return storeRowHtml(x, !!data, best); }).join("") +
+    var en = storeEntries(p, data), best = lowestOf(en), q = encodeURIComponent(((p.brand || "") + " " + (p.name || "")).trim()), id = productId(p), low = lowestPrice(p, data);
+    var an = window.Ingredients.analyze(p.ingredientsText), si = scoreInfo(p, an), open = !!shopOpen[id];
+    return '<div class="shop-item' + (open ? " open" : "") + '" data-id="' + esc(id) + '"><button type="button" class="shop-row" aria-expanded="' + open + '">' + photoHtml(p) +
+      '<span class="shop-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="shop-name">' + esc(p.name) + (si.score === null ? "" : ' <span class="tag sc ' + band(si.score).cls + '">' + si.score + "</span>") + "</span></span>" +
+      '<span class="shop-price">' + (low ? "<b>" + money(low.price) + "</b><span>" + (low.out ? "Out of stock · " : "") + low.name + "</span>" : "<span>No price</span>") + "</span>" + ic("chevron-right", "shop-chev") + "</button>" +
+      '<div class="shop-more"><div class="store-list">' + en.map(function (x) { return storeRowHtml(x, !!data, best); }).join("") +
       '<div class="store-row amz"><span class="store-name">Also look at<span class="store-sub">We do not read these prices: tap to search</span></span>' +
       '<span class="store-more"><a class="store-go" href="https://www.amazon.com.mx/s?k=' + q + '" target="_blank" rel="noopener noreferrer">Amazon' + ic("external") + '</a>' +
-      '<a class="store-go" href="https://www.walmart.com.mx/search?q=' + q + '" target="_blank" rel="noopener noreferrer">Walmart' + ic("external") + '</a></span></div></div></div>';
+      '<a class="store-go" href="https://www.walmart.com.mx/search?q=' + q + '" target="_blank" rel="noopener noreferrer">Walmart' + ic("external") + '</a></span></div></div>' +
+      '<div class="shop-acts"><button type="button" class="secondary small-btn shop-open" data-i="' + i + '">Details' + ic("chevron-right") + '</button>' +
+      '<button type="button" class="secondary small-btn shop-del" data-i="' + i + '" aria-label="Remove from wishlist">' + ic("trash") + "Remove</button></div></div></div>";
   }
   function renderShop() {
     var list = loadWish(), box = el("shop-list"), favs = loadSaved();
@@ -739,7 +752,9 @@
       if (!list.length) {
         box.innerHTML = '<p class="saved-empty">Nothing here yet. Open a product and tap the cart to add it to your wishlist. We will show where to buy it in Mexico and what each store charges.</p>';
       } else {
-        box.innerHTML = list.map(function (p, i) { return shopCardHtml(p, i, data); }).join("");
+        var rows = list.map(function (p, i) { var l = lowestPrice(p, data); return { p: p, i: i, k: l ? (l.out ? 1e6 : 0) + l.price : 2e6 }; });
+        rows.sort(function (a, b) { return a.k - b.k || a.i - b.i; });          // cheapest first; products without a price last
+        box.innerHTML = rows.map(function (r) { return shopCardHtml(r.p, r.i, data); }).join("");
         upgradePhotos(box);
       }
       var have = {}; list.forEach(function (x) { have[x.id] = 1; });
@@ -2652,10 +2667,11 @@
   el("tab-shop").addEventListener("click", function () { lastProduct = null; renderShop(); show("shop"); });
   el("hist-seg").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-h]") : null; if (b) { histTab = b.getAttribute("data-h"); renderHistoryTab(); } });
   el("shop-list").addEventListener("click", function (e) {
-    var del = e.target.closest ? e.target.closest(".shop-del") : null, list = loadWish();
-    if (del) { var d = list[Number(del.getAttribute("data-i"))]; if (d) { toggleWish(d); renderShop(); } return; }
-    var top = e.target.closest ? e.target.closest(".shop-top") : null, p = top && list[Number(top.getAttribute("data-i"))];
-    if (p) { cameFrom = "shop"; renderResult(p); }
+    var t = e.target.closest ? e.target : null, list = loadWish();
+    var del = t && t.closest(".shop-del"), op = t && t.closest(".shop-open"), row = t && t.closest(".shop-row");
+    if (del) { var d = list[Number(del.getAttribute("data-i"))]; if (d) { delete shopOpen[productId(d)]; toggleWish(d); renderShop(); } return; }
+    if (op) { var p = list[Number(op.getAttribute("data-i"))]; if (p) { cameFrom = "shop"; renderResult(p); } return; }
+    if (row) { var item = row.parentNode, id = item.getAttribute("data-id"), on = !item.classList.contains("open"); item.classList.toggle("open", on); row.setAttribute("aria-expanded", String(on)); if (on) shopOpen[id] = 1; else delete shopOpen[id]; }
   });
   el("shop-addfavs").addEventListener("click", function () {
     var have = {}; loadWish().forEach(function (x) { have[x.id] = 1; });
