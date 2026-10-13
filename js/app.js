@@ -704,14 +704,20 @@
     // Cheapest first. "Lowest" is only shown when both stores publish the size and it is the same.
     return [
       { name: "Sephora México", row: e.s, url: e.s ? "https://www.sephora.com.mx/products-" + e.s[3] + ".html" : "" },
-      { name: "Euphoria", row: e.e, url: e.e ? "https://euphoria.com.mx/products/" + e.e[3] : "" }
+      { name: "Euphoria", row: e.e, url: e.e ? "https://euphoria.com.mx/products/" + e.e[3] : "" },
+      { name: "Sally Beauty", row: e.y, url: e.y ? "https://www.sallymexico.com/" + e.y[3] + "/p" : "" }
     ].sort(function (a, b) { return (a.row ? a.row[0] : 1e9) - (b.row ? b.row[0] : 1e9); });
   }
+  // "Lowest" only when another store sells the SAME size: the cheapest in-stock price among the stores that share a size with another store.
   function lowestOf(entries) {
-    var a = entries[0], b = entries[1];
-    if (!a.row || !b.row || !a.row[2] || !b.row[2] || !a.row[4] || !b.row[4]) return null;
-    if (String(a.row[4]).toLowerCase().replace(/\s/g, "") !== String(b.row[4]).toLowerCase().replace(/\s/g, "")) return null;
-    return a.row[0] < b.row[0] ? a : b.row[0] < a.row[0] ? b : null;
+    var best = null;
+    entries.forEach(function (a) {
+      if (!a.row || !a.row[2] || !a.row[4]) return;
+      var key = String(a.row[4]).toLowerCase().replace(/\s/g, "");
+      var same = entries.filter(function (b) { return b !== a && b.row && b.row[2] && b.row[4] && String(b.row[4]).toLowerCase().replace(/\s/g, "") === key; });
+      if (same.length && !same.some(function (b) { return b.row[0] <= a.row[0]; }) && (!best || a.row[0] < best.row[0])) best = a;
+    });
+    return best;
   }
   function storeRowHtml(x, hasData, best) {
     var link = function (url, label) { return '<a class="store-go" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' + label + ic("external") + "</a>"; };
@@ -742,6 +748,11 @@
     return t;
   }
   // One compact row per product (photo, name, lowest price); tap it to open its stores.
+  function notFoundRow(en, hasData) {
+    var miss = en.filter(function (x) { return !x.row; }).map(function (x) { return x.name; });
+    if (!miss.length) return "";
+    return '<div class="store-row none"><span class="store-none" style="margin-left:0;text-align:left">' + (hasData ? (miss.length === en.length ? "No price found at " : "Not found at ") + miss.join(", ") : "Prices didn’t load") + "</span></div>";
+  }
   function shopCardHtml(p, i, data) {
     var en = storeEntries(p, data), best = lowestOf(en), q = encodeURIComponent(((p.brand || "") + " " + (p.name || "")).trim()), id = productId(p), low = lowestPrice(p, data);
     var an = window.Ingredients.analyze(p.ingredientsText), si = scoreInfo(p, an), open = !!shopOpen[id];
@@ -749,12 +760,26 @@
       '<span class="shop-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="shop-name">' + esc(p.name) + "</span>" +
       '<span class="shop-tags">' + shopTags(p, an, si) + "</span></span>" +
       '<span class="shop-price">' + (low ? "<b>" + money(low.price) + "</b><span>" + (low.out ? "Out of stock · " : "") + low.name + "</span>" : "<span>No price</span>") + "</span>" + ic("chevron-right", "shop-chev") + "</button>" +
-      '<div class="shop-more"><div class="store-list">' + en.map(function (x) { return storeRowHtml(x, !!data, best); }).join("") +
+      '<div class="shop-more"><div class="store-list">' + en.filter(function (x) { return x.row; }).map(function (x) { return storeRowHtml(x, !!data, best); }).join("") + notFoundRow(en, !!data) +
       '<div class="store-row amz"><span class="store-name">Also look at<span class="store-sub">We do not read these prices: tap to search</span></span>' +
       '<span class="store-more"><a class="store-go" href="https://www.amazon.com.mx/s?k=' + q + '" target="_blank" rel="noopener noreferrer">Amazon' + ic("external") + '</a>' +
       '<a class="store-go" href="https://www.walmart.com.mx/search?q=' + q + '" target="_blank" rel="noopener noreferrer">Walmart' + ic("external") + '</a></span></div></div>' +
       '<div class="shop-acts"><button type="button" class="secondary small-btn shop-open" data-i="' + i + '">Details' + ic("chevron-right") + '</button>' +
       '<button type="button" class="secondary small-btn shop-del" data-i="' + i + '" aria-label="Remove from wishlist">' + ic("trash") + "Remove</button></div></div></div>";
+  }
+  // Very small price comparison at the bottom of a product page: stores cheapest first, plus search links for the ones we do not read.
+  function renderBuyMini(p) {
+    var box = el("buy-mini"); box.hidden = true;
+    loadPrices().then(function (data) {
+      if (lastProduct !== p) return;
+      var rows = storeEntries(p, data).filter(function (x) { return x.row; }), q = encodeURIComponent(((p.brand || "") + " " + (p.name || "")).trim());
+      var html = '<p class="buy-title">' + ic("bag") + "Where to buy in Mexico" + (data && data.asOf ? ' <span>· prices of ' + niceDate(data.asOf) + "</span>" : "") + "</p>";
+      html += rows.map(function (x) {
+        return '<a class="buy-row' + (x.row[2] ? "" : " out") + '" href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer"><span>' + x.name + (x.row[4] ? " · " + esc(x.row[4]) : "") + (x.row[2] ? "" : " · out of stock") + "</span><b>" + money(x.row[0]) + "</b></a>";
+      }).join("");
+      html += '<p class="buy-more">Also search: <a href="https://www.amazon.com.mx/s?k=' + q + '" target="_blank" rel="noopener noreferrer">Amazon</a> · <a href="https://www.walmart.com.mx/search?q=' + q + '" target="_blank" rel="noopener noreferrer">Walmart</a></p>';
+      box.innerHTML = html; box.hidden = false;
+    });
   }
   function renderShop() {
     var list = loadWish(), box = el("shop-list"), favs = loadSaved();
@@ -778,7 +803,7 @@
       var more = favs.filter(function (x) { return !have[x.id]; }).length, b = el("shop-addfavs");
       b.hidden = !more;
       b.textContent = "Add my " + (more === 1 ? "favorite" : more + " favorites") + " to the wishlist";
-      el("shop-note").lastElementChild.textContent = (data && data.asOf ? "Prices are what Sephora México and Euphoria listed on " + niceDate(data.asOf) + ". Stores change them often and sizes can differ, so confirm in the store. " : "We could not load the prices, so only the store links work. ") +
+      el("shop-note").lastElementChild.textContent = (data && data.asOf ? "Prices are what Sephora México, Euphoria and Sally Beauty listed on " + niceDate(data.asOf) + ". Stores change them often and sizes can differ, so confirm in the store. " : "We could not load the prices, so only the store links work. ") +
         "We never estimate a price: where you see none, the store did not list it or we could not match the product with certainty.";
     });
   }
@@ -1503,6 +1528,7 @@
     el("note-btn").setAttribute("aria-expanded", "false");
     renderHeart(product);
     renderWishBtn(product);
+    renderBuyMini(product);
     renderAlerts(product);
     renderAllergyBox(a.items);
     renderMatch(a.items, product);

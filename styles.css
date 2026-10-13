@@ -1081,3 +1081,15 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .shop-total b small { font-size: 13px; font-weight: 600; color: var(--text-2); }
 .shop-total-sub { font-size: 12px; color: var(--text-2); line-height: 1.4; }
 .shop-total[hidden] { display: none; }
+
+/* tiny price comparison at the bottom of a product page */
+.buy-mini { margin: 14px 0 2px; padding: 8px 10px; border-radius: 12px; background: var(--soft); font-size: 12px; color: var(--text-2); }
+.buy-mini[hidden] { display: none; }
+.buy-title { display: flex; align-items: center; gap: 5px; margin: 0 0 4px; font-size: 12px; font-weight: 600; color: var(--text); }
+.buy-title .ic { width: 14px; height: 14px; }
+.buy-title span { font-weight: 400; color: var(--text-2); }
+.buy-row { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; color: var(--text); text-decoration: none; font-size: 12px; }
+.buy-row b { font-weight: 600; }
+.buy-row.out { opacity: 0.6; }
+.buy-more { margin: 4px 0 0; font-size: 11px; }
+.buy-more a { color: var(--accent); }
