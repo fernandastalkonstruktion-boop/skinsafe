@@ -732,12 +732,22 @@
     return best || out;
   }
   var shopOpen = {};
+  // Same rating tags as every other product card (band word + number, "For you", alerts), without the certification logos so the row stays short.
+  function shopTags(p, an, si) {
+    var ids = window.Profile.loadAllergies(), words = window.Profile.loadWords(), t = "";
+    t += si.score === null ? '<span class="tag big sc none">Not enough data</span>' : scoreTag(si.score, true);
+    t += youTag(p);
+    if (window.Alerts && window.Alerts.match(p).length) t += '<span class="tag bad">' + ic("alert") + "Official alert</span>";
+    if ((ids.length || words.length) && window.Profile.allergyHits(an.items, ids, words).length) t += '<span class="tag bad">' + ic("alert") + "Your allergy</span>";
+    return t;
+  }
   // One compact row per product (photo, name, lowest price); tap it to open its stores.
   function shopCardHtml(p, i, data) {
     var en = storeEntries(p, data), best = lowestOf(en), q = encodeURIComponent(((p.brand || "") + " " + (p.name || "")).trim()), id = productId(p), low = lowestPrice(p, data);
     var an = window.Ingredients.analyze(p.ingredientsText), si = scoreInfo(p, an), open = !!shopOpen[id];
     return '<div class="shop-item' + (open ? " open" : "") + '" data-id="' + esc(id) + '"><button type="button" class="shop-row" aria-expanded="' + open + '">' + photoHtml(p) +
-      '<span class="shop-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="shop-name">' + esc(p.name) + (si.score === null ? "" : ' <span class="tag sc ' + band(si.score).cls + '">' + si.score + "</span>") + "</span></span>" +
+      '<span class="shop-text"><span class="result-brand">' + esc(p.brand) + '</span><span class="shop-name">' + esc(p.name) + "</span>" +
+      '<span class="shop-tags">' + shopTags(p, an, si) + "</span></span>" +
       '<span class="shop-price">' + (low ? "<b>" + money(low.price) + "</b><span>" + (low.out ? "Out of stock · " : "") + low.name + "</span>" : "<span>No price</span>") + "</span>" + ic("chevron-right", "shop-chev") + "</button>" +
       '<div class="shop-more"><div class="store-list">' + en.map(function (x) { return storeRowHtml(x, !!data, best); }).join("") +
       '<div class="store-row amz"><span class="store-name">Also look at<span class="store-sub">We do not read these prices: tap to search</span></span>' +

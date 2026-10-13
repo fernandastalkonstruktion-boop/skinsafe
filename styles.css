@@ -1056,10 +1056,11 @@ body.on-profile #skin .profile-card.pref { display: block; }
 /* Shop: one compact row per product, opens to show its stores */
 .shop-item { border-radius: 16px; border: 1px solid var(--glass-line); background: var(--glass); -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2); overflow: hidden; }
 .shop-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px 8px 8px; border: 0; background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.shop-row img, .shop-row .result-ph { width: 44px; height: 52px; flex: none; border-radius: 10px; object-fit: contain; background: #fff; display: flex; align-items: center; justify-content: center; color: var(--accent); }
+.shop-row img, .shop-row .result-ph { width: 48px; height: 58px; flex: none; border-radius: 10px; object-fit: contain; background: #fff; display: flex; align-items: center; justify-content: center; color: var(--accent); }
 .shop-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .shop-name { font-size: 14px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.shop-name .tag { padding: 0 6px; font-size: 11px; vertical-align: 1px; }
+.shop-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 4px; }
+.shop-tags .tag.big { font-size: 12px; padding: 3px 9px; }
 .shop-price { flex: none; display: flex; flex-direction: column; align-items: flex-end; max-width: 112px; text-align: right; }
 .shop-price b { font-size: 15px; font-weight: 700; }
 .shop-price span { font-size: 11px; color: var(--text-2); line-height: 1.25; }
