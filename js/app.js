@@ -865,10 +865,11 @@
     return pd;
   }
   function sugActHtml(p, i) {
-    if (!periodForKind(kindOf(p))) return "";
-    return '<div class="sug-act">' + (inRoutine(p)
+    var routine = !periodForKind(kindOf(p)) ? "" : (inRoutine(p)
       ? '<span class="sug-in">' + ic("check") + 'In your routine</span><button type="button" class="link sug-view" data-i="' + i + '">View</button>'
-      : '<button type="button" class="secondary small-btn sug-add" data-i="' + i + '">' + ic("plus") + "Add to routine</button>") + "</div>";
+      : '<button type="button" class="secondary small-btn sug-add" data-i="' + i + '">' + ic("plus") + "Add to routine</button>");
+    var wished = isWished(p);
+    return '<div class="sug-act">' + routine + '<button type="button" class="secondary small-btn sug-wish' + (wished ? " on" : "") + '" data-i="' + i + '" aria-pressed="' + wished + '" aria-label="' + (wished ? "Remove from wishlist" : "Add to wishlist") + '">' + ic("bag") + (wished ? "In wishlist" : "Wishlist") + "</button></div>";
   }
   function renderSug() {
     if (!sugCount) { sugCount = {}; catalogList.forEach(function (p) { if (!p.partial) { var k = kindOf(p); sugCount[k] = (sugCount[k] || 0) + 1; } }); }
@@ -2681,7 +2682,13 @@
     var del = t && t.closest(".shop-del"), op = t && t.closest(".shop-open"), row = t && t.closest(".shop-row");
     if (del) { var d = list[Number(del.getAttribute("data-i"))]; if (d) { delete shopOpen[productId(d)]; toggleWish(d); renderShop(); } return; }
     if (op) { var p = list[Number(op.getAttribute("data-i"))]; if (p) { cameFrom = "shop"; renderResult(p); } return; }
-    if (row) { var item = row.parentNode, id = item.getAttribute("data-id"), on = !item.classList.contains("open"); item.classList.toggle("open", on); row.setAttribute("aria-expanded", String(on)); if (on) shopOpen[id] = 1; else delete shopOpen[id]; }
+    if (row) {
+      // Only one product is open at a time: opening another closes the first.
+      var item = row.parentNode, id = item.getAttribute("data-id"), on = !item.classList.contains("open");
+      Array.prototype.forEach.call(el("shop-list").querySelectorAll(".shop-item.open"), function (o) { o.classList.remove("open"); o.firstChild.setAttribute("aria-expanded", "false"); });
+      shopOpen = {};
+      if (on) { item.classList.add("open"); row.setAttribute("aria-expanded", "true"); shopOpen[id] = 1; try { item.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) {} }
+    }
   });
   el("shop-addfavs").addEventListener("click", function () {
     var have = {}; loadWish().forEach(function (x) { have[x.id] = 1; });
@@ -2697,11 +2704,12 @@
   el("sug-areas").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-area]") : null; if (b) { sug.area = b.getAttribute("data-area"); sug.kind = ""; renderSug(); } });
   el("sug-chips").addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest("button[data-k]") : null; if (b) { sug.kind = b.getAttribute("data-k"); renderSug(); } });
   el("sug-list").addEventListener("click", function (e) {
-    var ab = e.target.closest ? e.target.closest(".sug-add, .sug-view") : null;
+    var ab = e.target.closest ? e.target.closest(".sug-add, .sug-view, .sug-wish") : null;
     if (ab) {
       var sp = sug.rows[Number(ab.getAttribute("data-i"))];
       if (!sp) return;
-      if (ab.classList.contains("sug-add")) { addToRoutine(sp); renderSug(); }
+      if (ab.classList.contains("sug-wish")) { toggleWish(sp); renderSug(); }
+      else if (ab.classList.contains("sug-add")) { addToRoutine(sp); renderSug(); }
       else { rtPeriod = periodForKind(kindOf(sp)); openRoutine(); }
       return;
     }

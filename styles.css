@@ -1071,3 +1071,6 @@ body.on-profile #skin .profile-card.pref { display: block; }
 .shop-acts { display: flex; justify-content: space-between; gap: 8px; padding: 10px 12px 12px; }
 .shop-acts .shop-del { position: static; width: auto; height: auto; border-radius: 999px; padding: 7px 14px; color: var(--text); }
 .shop-acts .ic { width: 16px; height: 16px; }
+.sug-wish .ic { width: 16px; height: 16px; }
+.sug-wish.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sug-act { flex-wrap: wrap; }
