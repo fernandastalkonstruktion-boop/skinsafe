@@ -261,6 +261,10 @@
     // Sephora makeup round (11 Oct 2026), part 2: more pigments and mineral fillers/pearls. General knowledge, nobody has reviewed these.
     ["good", ["ci 77007", "ultramarines", "ci 77742", "manganese violet", "orange 5 (ci 45370)", "orange 5", "ci 45370"], "Colorant", "A colorant that gives the product its color. Permitted in cosmetics; some are limited to certain product types (for example not near the eyes).", [], [], ["COSING"]],
     ["good", ["calcium titanium borosilicate", "barium sulfate", "magnesium carbonate", "calcium sulfate", "magnesium oxide", "aluminum calcium sodium silicate", "aluminum silicate", "hectorite", "stearalkonium bentonite", "nylon-6", "diatomaceous earth"], "Mineral filler, pearl or bulking agent", "Mineral or polymer powder used to add slip, bulk, shimmer or oil absorption in makeup. Generally well tolerated; avoid breathing in loose powders.", [], [], ["COSING"]],
+    // Costco Mexico round (18 Oct 2026, batches 259-265): ingredients that were not rated yet. General knowledge; none of these is banned or restricted below 1% in the EU cosmetics regulation as far as we know, and the strictest regulator would win. Nobody has reviewed these entries.
+    ["good", ["tocopheryl glucoside", "panthenyl triacetate", "ethylhexyl ferulate", "butylene glycol cocoate", "sodium dextran sulfate", "stearyl glycyrrhetinate", "c20-22 alkyl phosphate", "c20-22 alcohols", "corn starch modified", "dipropylene glycol dibenzoate", "hydroxypropylcellulose", "biosaccharide gum-2", "lysolecithin", "hydrogenated palm glycerides", "glycosyl trehalose", "raffinose", "glycogen", "glyceryl cocoate", "dehydroxanthan gum", "hydrolyzed caesalpinia spinosa gum", "dipropylheptyl carbonate", "diethylhexyl carbonate", "octyldodecyl xyloside", "heptyl glucoside", "maltooligosyl glucoside", "lactitol", "hexyldecanol", "helianthus annuus seed wax", "euphorbia cerifera wax", "hydrogenated microcrystalline wax", "c18-36 acid glycol ester", "c18-36 acid triglyceride", "cellulose acetate", "calcium alginate", "avena sativa kernel meal", "hydrolyzed soy flour", "oleyl alcohol", "phytosphingosine hcl", "sodium cholate", "aluminum stearate", "polyamide-3", "hydrogenated vegetable glycerides", "oryza sativa bran cera", "nitrogen", "avene thermal spring water (avene aqua)"], "Texture, conditioning or support ingredient", "Used for texture, moisture or to keep the formula stable. Generally well tolerated at cosmetic levels.", [], [], ["COSING"]],
+    ["good", ["oxothiazolidine", "melanin", "dihydromyricetin", "hesperidin", "epigallocatechin gallate", "resveratrol dimethyl ether", "superoxide dismutase", "glycosaminoglycans", "chrysin", "4-butylresorcinol", "hydroxyphenyl propamidobenzoic acid", "silanediol salicylate", "hydroxypropyl tetrahydropyrantriol", "potassium azeloyl diglycinate", "tetrahydropiperine", "diacetyl boldine", "undecylenoyl phenylalanine", "4-t-butylcyclohexanol", "pistacia lentiscus gum", "sclareolide", "copper gluconate", "manganese gluconate", "dimethylmethoxy chromanol", "micrococcus lysate", "10-hydroxydecenoic acid", "succinic acid", "decarboxy carnosine hcl"], "Antioxidant, soothing or brightening active", "A skin-care active used to soothe, protect from oxidation or even out tone. Considered safe at the levels used in cosmetics.", [], [], ["COSING"]],
+    ["good", ["phenylene bis-diphenyltriazine", "diethylhexyl syringylidenemalonate", "bis-ethylhexyl hydroxydimethoxy benzylmalonate", "ethylhexyl methoxycrylene"], "UV filter or photostabilizer", "Helps the sunscreen absorb UV light or keeps the other filters stable. TriAsorB (phenylene bis-diphenyltriazine) is approved in the EU up to 5%.", [], [], ["EUREG", "COSING"]],
   ];
 
   // Evidence in people, one code per group (12 Oct 2026; method and sources in docs/investigacion-12oct/): A high, M moderate, L low,
@@ -442,7 +446,10 @@
     "chamaecyparis obtusa oil": ["U", "irritation"],
     "bismuth oxychloride": ["N"],
     "ci 77007": ["N"],
-    "calcium titanium borosilicate": ["N"]
+    "calcium titanium borosilicate": ["N"],
+    "tocopheryl glucoside": ["N"],
+    "oxothiazolidine": ["U", "benefit: brightening"],
+    "phenylene bis-diphenyltriazine": ["R"]
   };
 
   var INDEX = {};

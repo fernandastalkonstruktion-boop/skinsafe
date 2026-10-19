@@ -705,7 +705,8 @@
     return [
       { name: "Sephora México", row: e.s, url: e.s ? "https://www.sephora.com.mx/products-" + e.s[3] + ".html" : "" },
       { name: "Euphoria", row: e.e, url: e.e ? "https://euphoria.com.mx/products/" + e.e[3] : "" },
-      { name: "Sally Beauty", row: e.y, url: e.y ? "https://www.sallymexico.com/" + e.y[3] + "/p" : "" }
+      { name: "Sally Beauty", row: e.y, url: e.y ? "https://www.sallymexico.com/" + e.y[3] + "/p" : "" },
+      { name: "Costco", row: e.c, url: e.c ? "https://www.costco.com.mx" + e.c[3] : "" }
     ].sort(function (a, b) { return (a.row ? a.row[0] : 1e9) - (b.row ? b.row[0] : 1e9); });
   }
   // "Lowest" only when another store sells the SAME size: the cheapest in-stock price among the stores that share a size with another store.
