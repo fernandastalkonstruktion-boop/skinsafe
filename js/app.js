@@ -43,7 +43,10 @@
     indTab = id;
   }
   window.addEventListener("resize", function () { if (indTab) moveIndicator(indTab, true); });
+  // Where each list was scrolled to, so Back from a product returns to the same spot instead of the top (22 Oct 2026).
+  var SCROLL = {}, restoreScroll = false;
   function show(view) {
+    VIEWS.forEach(function (v) { if (!el(v).hidden && v !== view) SCROLL[v] = window.scrollY; });
     VIEWS.forEach(function (v) { el(v).hidden = v !== view; });
     var active = TAB_OF[view] || "";
     Array.prototype.forEach.call(document.querySelectorAll("#tabbar .tab"), function (b) {
@@ -55,7 +58,10 @@
     document.body.classList.toggle("on-result", view === "result");
     document.body.classList.toggle("on-home", view === "home");
     document.body.classList.toggle("on-profile", view === "skin");
-    window.scrollTo(0, 0);
+    var y = restoreScroll && SCROLL[view] ? SCROLL[view] : 0;
+    restoreScroll = false;
+    window.scrollTo(0, y);
+    if (y) requestAnimationFrame(function () { window.scrollTo(0, y); setTimeout(function () { window.scrollTo(0, y); }, 60); });
   }
   function showStatus(text, offerPhoto) {
     el("status-text").textContent = text;
@@ -1560,6 +1566,7 @@
 
   function backFromResult() {
     lastProduct = null;
+    restoreScroll = cameFrom !== "cam";
     if (cameFrom === "cam") openCam("code");
     else if (cameFrom === "results" && lastResults) show("results");
     else if (cameFrom === "history") openHistory("recent");
