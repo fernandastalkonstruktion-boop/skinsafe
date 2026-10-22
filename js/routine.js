@@ -100,7 +100,7 @@
 
   // Oral hygiene (toothpaste, mouthwash): its own group, apart from skin and hair. It has no routine steps and no skin or hair quiz.
   var ORAL_KINDS = { oral: { label: "Oral hygiene", hint: "Toothpaste and mouthwash" } };
-  var ORAL_BRAND = /^(colgate|crest|sensodyne|listerine|oral-b|parodontax|meridol|elmex|therabreath|marvis|curaprox|pepsodent|close-?up|arm & hammer|hello|tom's of maine|mitch)$/i;
+  var ORAL_BRAND = /^(colgate|crest|sensodyne|listerine|oral-b|parodontax|meridol|elmex|therabreath|marvis|curaprox|pepsodent|close-?up|arm & hammer|hello|tom's of maine|mitch|boka|bienestar neem erfre)$/i;
   var ORAL_WORD = /(toothpaste|tooth paste|dentifrice|pasta dental|pasta de dientes|crema dental|gel dental|mouthwash|mouth rinse|oral rinse|enjuague bucal|enjuague|oral care|\bplax\b|gum (care|protection|detoxify|therapy)|enamel|whitening mint)/i;
   // First aid (wound antiseptics like Microdacyn): same treatment as oral care (own group, no skin or hair quiz, no routine steps).
   var AID_KINDS = { aid: { label: "First aid", hint: "Wound care and antiseptics" } };
